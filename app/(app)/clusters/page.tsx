@@ -37,7 +37,7 @@ export default function ClustersPage() {
         <Badge variant="secondary" className="text-xs font-medium px-3 py-1">{clusters.length} clusters</Badge>
       </div>
 
-      <div className="p-6 grid grid-cols-3 gap-4 auto-rows-fr">
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
         {clusters.map((cluster) => (
           <div
             key={cluster.id}

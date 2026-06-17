@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Metrics strip */}
-      <div className="px-6 py-4 border-b border-border/40 grid grid-cols-4 divide-x divide-border/40 shrink-0">
+      <div className="px-6 py-4 border-b border-border/40 grid grid-cols-2 lg:grid-cols-4 gap-y-4 divide-x-0 lg:divide-x divide-border/40 shrink-0">
         {METRICS.map(({ label, value, delta, up, color, dot }) => (
           <div key={label} className="px-5 first:pl-0 last:pr-0 space-y-0.5">
             <div className="flex items-center gap-1.5">
@@ -69,10 +69,10 @@ export default function AnalyticsPage() {
       </div>
 
       {/* 3-column kanban layout — each column scrolls independently */}
-      <div className="flex flex-1 divide-x divide-border/40 overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 divide-y lg:divide-y-0 lg:divide-x divide-border/40 overflow-hidden">
 
         {/* Column 1 — Trend */}
-        <div className="flex-[2] min-w-0 flex flex-col overflow-y-auto">
+        <div className="lg:flex-[2] min-w-0 flex flex-col overflow-y-auto">
           <div className="px-6 pt-5 pb-3 shrink-0">
             <h2 className="text-sm font-semibold">Ticket Trend</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Processed, accepted, rejected over time</p>

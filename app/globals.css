@@ -132,7 +132,24 @@
   }
 }
 
+@keyframes blob {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(-30px, -20px) scale(1.08); }
+  66%  { transform: translate(20px, -35px) scale(0.95); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
 @layer utilities {
+  .animate-blob {
+    animation: blob 10s infinite ease-in-out;
+  }
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
   /* Subtle elevated surface used on key cards/panels */
   .surface-card {
     box-shadow:

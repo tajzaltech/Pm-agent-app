@@ -131,7 +131,7 @@ export default function DashboardPage() {
     <div className="p-6 space-y-7">
 
       {/* Stat cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <StatCard
           label="Tickets Processed"
           value={total}
@@ -175,12 +175,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Activity + Agent health */}
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Activity feed */}
-        <div className="col-span-2 space-y-3">
+        <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Recent Activity</h2>
-            <div className="flex items-center gap-0.5 bg-muted/40 rounded-lg p-0.5 border">
+            <div className="flex items-center gap-0.5 bg-muted/40 rounded-lg p-0.5 border overflow-x-auto">
               {FILTER_TABS.map((f) => (
                 <button
                   key={f}
