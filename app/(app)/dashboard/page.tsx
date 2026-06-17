@@ -64,10 +64,10 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b px-6 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b px-4 md:px-6 h-14 flex items-center justify-between shrink-0">
         <h1 className="text-base font-semibold tracking-tight">Dashboard</h1>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 border rounded-lg px-3 py-1.5">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 border rounded-lg px-3 py-1.5">
             <Activity className="size-3.5 text-emerald-500" />
             Agent active · last run 3m ago
           </div>

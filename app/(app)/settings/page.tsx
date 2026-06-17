@@ -109,14 +109,14 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b px-6 h-14 flex items-center shrink-0">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b px-4 md:px-6 h-14 flex items-center shrink-0">
         <h1 className="text-base font-semibold tracking-tight">Settings</h1>
       </div>
 
     <div className="p-6 space-y-6">
 
       <Tabs defaultValue="team" className="space-y-6">
-        <TabsList className="h-10 rounded-xl bg-muted/50 border p-1 gap-0.5">
+        <TabsList className="h-10 rounded-xl bg-muted/50 border p-1 gap-0.5 flex-wrap md:flex-nowrap overflow-x-auto">
           <TabsTrigger value="team" className="rounded-lg text-sm">Team</TabsTrigger>
           <TabsTrigger value="preferences" className="rounded-lg text-sm">Preferences</TabsTrigger>
           <TabsTrigger value="delivery" className="rounded-lg text-sm">Delivery</TabsTrigger>

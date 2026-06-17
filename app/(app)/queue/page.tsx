@@ -267,8 +267,9 @@ export default function QueuePage() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t px-6 py-3">
-          <div className="flex rounded-xl border bg-muted/40 p-1 gap-0.5">
+        <div className="flex flex-col gap-2 border-t px-4 md:px-6 py-3">
+          {/* Tabs row */}
+          <div className="flex rounded-xl border bg-muted/40 p-1 gap-0.5 overflow-x-auto">
             {tabs.map(({ key, label, count }) => (
               <button
                 key={key}
@@ -278,51 +279,42 @@ export default function QueuePage() {
                   setSelected(new Set());
                 }}
                 className={cn(
-                  "flex h-8 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-all",
+                  "flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-all whitespace-nowrap",
                   activeTab === key
                     ? "bg-white text-foreground shadow-sm border"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {label}
-                <span
-                  className={cn(
-                    "min-w-5 rounded-full px-1.5 text-center text-[11px] font-semibold",
-                    activeTab === key ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                  )}
-                >
+                <span className={cn("min-w-5 rounded-full px-1.5 text-center text-[11px] font-semibold", activeTab === key ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
                   {count}
                 </span>
               </button>
             ))}
           </div>
 
-          <div className="flex flex-1 items-center justify-end gap-2 min-w-[320px]">
-            <div className="relative w-full max-w-sm">
+          {/* Search + sort row */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 ref={searchRef}
-                placeholder="Search ticket, customer, file... (/)"
+                placeholder="Search... (/)"
                 className="h-9 pl-9"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
             </div>
-            <Select
-              value={sort}
-              onValueChange={(value) => {
-                if (value) setSort(value as SortOption);
-              }}
-            >
-              <SelectTrigger className="h-9 w-48 bg-white">
-                <ArrowDownUp className="mr-2 size-3.5 text-muted-foreground" />
+            <Select value={sort} onValueChange={(value) => { if (value) setSort(value as SortOption); }}>
+              <SelectTrigger className="h-9 w-36 md:w-48 bg-white shrink-0">
+                <ArrowDownUp className="mr-1.5 size-3.5 text-muted-foreground" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="newest">Newest first</SelectItem>
-                <SelectItem value="oldest">Oldest first</SelectItem>
-                <SelectItem value="scope_large">Scope: largest first</SelectItem>
-                <SelectItem value="scope_small">Scope: smallest first</SelectItem>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="oldest">Oldest</SelectItem>
+                <SelectItem value="scope_large">Largest scope</SelectItem>
+                <SelectItem value="scope_small">Smallest scope</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -383,8 +375,8 @@ export default function QueuePage() {
             />
           )
         ) : (
-          <div className="p-6">
-            <div className="space-y-3">
+          <div className="p-3 md:p-6">
+            <div className="space-y-2 md:space-y-3">
               {filtered.map((ticket, index) => (
                 <TicketRow
                   key={ticket.id}
@@ -407,7 +399,7 @@ export default function QueuePage() {
         )}
       </main>
 
-      <footer className="shrink-0 border-t bg-white px-6 py-2">
+      <footer className="hidden md:block shrink-0 border-t bg-white px-6 py-2">
         <div className="flex flex-wrap items-center gap-4">
           <KbdHint keys={["Up", "Down"]} label="Navigate" />
           <KbdHint keys={["Enter"]} label="Open" />
@@ -557,7 +549,7 @@ function TicketRow({
       onClick={() => router.push(`/queue/${ticket.id}`)}
       onMouseEnter={onFocus}
     >
-      <div className="flex divide-x divide-border/50">
+      <div className="flex flex-col md:flex-row md:divide-x divide-border/50">
         {/* LEFT — title + description + code refs */}
         <div className="flex-1 min-w-0 px-4 py-3 space-y-1.5">
           {/* Ticket ID + time */}
@@ -601,7 +593,7 @@ function TicketRow({
         </div>
 
         {/* RIGHT — badges + status + actions */}
-        <div className="w-48 shrink-0 px-3 py-3 flex flex-col justify-between gap-2">
+        <div className="md:w-48 shrink-0 px-4 pb-3 pt-0 md:px-3 md:py-3 flex flex-row md:flex-col justify-between gap-2">
           {/* Top: badges */}
           <div className="space-y-1.5">
             <div className="flex flex-wrap gap-1">

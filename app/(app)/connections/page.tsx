@@ -91,7 +91,7 @@ export default function ConnectionsPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b px-6 h-14 flex items-center shrink-0">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b px-4 md:px-6 h-14 flex items-center shrink-0">
         <h1 className="text-base font-semibold tracking-tight">Connections</h1>
       </div>
 
@@ -262,7 +262,7 @@ function DeveloperAgentsSection() {
       </div>
 
       {/* Agent type cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {AGENT_CARDS.map((card) => (
           <button
             key={card.type}
