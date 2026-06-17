@@ -14,6 +14,7 @@ import {
   MondayLogo,
   PMAgentLogo,
   SalesforceLogo,
+  SlackLogo,
   WebhookLogo,
   ZapierLogo,
   ZendeskLogo,
@@ -52,7 +53,7 @@ export function AuthShell({
     // Row 3 (center)
     { label: "Webhook", Logo: WebhookLogo, className: "left-[4%] top-[48%] rotate-[10deg] opacity-80" },
     { label: "Bitbucket", Logo: BitbucketLogo, className: "left-[20%] top-[50%] rotate-[14deg] opacity-70" },
-    { label: "Slack", slug: "slack", className: "left-[37%] top-[47%] rotate-[-6deg] opacity-85" },
+    { label: "Slack", Logo: SlackLogo, className: "left-[37%] top-[47%] rotate-[-6deg] opacity-85" },
     { label: "Trello", slug: "trello", className: "left-[68%] top-[50%] rotate-[-6deg] opacity-80" },
     { label: "Asana", slug: "asana", className: "left-[85%] top-[46%] rotate-[9deg]" },
     // Row 4
