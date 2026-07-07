@@ -76,10 +76,11 @@ export const SOURCE_CONFIG: Record<
 };
 
 export const NAV_ITEMS = [
-  { href: "/queue", label: "Queue", icon: "inbox" },
-  { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard" },
-  { href: "/clusters", label: "Clusters", icon: "layers", badge: "V2" },
-  { href: "/analytics", label: "Analytics", icon: "bar-chart-2", badge: "V2" },
-  { href: "/connections", label: "Connections", icon: "plug" },
-  { href: "/settings", label: "Settings", icon: "settings" },
+  { href: "/dashboard", label: "Command Center", icon: "layout-dashboard" },
+  { href: "/triage", label: "Triage", icon: "inbox" },
+  { href: "/pipeline", label: "Pipeline", icon: "git-branch" },
+  { href: "/insights", label: "Insights", icon: "bar-chart-2" },
+  { href: "/sources", label: "Repos & Sources", icon: "network" },
+  { href: "/automation", label: "Automation", icon: "sliders-horizontal" },
+  { href: "/team", label: "Team", icon: "users" },
 ] as const;

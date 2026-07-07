@@ -59,8 +59,8 @@ export function IndexingScreen() {
                 </p>
               )}
             </div>
-            <Button size="lg" className="w-full" onClick={() => router.push("/queue")}>
-              Go to Queue -&gt;
+            <Button size="lg" className="w-full" onClick={() => router.push("/dashboard")}>
+              Go to Command Center -&gt;
             </Button>
           </>
         ) : isError ? (

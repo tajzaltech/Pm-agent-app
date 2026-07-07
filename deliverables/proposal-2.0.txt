@@ -1,0 +1,131 @@
+PM Agent 2.0
+A UX, UI & functionality redesign proposal
+This proposal keeps the sign-up and sign-in experience exactly as it is today, and keeps the same underlying pipeline (tickets in, AI drafts a spec, a human approves, work gets delivered). What changes is everything in between: the information architecture, every page's layout and options, and the overall feel of the product — moving it from a set of disconnected utility screens toward a single, interactive, data-driven workspace that looks and behaves like a professional operations tool.
+Figure 1 — the new information architecture. Sign-up/sign-in are unchanged; everything after login is reorganized into seven purposeful destinations instead of six loosely related pages.
+1. What stays exactly the same
+Sign-up and sign-in are untouched — same fields, same flow, same visual treatment. Nothing about account creation or login changes in this proposal. The redesign begins the moment someone lands inside the workspace after authenticating.
+2. What's actually changing, and why
+THE PROBLEM WITH THE CURRENT VERSION
+The current product works, but it reads as a set of separate admin screens rather than one coherent tool: Queue and Clusters solve the same problem (reviewing drafts) but live apart; the Dashboard shows numbers without telling anyone what to do about them; Settings is dense and form-heavy; and the delivery side of the product — arguably its most powerful feature — has no visible, living view of work in progress. That combination reads as a functional prototype rather than a polished, data-oriented product.
+THE NEW DIRECTION
+Three principles drive every change in this proposal: (1) Merge related work into one workspace instead of splitting it across lookalike pages. (2) Make every screen answer "so what should I do right now?" — through ranking, confidence scores, and impact framing — instead of just displaying data. (3) Make the delivery half of the product as visible and alive as the triage half, since right now it disappears into empty states and settings tabs.
+3. Command Center — the new home page
+3.1  Command Center (replaces Dashboard)
+PURPOSE
+The first thing anyone sees after logging in. Its job is to answer, in five seconds, "is anything on fire, and how much value is this agent creating?" — rather than just listing raw counts.
+KEY OPTIONS ON THIS PAGE
+KPI strip with five live metrics (tickets this week, acceptance rate, median cycle time, auto-resolved count, estimated engineering hours saved), each with a small trend sparkline instead of a bare number.
+Attention Needed panel: an auto-ranked list of the tickets that most need a human right now — churn signals, drafts sitting unreviewed for days, or low AI-confidence tickets — so the most important work always floats to the top.
+AI Confidence & Activity panel: a live breakdown of how confident the agent is in its recent drafts (high/medium/low), next to a real-time activity feed of drafts, edits, and overrides.
+Impact banner: a single plain-language line translating the week's activity into business terms — hours saved, churn tickets caught early, acceptance rate — for standup updates or reporting to leadership.
+System Health strip: a compact, always-visible status of ticket sources, indexed repos, and the dev agent connection, so integration problems are seen immediately instead of only on the Connections page.
+HOW IT WORKS
+Every widget on this page is clickable: clicking a KPI opens Insights filtered to that metric; clicking an Attention Needed row jumps straight into the Triage Workspace with that ticket already open; clicking the Impact banner opens a shareable summary. Nothing here is a dead end.
+WHY THIS IS BETTER THAN TODAY
+The current Dashboard shows numbers (12 tickets, 8% acceptance) with no indication of what matters or what to do next. The Command Center actively surfaces the highest-priority work and translates activity into outcomes a non-technical stakeholder — like your boss — can immediately understand.
+Figure 2 — Command Center wireframe: KPI sparklines, a risk-ranked attention panel, live AI confidence, and a business-impact banner.
+4. Triage Workspace — merges Queue and Clusters
+4.1  Triage Workspace (replaces Queue + Clusters)
+PURPOSE
+Today, reviewing drafts and reviewing clusters are two separate pages that solve the same underlying job. The Triage Workspace merges them into a single two-pane screen so a reviewer never has to context-switch.
+KEY OPTIONS ON THIS PAGE
+Smart List (left pane): every pending item, automatically grouped into clusters when related, each group showing a priority level and ticket count; individual tickets outside a cluster appear as single rows. Fully filterable and sortable (by priority, scope, confidence, age).
+Ticket Detail (right pane): the full draft spec for whichever item is selected — editable inline, not just viewable — plus its code context (file, line, a preview) and, new, a "Why the AI thinks this" reasoning trace showing the confidence score and what evidence drove the classification.
+Action bar: Accept, Reject, and Edit & Accept, plus bulk equivalents (Accept all / Reject all) when a cluster group is selected.
+Focus Mode toggle: an optional distraction-free, one-card-at-a-time swipe-style review mode for rapid-fire triage sessions, keeping the existing keyboard shortcuts (A/R/arrows) but presenting one ticket full-screen at a time.
+HOW IT WORKS
+Selecting any row on the left instantly loads its full detail on the right — no page navigation. Accepting or rejecting a ticket (or a whole cluster) removes it from the list with a brief undo option, and the reasoning trace is generated by exposing the same confidence signals the AI already computes internally during classification, just made visible to the reviewer instead of hidden.
+WHY THIS IS BETTER THAN TODAY
+Instead of forcing a reviewer to jump between a Queue page and a Clusters page to resolve the same kind of work, everything lives in one place. The reasoning trace also builds trust: a PM can see why the AI made a call instead of accepting it blindly, which matters a lot for a stakeholder worried about handing off judgment to an algorithm.
+Figure 3 — Triage Workspace wireframe: grouped smart list on the left, editable detail and reasoning trace on the right.
+5. Pipeline Tracker — a new, fully visible delivery board
+5.1  Pipeline Tracker (new page; replaces the empty Delivery History view)
+PURPOSE
+Today, once a ticket is accepted, it effectively disappears from view — Settings → Delivery even shows a literal "No deliveries yet" empty state. The Pipeline Tracker gives the entire delivery half of the product a visible, living home.
+KEY OPTIONS ON THIS PAGE
+A Kanban board with six live columns: Accepted, Assigned, Dev Agent Working, PR Open, Merged, Shipped.
+Each ticket appears as a card showing its ID, assignee, destination tool, and time spent in the current stage.
+Cards can be dragged between manual stages (e.g. Assigned) or update automatically when the dev agent or issue tracker reports a status change via webhook.
+A filter bar to view by developer, destination tool, or code area, so a lead can see, for example, everything currently in Ali Khan's queue.
+HOW IT WORKS
+Every acceptance in the Triage Workspace creates a card here automatically. As the dev agent (Claude Code, Cursor, or a custom webhook agent) reports progress — branch created, PR opened, PR merged — the card advances columns on its own, and the issue tracker (Jira/Linear/GitHub/ClickUp) status is kept in sync.
+WHY THIS IS BETTER THAN TODAY
+This turns delivery from an invisible, one-time "fire and forget" POST request into a real, ongoing operations view — the same category of interface a boss would expect from a professional dev-tooling product, and it finally gives visibility into whether accepted tickets are actually getting shipped.
+Figure 4 — Pipeline Tracker: a live Kanban board replacing the static, empty delivery history screen.
+6. Insights — an interactive redesign of Analytics
+6.1  Insights (replaces Analytics)
+PURPOSE
+The current Analytics page is a set of fixed charts you can look at but not interact with. Insights turns the same data into something you can explore and act on.
+KEY OPTIONS ON THIS PAGE
+Every chart is clickable: clicking a slice of the classification donut (e.g. "Bug — 42%") opens the underlying list of those tickets, filtered, in one click.
+An AI Performance panel: tracks how often PMs edit or override the agent's classification, scope estimate, or suggested approach over time — a direct measure of how much to trust the automation, and whether it's improving.
+Cohort comparisons: compare this month's acceptance rate, cycle time, or ticket volume against last month or a custom date range side by side.
+One-click export to PDF/CSV for sharing a snapshot with stakeholders.
+HOW IT WORKS
+Insights reads from the same underlying event log as today's Analytics (ticket lifecycle events, timestamps, classifications, edits) but adds a query layer so any chart element can be turned into a filtered list, and a rolling comparison so trends are computed automatically rather than eyeballed off a line chart.
+WHY THIS IS BETTER THAN TODAY
+This directly addresses "functionality" concerns: it's the difference between a page that reports numbers and a tool that helps someone investigate and act on them — and the AI Performance panel gives leadership a concrete answer to "can we trust this thing more over time?"
+7. Repos & Sources — a visual redesign of Connections
+7.1  Repos & Sources (replaces Connections)
+PURPOSE
+The current Connections page is three separate flat lists (sources, repos, outputs) with no sense of how data actually flows between them. Repos & Sources presents the same configuration as a connected map.
+KEY OPTIONS ON THIS PAGE
+A visual graph: ticket sources on the left, indexed repos in the middle, and output destinations (issue trackers + dev agents) on the right, with connecting lines whose thickness reflects ticket volume flowing through them.
+Each node shows live health (connected / needs attention / needs reindex) directly on the graph instead of requiring a click into a detail row.
+A side panel for adding a new source, repo, or output — the same underlying forms as today, just triggered from the map instead of a flat "+Add" button.
+HOW IT WORKS
+The graph is generated from the exact same connection and indexing data the current Connections page already tracks; this is a presentation change, not a new data model, so it's a low-risk, high-visual-impact improvement.
+WHY THIS IS BETTER THAN TODAY
+At a glance, anyone can see the whole data pipeline — where tickets come from, what code they're checked against, and where finished work goes — instead of mentally stitching three separate lists together.
+8. Automation Studio — a guided redesign of Settings
+8.1  Automation Studio (replaces the Settings tab bar)
+PURPOSE
+Settings today is dense and form-heavy — correct, but intimidating, and easy to misconfigure. Automation Studio turns the same configuration into a guided, visual experience.
+KEY OPTIONS ON THIS PAGE
+Automation presets: Conservative, Balanced, and Aggressive — one-click starting points that set sensible defaults for auto-classification, auto-accept thresholds, and auto-dispatch, instead of starting from a blank form.
+Visual rule builder: Auto-Accept Rules are built as readable if/then blocks ("if type = Question and scope = S, then auto-accept") that can be dragged, combined, and previewed against real recent tickets before saving.
+The existing Delivery, Dev Agents, Team, and Account configuration all still exist, reorganized as focused sub-pages reachable from Automation Studio rather than a single crowded tab strip.
+HOW IT WORKS
+Selecting a preset sets multiple underlying toggles at once (the same ones currently in Preferences and Auto-Accept Rules); the rule builder previews a rule against the last 20 real tickets so a PM can see exactly what it would have done before turning it on.
+WHY THIS IS BETTER THAN TODAY
+This lowers the barrier to actually using automation confidently — right now the settings are powerful but risky to touch without fully understanding them; presets and live previews make the same power far safer and faster to configure.
+9. Team & Governance — accountability layer
+9.1  Team & Governance (extends Team + Account)
+PURPOSE
+Keeps today's role management (admin / reviewer / viewer) and account/billing settings, and adds visibility into who did what — important once automation is making more decisions on its own.
+KEY OPTIONS ON THIS PAGE
+Everything currently in Team (invite, roles, status) and Account (billing, API key, export, danger zone), unchanged in function.
+A new Audit Log: a searchable, timestamped record of every accept, reject, edit, override, and rule change, attributed to the person (or the automation) that made it.
+HOW IT WORKS
+Every action already taken in the Triage Workspace or Automation Studio is written to this log automatically — no new data collection, just a new page that surfaces it.
+WHY THIS IS BETTER THAN TODAY
+As more decisions get automated, being able to answer "who approved this, or why did the system auto-accept it" becomes essential for trust and accountability — this is the kind of detail that reads as professional and enterprise-ready.
+10. The new end-to-end flow
+The underlying pipeline is unchanged: tickets still come from the same sources, the AI still drafts specs against indexed code, a human still approves, and work still gets delivered. What's different is that every stage now has a proper, interactive home instead of being squeezed into a single Queue list and a mostly empty Settings tab.
+Figure 5 — the same pipeline, now routed through Command Center, Triage Workspace, Pipeline Tracker, and Insights.
+11. Old vs. new, at a glance
+Area
+Today
+Proposed redesign
+Home
+Basic stat cards + flat activity list
+Command Center: KPI sparklines, an Attention Needed panel ranked by risk, AI confidence distribution, and a business-impact banner (hours saved, churn resolved)
+Triage
+One ticket at a time, plain list, separate Clusters page
+Unified Triage Workspace: grouped smart list + detail pane side by side, inline editing, a reasoning trace, and an optional swipe-style Focus Mode
+Delivery
+Static settings + an empty 'no deliveries yet' page
+Live Pipeline Tracker: a Kanban board showing every ticket's real-time stage from accepted to shipped
+Analytics
+Fixed charts, no drill-down
+Interactive Insights: click any chart segment to see the underlying tickets, plus an AI-accuracy panel tracking override/edit rates over time
+Connections
+Flat lists of sources and repos
+Repos & Sources map: a visual graph of source → repo → output connections with live health and ticket-volume flow
+Settings
+Dense multi-tab forms
+Automation Studio: guided presets (Conservative / Balanced / Aggressive) plus a visual if-this-then-that rule builder
+Team
+Simple role table
+Team & Governance: roles plus a full audit log of every accept/reject/override, for accountability
+In short: sign-up and sign-in stay untouched, the underlying automation logic stays untouched, but every screen a human actually works in is consolidated, ranked by importance, made interactive, and framed in business terms — turning PM Agent from a set of utility admin pages into a single, professional, data-oriented workspace.

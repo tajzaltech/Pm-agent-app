@@ -7,10 +7,11 @@ import { useTicketStore } from "@/lib/store/tickets";
 import {
   Inbox,
   LayoutDashboard,
-  Layers,
+  GitBranch,
   BarChart2,
-  Plug,
-  Settings,
+  Network,
+  SlidersHorizontal,
+  Users,
   Zap,
   ChevronLeft,
   ChevronRight,
@@ -30,12 +31,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/queue", label: "Queue", Icon: Inbox },
-  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/clusters", label: "Clusters", Icon: Layers },
-  { href: "/analytics", label: "Analytics", Icon: BarChart2 },
-  { href: "/connections", label: "Connections", Icon: Plug },
-  { href: "/settings", label: "Settings", Icon: Settings },
+  { href: "/dashboard", label: "Command Center", Icon: LayoutDashboard },
+  { href: "/triage", label: "Triage", Icon: Inbox },
+  { href: "/pipeline", label: "Pipeline", Icon: GitBranch },
+  { href: "/insights", label: "Insights", Icon: BarChart2 },
+  { href: "/sources", label: "Repos & Sources", Icon: Network },
+  { href: "/automation", label: "Automation", Icon: SlidersHorizontal },
+  { href: "/team", label: "Team", Icon: Users },
 ];
 
 function NavContent({
@@ -53,7 +55,7 @@ function NavContent({
       <ul className="space-y-0.5 px-2">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
-          const showPendingBadge = href === "/queue" && pendingCount > 0;
+            const showPendingBadge = href === "/triage" && pendingCount > 0;
 
           const item = (
             <li key={href}>

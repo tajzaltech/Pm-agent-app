@@ -4,6 +4,8 @@ import { create } from "zustand";
 import type { Ticket, TicketStatus, ActivityEntry, ActivityAction } from "@/lib/types";
 import { MOCK_TICKETS } from "@/lib/mock/tickets";
 import { MOCK_ACTIVITY } from "@/lib/mock/activity";
+import { logAudit } from "@/lib/store/audit";
+import { usePipelineStore } from "@/lib/store/pipeline";
 
 interface UndoRecord {
   ticketId: string;
@@ -94,6 +96,12 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       undoRecord: { ticketId: id, previousStatus, timerId },
     }));
 
+    usePipelineStore.getState().addFromAcceptance(ticket);
+    logAudit("accepted", `Accepted draft and queued for delivery`, {
+      ticketId: id,
+      ticketTitle: ticket.draftTitle,
+    });
+
     void fetch(`/api/draft-tickets/${id}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -135,6 +143,8 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       undoRecord: { ticketId: id, previousStatus, timerId },
     }));
 
+    logAudit("rejected", `Rejected draft`, { ticketId: id, ticketTitle: ticket.draftTitle });
+
     void fetch(`/api/draft-tickets/${id}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -154,6 +164,11 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
         ticketId: id,
       }),
     }));
+
+    logAudit("edited", `Saved draft edits without accepting`, {
+      ticketId: id,
+      ticketTitle: updates.draftTitle ?? ticket.draftTitle,
+    });
   },
 
   editAndAccept: (id, updates) => {
@@ -176,6 +191,12 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       }),
       undoRecord: null,
     }));
+
+    usePipelineStore.getState().addFromAcceptance({ ...ticket, ...updates });
+    logAudit("edited_accepted", `Edited and accepted draft`, {
+      ticketId: id,
+      ticketTitle: updates.draftTitle ?? ticket.draftTitle,
+    });
 
     void fetch(`/api/draft-tickets/${id}/review`, {
       method: "POST",

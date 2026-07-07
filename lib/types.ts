@@ -1,6 +1,10 @@
 export type Classification = "bug" | "feature_request" | "question" | "churn_signal";
 export type Scope = "S" | "M" | "L";
 export type TicketStatus = "pending" | "accepted" | "rejected";
+export type ConfidenceLevel = "high" | "medium" | "low";
+export type PipelineStage = "accepted" | "assigned" | "dev_working" | "pr_open" | "merged" | "shipped";
+export type AutomationPreset = "conservative" | "balanced" | "aggressive";
+export type AuditActorType = "user" | "automation";
 export type IntegrationStatus = "disconnected" | "connecting" | "connected" | "error";
 export type UserRole = "admin" | "reviewer" | "viewer";
 export type RepoStatus = "indexed" | "indexing" | "error" | "needs_reindex";
@@ -39,6 +43,12 @@ export interface CodeRef {
   language?: string;
 }
 
+export interface ReasoningSignal {
+  label: string;
+  detail: string;
+  weight: number;
+}
+
 export interface Ticket {
   id: string;
   status: TicketStatus;
@@ -50,6 +60,11 @@ export interface Ticket {
   acceptanceCriteria: string[];
   scopeRationale: string;
   codeRefs: CodeRef[];
+  aiConfidence?: number;
+  aiConfidenceLevel?: ConfidenceLevel;
+  aiReasoning?: ReasoningSignal[];
+  clusterId?: string;
+  priorityScore?: number;
 
   // Customer / source
   customer: Customer;
@@ -211,4 +226,35 @@ export interface DispatchRecord {
   branchName: string;
   agentType: AgentType;
   error?: string;
+}
+
+export interface PipelineCard {
+  id: string;
+  ticketId: string;
+  title: string;
+  stage: PipelineStage;
+  assigneeName?: string;
+  assigneeInitials?: string;
+  destinationTool?: string;
+  codeArea?: string;
+  externalId?: string;
+  stageEnteredAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  actor: string;
+  actorType: AuditActorType;
+  detail: string;
+  ticketId?: string;
+  ticketTitle?: string;
+  timestamp: string;
+}
+
+export interface AiPerformancePoint {
+  date: string;
+  overrideRate: number;
+  editRate: number;
+  acceptanceRate: number;
 }
