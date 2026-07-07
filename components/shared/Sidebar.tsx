@@ -117,24 +117,53 @@ function NavContent({
   );
 }
 
+const SIDEBAR_COLLAPSED_KEY = "pm-agent-sidebar-collapsed";
+
 // Desktop sidebar (collapsible rail)
 function DesktopSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (stored === "true") setCollapsed(true);
+    setMounted(true);
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  };
 
   return (
     <motion.aside
-      animate={{ width: collapsed ? 60 : 220 }}
+      initial={false}
+      animate={{ width: mounted ? (collapsed ? 56 : 220) : 220 }}
       transition={{ type: "spring", stiffness: 320, damping: 28, mass: 0.8 }}
-      className="hidden lg:flex h-screen flex-col shrink-0 relative z-10 bg-white shadow-[2px_0_24px_0_rgba(0,0,0,0.07)] overflow-hidden"
+      className={cn(
+        "group/sidebar hidden lg:flex h-screen flex-col shrink-0 relative z-20 bg-white border-r border-border overflow-hidden",
+        collapsed && "hover:bg-muted/20 transition-colors duration-200"
+      )}
     >
-      {/* Logo row */}
-      <div className="flex items-center h-14 shrink-0 border-b px-3 gap-2">
-        {/* Logo icon — always visible */}
-        <div className="flex items-center justify-center size-8 rounded-xl bg-primary shrink-0">
+      {/* Header */}
+      <div
+        className={cn(
+          "relative flex items-center h-14 shrink-0 border-b",
+          collapsed ? "justify-center px-2" : "px-3 gap-2"
+        )}
+      >
+        <div
+          className={cn(
+            "flex items-center justify-center size-8 rounded-xl bg-primary shrink-0 transition-opacity duration-200",
+            collapsed && "group-hover/sidebar:opacity-25"
+          )}
+        >
           <Zap className="size-4 text-white" />
         </div>
 
-        {/* Brand name — fades when collapsed */}
         <AnimatePresence initial={false}>
           {!collapsed && (
             <motion.span
@@ -143,38 +172,64 @@ function DesktopSidebar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.13, ease: "easeOut" }}
-              className="font-bold text-sm tracking-tight text-foreground whitespace-nowrap flex-1"
+              className="font-bold text-sm tracking-tight text-foreground whitespace-nowrap flex-1 min-w-0"
             >
               PM Agent
             </motion.span>
           )}
         </AnimatePresence>
 
-        {/* Toggle button — always right-aligned */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="ml-auto flex size-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-          title={collapsed ? "Expand" : "Collapse"}
-        >
-          {collapsed ? <ChevronRight className="size-3.5" /> : <ChevronLeft className="size-3.5" />}
-        </button>
+        {/* Expanded — collapse in header */}
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label="Collapse sidebar"
+            aria-expanded
+            className="ml-auto flex size-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        )}
+
+        {/* Collapsed — expand on hover over header (Upwork-style) */}
+        {collapsed && (
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label="Expand sidebar"
+            aria-expanded={false}
+            className={cn(
+              "absolute inset-0 flex items-center justify-center",
+              "opacity-0 pointer-events-none",
+              "group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto",
+              "transition-opacity duration-200 ease-out"
+            )}
+          >
+            <span className="flex size-8 items-center justify-center rounded-lg text-foreground hover:bg-muted transition-colors">
+              <ChevronRight className="size-4" />
+            </span>
+          </button>
+        )}
       </div>
 
-      <NavContent collapsed={collapsed} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <NavContent collapsed={collapsed} />
 
-      {/* Footer */}
-      <div className="border-t p-2">
-        <Link
-          href="/signin"
-          className={cn(
-            "flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-            collapsed && "justify-center px-2"
-          )}
-          title="Logout"
-        >
-          <LogOut className="size-3.5 shrink-0" />
-          {!collapsed && <span>Logout</span>}
-        </Link>
+        {/* Footer */}
+        <div className="border-t p-2 shrink-0">
+          <Link
+            href="/signin"
+            className={cn(
+              "flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+              collapsed && "justify-center px-2"
+            )}
+            title="Logout"
+          >
+            <LogOut className="size-3.5 shrink-0" />
+            {!collapsed && <span>Logout</span>}
+          </Link>
+        </div>
       </div>
     </motion.aside>
   );

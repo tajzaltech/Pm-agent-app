@@ -7,10 +7,12 @@ import {
   ArrowDownUp,
   CheckCheck,
   Focus,
+  Keyboard,
   Layers,
   Search,
   Sparkles,
   X,
+  Zap,
 } from "lucide-react";
 
 import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
@@ -26,6 +28,37 @@ import { buildTriageList, enrichTicket, type TriageListItem } from "@/lib/utils/
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 type SortOption = "priority" | "newest" | "confidence_low" | "scope_large";
+
+function priorityAccent(score: number) {
+  if (score >= 75) return "border-l-red-500 bg-gradient-to-r from-red-50/80 to-white";
+  if (score >= 55) return "border-l-amber-500 bg-gradient-to-r from-amber-50/60 to-white";
+  return "border-l-emerald-500/70 bg-white";
+}
+
+function confidenceRing(score: number, level: string) {
+  const color =
+    level === "low" ? "text-red-500" : level === "high" ? "text-emerald-500" : "text-amber-500";
+  return (
+    <div className="relative size-8 shrink-0">
+      <svg className="size-8 -rotate-90" viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r="14" fill="none" className="stroke-muted/60" strokeWidth="3" />
+        <circle
+          cx="18"
+          cy="18"
+          r="14"
+          fill="none"
+          className={cn("stroke-current", color)}
+          strokeWidth="3"
+          strokeDasharray={`${score * 0.88} 100`}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className={cn("absolute inset-0 flex items-center justify-center text-[9px] font-bold", color)}>
+        {score}
+      </span>
+    </div>
+  );
+}
 
 export function TriageWorkspace() {
   const searchParams = useSearchParams();
@@ -79,6 +112,16 @@ export function TriageWorkspace() {
     }
     return out;
   }, [listItems, tickets]);
+
+  const stats = useMemo(() => {
+    const pending = getPending();
+    const enriched = pending.map(enrichTicket);
+    return {
+      pending: pending.length,
+      clusters: listItems.filter((i) => i.kind === "cluster").length,
+      lowConfidence: enriched.filter((t) => t.aiConfidenceLevel === "low").length,
+    };
+  }, [getPending, listItems]);
 
   const activeTicket = useMemo(() => {
     if (selectedTicketId) {
@@ -160,13 +203,22 @@ export function TriageWorkspace() {
   if (focusMode && flatTickets.length > 0) {
     const ticket = enrichTicket(flatTickets[focusIndex]);
     return (
-      <div className="flex h-full min-h-0 flex-col bg-white">
-        <div className="sticky top-0 z-10 shrink-0 border-b px-4 h-14 flex items-center justify-between bg-white/90 backdrop-blur-sm">
+      <div className="flex h-full min-h-0 flex-col bg-gradient-to-b from-violet-50/40 to-white">
+        <div className="sticky top-0 z-10 shrink-0 border-b px-4 md:px-6 h-14 flex items-center justify-between bg-white/90 backdrop-blur-sm">
           <div>
-            <h1 className="text-base font-semibold">Focus Mode</h1>
-            <p className="text-xs text-muted-foreground">{focusIndex + 1} of {flatTickets.length} · A accept · R reject · ← → navigate</p>
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                <Focus className="size-4" />
+              </span>
+              <h1 className="text-base font-semibold">Focus Mode</h1>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {focusIndex + 1} of {flatTickets.length} · <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">A</kbd> accept · <kbd className="rounded border bg-muted px-1 font-mono text-[10px]">R</kbd> reject · ← → navigate
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setFocusMode(false)}><X className="size-4" /> Exit</Button>
+          <Button variant="outline" size="sm" onClick={() => setFocusMode(false)}>
+            <X className="size-4" /> Exit
+          </Button>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
           <TicketDetailPane ticket={ticket} onAccept={handleAccept} onReject={handleReject} />
@@ -180,23 +232,45 @@ export function TriageWorkspace() {
       <div className="sticky top-0 z-10 shrink-0 border-b bg-white/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Triage Workspace</h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">{getPending().length} pending · clusters merged</p>
+          <p className="text-xs text-muted-foreground hidden sm:block">
+            Review AI drafts · improve · accept or reject
+          </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setFocusMode(true)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 border-violet-200 text-violet-700 hover:bg-violet-50"
+          onClick={() => setFocusMode(true)}
+        >
           <Focus className="size-4" /> Focus Mode
         </Button>
       </div>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden divide-x">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Smart list */}
-        <div className="flex w-full shrink-0 flex-col bg-white/60 lg:w-[380px] xl:w-[420px] min-h-0">
-          <div className="shrink-0 border-b p-3 space-y-2">
+        <div className="flex w-full shrink-0 flex-col border-r bg-gradient-to-b from-slate-50/80 to-white lg:w-[400px] xl:w-[440px] min-h-0">
+          {/* Stats mini strip */}
+          <div className="shrink-0 grid grid-cols-3 gap-px bg-border/60 border-b">
+            <MiniStat icon={Zap} label="Pending" value={stats.pending} accent="text-primary" />
+            <MiniStat icon={Layers} label="Clusters" value={stats.clusters} accent="text-violet-600" />
+            <MiniStat icon={Sparkles} label="Low AI" value={stats.lowConfidence} accent="text-red-600" />
+          </div>
+
+          <div className="shrink-0 border-b p-3 space-y-2 bg-white/80">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search..." className="h-9 pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input
+                placeholder="Search tickets, customers, clusters…"
+                className="h-9 pl-9 bg-white"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
             <Select value={sort} onValueChange={(v) => v && setSort(v as SortOption)}>
-              <SelectTrigger className="h-8 text-xs"><ArrowDownUp className="size-3.5 mr-1" /><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs bg-white">
+                <ArrowDownUp className="size-3.5 mr-1" />
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="priority">Priority (risk-ranked)</SelectItem>
                 <SelectItem value="newest">Newest first</SelectItem>
@@ -205,9 +279,13 @@ export function TriageWorkspace() {
               </SelectContent>
             </Select>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 space-y-2">
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 space-y-2">
             {listItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">No pending items</p>
+              <div className="text-center py-12 px-4">
+                <p className="text-sm font-medium text-muted-foreground">Queue is clear</p>
+                <p className="text-xs text-muted-foreground mt-1">No pending tickets match your filters</p>
+              </div>
             ) : (
               listItems.map((item) => {
                 const isSelected = selectedId === item.id;
@@ -216,28 +294,36 @@ export function TriageWorkspace() {
                     <div
                       key={item.id}
                       className={cn(
-                        "rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-primary/30",
-                        isSelected && "border-primary ring-2 ring-primary/10"
+                        "rounded-xl border border-l-4 border-l-violet-500 p-3 cursor-pointer transition-all hover:shadow-md",
+                        isSelected
+                          ? "border-violet-300 bg-violet-50/50 ring-2 ring-violet-200/60 shadow-sm"
+                          : "border-border bg-white hover:border-violet-200"
                       )}
                       onClick={() => selectItem(item)}
                     >
-                      <div className="flex items-start gap-2">
-                        <Layers className="size-4 text-violet-600 mt-0.5 shrink-0" />
+                      <div className="flex items-start gap-3">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
+                          <Layers className="size-4" />
+                        </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{item.cluster.title}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{item.ticketCount} tickets · {item.cluster.affectedCodeArea}</p>
-                          <div className="flex gap-1 mt-2">
+                          <p className="text-sm font-semibold leading-snug line-clamp-2">{item.cluster.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {item.ticketCount} tickets · {item.cluster.affectedCodeArea}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 mt-2">
                             <ScopeBadge scope={item.cluster.combinedScope} className="size-5 text-[10px]" />
-                            <span className="text-[10px] rounded-full bg-red-50 text-red-700 px-2 py-0.5 font-medium">Priority {item.priorityScore}</span>
+                            <span className="text-[10px] rounded-full bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 font-semibold">
+                              P{item.priorityScore}
+                            </span>
                           </div>
                         </div>
                       </div>
                       {isSelected && (
-                        <div className="flex gap-1 mt-3 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" className="h-7 text-xs bg-emerald-600" onClick={() => handleBulkCluster(item, "accept")}>
+                        <div className="flex gap-1.5 mt-3 pt-3 border-t border-violet-100" onClick={(e) => e.stopPropagation()}>
+                          <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 flex-1" onClick={() => handleBulkCluster(item, "accept")}>
                             <CheckCheck className="size-3" /> Accept all
                           </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-600" onClick={() => handleBulkCluster(item, "reject")}>
+                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200 flex-1" onClick={() => handleBulkCluster(item, "reject")}>
                             Reject all
                           </Button>
                         </div>
@@ -250,38 +336,68 @@ export function TriageWorkspace() {
                   <div
                     key={item.id}
                     className={cn(
-                      "rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-primary/30",
-                      isSelected && "border-primary ring-2 ring-primary/10"
+                      "rounded-xl border border-l-4 p-3 cursor-pointer transition-all hover:shadow-md",
+                      priorityAccent(item.priorityScore),
+                      isSelected
+                        ? "border-primary/40 ring-2 ring-primary/15 shadow-sm"
+                        : "border-border hover:border-primary/25"
                     )}
                     onClick={() => selectItem(item)}
                   >
-                    <div className="flex flex-wrap gap-1 mb-1.5">
-                      <ClassificationBadge classification={t.classification} size="sm" />
-                      <ScopeBadge scope={t.scope} className="size-5 text-[10px]" />
-                    </div>
-                    <p className="text-sm font-semibold leading-snug line-clamp-2">{t.draftTitle}</p>
-                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                      <span>{t.customer.name}</span>
-                      <span>{formatRelativeTime(t.createdAt)}</span>
-                    </div>
-                    <div className="mt-1.5 flex items-center gap-1 text-[10px]">
-                      <Sparkles className={cn("size-3", t.aiConfidenceLevel === "low" ? "text-red-500" : "text-emerald-500")} />
-                      <span className={t.aiConfidenceLevel === "low" ? "text-red-600 font-medium" : "text-muted-foreground"}>
-                        {t.aiConfidence}% confidence
-                      </span>
+                    <div className="flex gap-3">
+                      {confidenceRing(t.aiConfidence ?? 70, t.aiConfidenceLevel ?? "medium")}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          <ClassificationBadge classification={t.classification} size="sm" />
+                          <ScopeBadge scope={t.scope} className="size-5 text-[10px]" />
+                        </div>
+                        <p className="text-sm font-semibold leading-snug line-clamp-2">{t.draftTitle}</p>
+                        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground gap-2">
+                          <span className="truncate">{t.customer.name}</span>
+                          <span className="shrink-0">{formatRelativeTime(t.createdAt)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
               })
             )}
           </div>
+
+          <div className="shrink-0 border-t bg-white/90 px-3 py-2 hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground">
+            <Keyboard className="size-3.5 shrink-0" />
+            <span><kbd className="rounded border bg-muted px-1 font-mono">A</kbd> accept</span>
+            <span><kbd className="rounded border bg-muted px-1 font-mono">R</kbd> reject</span>
+          </div>
         </div>
 
         {/* Detail pane */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <TicketDetailPane ticket={activeTicket} onAccept={handleAccept} onReject={handleReject} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function MiniStat({
+  icon: Icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number;
+  accent: string;
+}) {
+  return (
+    <div className="bg-white px-3 py-2.5 text-center">
+      <div className={cn("flex items-center justify-center gap-1 text-lg font-bold", accent)}>
+        <Icon className="size-3.5 opacity-70" />
+        {value}
+      </div>
+      <p className="text-[10px] text-muted-foreground font-medium">{label}</p>
     </div>
   );
 }
