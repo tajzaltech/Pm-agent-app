@@ -12,7 +12,7 @@ export default function SettingsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="sticky top-0 z-10 shrink-0 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center">
-        <h1 className="text-base font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-sm font-medium tracking-tight">Settings</h1>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         <div className="mx-auto max-w-2xl space-y-4">
@@ -28,14 +28,14 @@ export default function SettingsPage() {
                   variant={defaultLanding === "/triage" ? "default" : "outline"}
                   onClick={() => setDefaultLanding("/triage")}
                 >
-                  Triage Workspace
+                  Triage
                 </Button>
                 <Button
                   size="sm"
                   variant={defaultLanding === "/chat" ? "default" : "outline"}
                   onClick={() => setDefaultLanding("/chat")}
                 >
-                  PM Agent Chat
+                  AI PM
                 </Button>
               </div>
             </div>

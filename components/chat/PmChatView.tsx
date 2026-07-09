@@ -1,17 +1,236 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Bot, Check, Code2, Send, X, Zap } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUp,
+  Bug,
+  Check,
+  GitBranch,
+  MessageSquare,
+  Rocket,
+  Search,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
 
-import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
-import { ScopeBadge } from "@/components/shared/ScopeBadge";
 import { usePmChatStore } from "@/lib/store/pm-chat";
 import { useTicketStore } from "@/lib/store/tickets";
-import type { PmChatMessage } from "@/lib/types";
-import { PM_QUICK_PROMPTS, TICKET_QUICK_PROMPTS } from "@/lib/utils/pm-responses";
+import type { PmChatMessage, Ticket } from "@/lib/types";
+import {
+  PM_CHAT_STARTERS,
+  TICKET_QUICK_PROMPTS,
+  type PmChatStarter,
+} from "@/lib/utils/pm-responses";
 import { cn } from "@/lib/utils";
+
 const EMPTY_MESSAGES: PmChatMessage[] = [];
+const COMPOSER_H = 148;
+
+const STARTER_ICONS = [Bug, Search, Rocket, GitBranch, AlertTriangle, MessageSquare] as const;
+
+function isVisibleMessage(msg: PmChatMessage) {
+  return !msg.id.startsWith("sys_");
+}
+
+export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatViewProps) {
+  const ticket = useTicketStore((s) => (ticketId ? s.getById(ticketId) : undefined));
+  const messages = usePmChatStore((s) => s.messagesBySession[sessionId] ?? EMPTY_MESSAGES);
+  const isTyping = usePmChatStore((s) => s.typingBySession[sessionId] ?? false);
+  const sendUserMessage = usePmChatStore((s) => s.sendUserMessage);
+  const confirmProposal = usePmChatStore((s) => s.confirmProposal);
+  const sendProposalToDev = usePmChatStore((s) => s.sendProposalToDev);
+  const rejectProposal = usePmChatStore((s) => s.rejectProposal);
+  const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [streamingMsgId, setStreamingMsgId] = useState<string | null>(null);
+  const wasTypingRef = useRef(false);
+  const prevCountRef = useRef(0);
+
+  const starters = useMemo<PmChatStarter[]>(() => {
+    if (ticket) {
+      return TICKET_QUICK_PROMPTS.map((prompt, i) => ({
+        label: ["Context", "Code search", "Impact"][i] ?? "Ask",
+        prompt,
+        hint: "Ticket loaded",
+      }));
+    }
+    return PM_CHAT_STARTERS;
+  }, [ticket]);
+
+  const visibleMessages = useMemo(() => messages.filter(isVisibleMessage), [messages]);
+  const hasConversation = visibleMessages.some((m) => m.role === "user");
+
+  const scrollToBottom = useCallback((smooth: boolean) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
+  useEffect(() => {
+    if (wasTypingRef.current && !isTyping) {
+      const lastPm = [...visibleMessages].reverse().find((m) => m.role === "pm");
+      if (lastPm) setStreamingMsgId(lastPm.id);
+    }
+    wasTypingRef.current = isTyping;
+  }, [isTyping, visibleMessages]);
+
+  useEffect(() => {
+    const count = visibleMessages.length + (isTyping ? 1 : 0) + (streamingMsgId ? 1 : 0);
+    const grew = count > prevCountRef.current;
+    prevCountRef.current = count;
+    if (hasConversation) scrollToBottom(grew);
+  }, [visibleMessages.length, isTyping, streamingMsgId, scrollToBottom, hasConversation]);
+
+  const handleSend = (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || isTyping || streamingMsgId) return;
+    setInput("");
+    if (textareaRef.current) textareaRef.current.style.height = "44px";
+    sendUserMessage(sessionId, content, ticket ?? null);
+  };
+
+  return (
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0 transition-opacity duration-500",
+          hasConversation ? "opacity-0" : "opacity-100"
+        )}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,color-mix(in_oklab,var(--primary)_14%,transparent),transparent)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,color-mix(in_oklab,var(--primary)_6%,transparent),transparent_50%)]" />
+      </div>
+
+      {ticket && (
+        <div className={cn("relative shrink-0 border-b border-border/50 bg-background/80 px-4 py-2.5 backdrop-blur-sm", !sidebarOpen && "pl-14")}>
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+            <span className="font-mono text-muted-foreground">#{ticket.originalTicketId}</span>
+            <span className="text-muted-foreground">{ticket.customer.name}</span>
+            <span className="hidden text-muted-foreground/70 sm:inline">·</span>
+            <span className="hidden min-w-0 truncate text-muted-foreground sm:inline">{ticket.originalSubject}</span>
+            <Link href={`/triage?ticket=${ticket.id}`} className="ml-auto font-medium text-primary hover:underline">
+              Triage
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {!hasConversation ? (
+        <div className={cn("relative flex min-h-0 flex-1 flex-col", !sidebarOpen && !ticket && "pt-10")}>
+          <div className="flex flex-1 flex-col items-center justify-center px-4 pb-6 pt-8 sm:px-6">
+            <div className="mb-6 flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+              <Sparkles className="size-5" />
+            </div>
+            <h1 className="text-center text-2xl font-semibold tracking-tight text-foreground sm:text-[1.65rem]">
+              {ticket ? "Dig into this ticket" : "Ask your PM Agent"}
+            </h1>
+            <p className="mt-2 max-w-md text-center text-sm leading-relaxed text-muted-foreground">
+              {ticket
+                ? "I'll search code, ask follow-ups, and only suggest filing when we have enough context."
+                : "Describe what's happening — I'll gather context before any ticket is filed."}
+            </p>
+
+            <div className="mt-8 w-full max-w-2xl">
+              <ChatComposer
+                input={input}
+                setInput={setInput}
+                textareaRef={textareaRef}
+                isTyping={isTyping || !!streamingMsgId}
+                onSend={handleSend}
+                large
+              />
+              <p className="mt-2 text-center text-[11px] text-muted-foreground/80">
+                GitHub connected · read-only · Enter to send
+              </p>
+            </div>
+
+            <div className="mt-10 grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-2.5">
+              {starters.map((starter, i) => {
+                const Icon = STARTER_ICONS[i % STARTER_ICONS.length];
+                return (
+                  <button
+                    key={starter.prompt}
+                    type="button"
+                    onClick={() => handleSend(starter.prompt)}
+                    className="group flex items-start gap-3 rounded-xl border border-border/60 bg-card/80 px-3.5 py-3 text-left shadow-sm backdrop-blur-sm transition-all hover:border-primary/30 hover:bg-card hover:shadow-md"
+                  >
+                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted/80 text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-foreground">{starter.label}</span>
+                      <span className="mt-0.5 block text-xs leading-snug text-muted-foreground line-clamp-2">
+                        {starter.hint}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
+            <div
+              className={cn(
+                "mx-auto w-full space-y-5 px-3 py-5 pb-[180px] sm:px-4",
+                !sidebarOpen && !ticket && "pt-12"
+              )}
+            >
+              {visibleMessages.map((msg) => (
+                <ChatBubble
+                  key={msg.id}
+                  msg={msg}
+                  stream={msg.id === streamingMsgId}
+                  onStreamTick={() => scrollToBottom(true)}
+                  onStreamDone={() => setStreamingMsgId(null)}
+                  onConfirm={() => confirmProposal(sessionId, msg.id)}
+                  onSendToDev={() => sendProposalToDev(sessionId, msg.id)}
+                  onReject={() => rejectProposal(sessionId, msg.id)}
+                />
+              ))}
+              {isTyping && <TypingBubble />}
+            </div>
+          </div>
+
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 border-t border-border/40 bg-background/98 backdrop-blur-md"
+            style={{ minHeight: COMPOSER_H }}
+          >
+            <div className="pointer-events-auto mx-auto w-full px-3 py-3 sm:px-4">
+              <div className="mb-2 flex h-7 gap-1.5 overflow-x-auto scrollbar-none">
+                {starters.slice(0, 3).map((s) => (
+                  <button
+                    key={s.prompt}
+                    type="button"
+                    disabled={isTyping || !!streamingMsgId}
+                    onClick={() => handleSend(s.prompt)}
+                    className="shrink-0 rounded-full border border-border/60 px-2.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              <ChatComposer
+                input={input}
+                setInput={setInput}
+                textareaRef={textareaRef}
+                isTyping={isTyping || !!streamingMsgId}
+                onSend={handleSend}
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface PmChatViewProps {
   sessionId: string;
@@ -19,133 +238,89 @@ interface PmChatViewProps {
   sidebarOpen?: boolean;
 }
 
-export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatViewProps) {
-  const ticket = useTicketStore((s) => (ticketId ? s.getById(ticketId) : undefined));
-  const messages = usePmChatStore((s) => s.messagesBySession[sessionId] ?? EMPTY_MESSAGES);
-  const sendUserMessage = usePmChatStore((s) => s.sendUserMessage);
-  const confirmProposal = usePmChatStore((s) => s.confirmProposal);
-  const sendProposalToDev = usePmChatStore((s) => s.sendProposalToDev);
-  const rejectProposal = usePmChatStore((s) => s.rejectProposal);
-  const [input, setInput] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSend = (text?: string) => {
-    const content = (text ?? input).trim();
-    if (!content) return;
-    setInput("");
-    sendUserMessage(sessionId, content, ticket ?? null);
-  };
-
-  const ticketPrompts = ticket ? TICKET_QUICK_PROMPTS : [];
-  const prompts = ticketPrompts.length ? ticketPrompts : PM_QUICK_PROMPTS;
-
-  const title = ticket ? ticket.draftTitle : "How can I help?";
-  const subtitle = ticket
-    ? `#${ticket.originalTicketId} · GitHub + docs context loaded`
-    : "GitHub connected · describe an issue and I'll ask follow-up questions";
-
+function ChatComposer({
+  input,
+  setInput,
+  textareaRef,
+  isTyping,
+  onSend,
+  large = false,
+}: {
+  input: string;
+  setInput: (v: string) => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  isTyping: boolean;
+  onSend: (text?: string) => void;
+  large?: boolean;
+}) {
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
-      {/* Messages — full height scroll */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div
+    <div className="relative">
+      <div
+        aria-hidden
+        className={cn(
+          "absolute -inset-1 rounded-[1.35rem] bg-primary/12 blur-xl transition-opacity",
+          large ? "opacity-80" : "opacity-60"
+        )}
+      />
+      <div
+        className={cn(
+          "relative flex items-end gap-2 rounded-2xl border border-border/80 bg-card p-1.5 shadow-md",
+          large && "p-2"
+        )}
+      >
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            const el = e.target;
+            el.style.height = large ? "52px" : "44px";
+            el.style.height = `${Math.min(el.scrollHeight, large ? 140 : 120)}px`;
+          }}
+          placeholder={large ? "Describe the issue…" : "Message AI PM…"}
+          rows={1}
+          style={{ height: large ? 52 : 44 }}
+          disabled={isTyping}
+          autoFocus={large}
           className={cn(
-            "mx-auto w-full max-w-3xl px-4 sm:px-6 pt-8 pb-36",
-            !sidebarOpen && "pt-16"
+            "flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 leading-relaxed outline-none disabled:opacity-60",
+            large ? "text-base" : "text-[15px]"
+          )}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              onSend();
+            }
+          }}
+        />
+        <button
+          type="button"
+          disabled={!input.trim() || isTyping}
+          onClick={() => onSend()}
+          className={cn(
+            "mb-0.5 flex shrink-0 items-center justify-center rounded-xl transition-colors",
+            large ? "size-10" : "size-9",
+            input.trim() && !isTyping
+              ? "bg-primary text-primary-foreground hover:opacity-90"
+              : "bg-muted text-muted-foreground"
           )}
         >
-          {/* Inline title — no separate header bar */}
-          <div className="mb-6 text-center">
-            <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Zap className="size-5" />
-            </div>
-            <h1 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">{title}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-            {ticket && (
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                  <Code2 className="size-3" /> GitHub connected
-                </span>
-                <ClassificationBadge classification={ticket.classification} size="sm" />
-                <ScopeBadge scope={ticket.scope} className="size-5 text-[10px]" />
-                <span className="text-xs text-muted-foreground">{ticket.customer.name}</span>
-                <Link
-                  href={`/triage?ticket=${ticket.id}`}
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Open in Triage →
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            {messages.map((msg, i) => (
-              <ChatBubble
-                key={msg.id}
-                msg={msg}
-                isFirst={i === 0}
-                onConfirm={() => confirmProposal(sessionId, msg.id)}
-                onSendToDev={() => sendProposalToDev(sessionId, msg.id)}
-                onReject={() => rejectProposal(sessionId, msg.id)}
-              />
-            ))}
-          </div>
-          <div ref={bottomRef} />
-        </div>
+          <ArrowUp className={large ? "size-5" : "size-4"} />
+        </button>
       </div>
+    </div>
+  );
+}
 
-      {/* Floating composer — no top border */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-background via-background/95 to-transparent pb-5 pt-10">
-        <div className="pointer-events-auto mx-auto w-full max-w-3xl px-4 sm:px-6">
-          <div className="mb-3 flex gap-2 overflow-x-auto scrollbar-none">
-            {prompts.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => handleSend(p)}
-                className="shrink-0 rounded-full bg-muted/80 px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-end gap-2 rounded-2xl bg-background/90 p-2 shadow-lg shadow-black/5 ring-1 ring-black/5 backdrop-blur-md dark:shadow-black/20 dark:ring-white/10">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={ticket ? "Add context or ask a follow-up…" : "Describe the issue…"}
-              rows={1}
-              className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[15px] leading-relaxed outline-none text-foreground placeholder:text-muted-foreground"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-            />
-            <button
-              type="button"
-              disabled={!input.trim()}
-              onClick={() => handleSend()}
-              className={cn(
-                "mb-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl transition-all",
-                input.trim()
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/30 hover:opacity-90"
-                  : "bg-muted text-muted-foreground"
-              )}
-            >
-              <ArrowUp className="size-4" />
-            </button>
-          </div>
-          <p className="mt-2 text-center text-[10px] text-muted-foreground/70">
-            I'll gather context first · ticket options appear when there's enough detail
-          </p>
+function TypingBubble() {
+  return (
+    <div className="flex w-full justify-start">
+      <div className="max-w-[min(78%,44rem)]">
+        <p className="mb-1 pl-1 text-[11px] font-medium text-muted-foreground">AI PM</p>
+        <div className="inline-flex items-center gap-1 rounded-2xl rounded-tl-md border border-border/60 bg-card px-4 py-3 shadow-sm">
+          <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:0ms]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:150ms]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:300ms]" />
         </div>
       </div>
     </div>
@@ -154,21 +329,25 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
 
 function ChatBubble({
   msg,
-  isFirst,
+  stream = false,
+  onStreamTick,
+  onStreamDone,
   onConfirm,
   onSendToDev,
   onReject,
 }: {
   msg: PmChatMessage;
-  isFirst?: boolean;
+  stream?: boolean;
+  onStreamTick?: () => void;
+  onStreamDone?: () => void;
   onConfirm: () => void;
   onSendToDev: () => void;
   onReject: () => void;
 }) {
   if (msg.role === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-3 text-[15px] leading-relaxed text-primary-foreground shadow-sm">
+      <div className="flex w-full justify-end animate-in fade-in slide-in-from-bottom-1 duration-200">
+        <div className="max-w-[min(78%,44rem)] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-[15px] leading-relaxed text-primary-foreground shadow-sm">
           {msg.content}
         </div>
       </div>
@@ -176,68 +355,161 @@ function ChatBubble({
   }
 
   return (
-    <div className="flex gap-3 sm:gap-4">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <Bot className="size-4" />
-      </span>
-      <div className="min-w-0 flex-1 pt-0.5">
-        {!isFirst && (
-          <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">PM Agent</p>
-        )}
-        <div className="whitespace-pre-line text-[15px] leading-[1.7] text-foreground/90">
-          {formatAgentText(msg.content)}
-        </div>
-        {msg.proposal && (
-          <div className="mt-4 space-y-3 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/10">
-            <p className="text-xs font-semibold text-primary">Ready to act</p>
-            <p className="text-sm text-foreground/80">
-              {msg.proposal.title} · {msg.proposal.classification.replace("_", " ")} · Scope {msg.proposal.scope}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={onConfirm}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-              >
-                <Check className="size-3.5" /> Generate ticket
-              </button>
-              <button
-                type="button"
-                onClick={onSendToDev}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
-              >
-                <Send className="size-3.5" /> Send to dev team
-              </button>
-              <button
-                type="button"
-                onClick={onReject}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-background/80 px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-3.5" /> Not now
-              </button>
+    <div className="flex w-full justify-start animate-in fade-in slide-in-from-bottom-1 duration-300">
+      <div className="max-w-[min(78%,44rem)]">
+        <p className="mb-1 pl-1 text-[11px] font-medium text-muted-foreground">AI PM</p>
+        <div className="rounded-2xl rounded-tl-sm border border-border/60 bg-card px-4 py-3 text-[15px] leading-[1.65] text-foreground/90 shadow-sm">
+          <StreamingAgentText
+            text={msg.content}
+            stream={stream}
+            onTick={onStreamTick}
+            onDone={onStreamDone}
+          />
+          {!stream && msg.proposal && (
+            <div className="mt-4 space-y-3 rounded-xl border border-border/60 bg-muted/25 p-3">
+              <p className="text-xs font-medium">Ready to act</p>
+              <p className="text-sm text-muted-foreground">
+                {msg.proposal.title} · {msg.proposal.classification.replace("_", " ")} · Scope {msg.proposal.scope}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                >
+                  <Check className="size-3.5" /> Generate ticket
+                </button>
+                <button
+                  type="button"
+                  onClick={onSendToDev}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+                >
+                  <Send className="size-3.5" /> Send to dev
+                </button>
+                <button
+                  type="button"
+                  onClick={onReject}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3.5" /> Not now
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-        {msg.createdTicketId && (
-          <Link
-            href={`/triage?ticket=${msg.createdTicketId}`}
-            className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            Open in Triage →
-          </Link>
-        )}
+          )}
+          {!stream && msg.createdTicketId && (
+            <Link
+              href={`/triage?ticket=${msg.createdTicketId}`}
+              className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+            >
+              Open in Triage
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-/** Simple **bold** rendering without markdown lib */
+function StreamingAgentText({
+  text,
+  stream,
+  onTick,
+  onDone,
+}: {
+  text: string;
+  stream: boolean;
+  onTick?: () => void;
+  onDone?: () => void;
+}) {
+  const [visible, setVisible] = useState(stream ? "" : text);
+  const [streaming, setStreaming] = useState(stream);
+  const onTickRef = useRef(onTick);
+  const onDoneRef = useRef(onDone);
+
+  useEffect(() => {
+    onTickRef.current = onTick;
+    onDoneRef.current = onDone;
+  });
+
+  useEffect(() => {
+    if (!stream) {
+      setVisible(text);
+      setStreaming(false);
+      return;
+    }
+
+    setVisible("");
+    setStreaming(true);
+
+    const lines = text.split("\n");
+    let lineIdx = 0;
+    let charIdx = 0;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const finish = () => {
+      if (cancelled) return;
+      setVisible(text);
+      setStreaming(false);
+      onDoneRef.current?.();
+    };
+
+    const step = () => {
+      if (cancelled) return;
+
+      if (lineIdx >= lines.length) {
+        finish();
+        return;
+      }
+
+      const line = lines[lineIdx] ?? "";
+      if (charIdx < line.length) {
+        charIdx += 1;
+        const prefix = lines.slice(0, lineIdx).join("\n");
+        const next =
+          lineIdx === 0 ? line.slice(0, charIdx) : `${prefix}\n${line.slice(0, charIdx)}`;
+        setVisible(next);
+        onTickRef.current?.();
+        timer = setTimeout(step, 14 + Math.random() * 10);
+        return;
+      }
+
+      lineIdx += 1;
+      charIdx = 0;
+      if (lineIdx >= lines.length) {
+        finish();
+        return;
+      }
+
+      const completed = lines.slice(0, lineIdx).join("\n");
+      setVisible(completed);
+      onTickRef.current?.();
+      timer = setTimeout(step, 320);
+    };
+
+    timer = setTimeout(step, 180);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [text, stream]);
+
+  return (
+    <div className="whitespace-pre-line">
+      {streaming ? visible : formatAgentText(visible)}
+      {streaming && (
+        <span className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-px animate-pulse bg-foreground/50 align-middle" />
+      )}
+    </div>
+  );
+}
+
 function formatAgentText(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={i} className="font-semibold text-foreground">
+        <strong key={i} className="font-medium text-foreground">
           {part.slice(2, -2)}
         </strong>
       );

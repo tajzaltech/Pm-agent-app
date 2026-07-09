@@ -62,15 +62,15 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
 
-  { href: "/triage", label: "Triage Workspace", Icon: Inbox },
+  { href: "/triage", label: "Triage", Icon: Inbox },
 
-  { href: "/chat", label: "PM Agent Chat", Icon: MessageSquare },
+  { href: "/chat", label: "AI PM", Icon: MessageSquare },
 
   { href: "/insights", label: "Insights", Icon: BarChart2 },
 
-  { href: "/connections", label: "Connections & Automation", Icon: Network },
+  { href: "/connections", label: "Connections", Icon: Network },
 
-  { href: "/team", label: "Team & Governance", Icon: Users },
+  { href: "/team", label: "Team", Icon: Users },
 
 ];
 
@@ -125,11 +125,11 @@ function NavContent({
 
                 className={cn(
 
-                  "relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium transition-all",
+                  "relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-normal transition-all",
 
                   isActive
 
-                    ? "bg-sidebar-accent text-sidebar-primary"
+                    ? "bg-sidebar-accent text-sidebar-primary font-medium"
 
                     : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
 
@@ -240,7 +240,7 @@ const SIDEBAR_COLLAPSED_KEY = "pm-agent-sidebar-collapsed";
 function SidebarFooter({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="border-t border-sidebar-border p-2 shrink-0 space-y-0.5">
-
+      <Link
         href="/settings"
 
         className={cn(

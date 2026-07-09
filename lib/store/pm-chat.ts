@@ -11,6 +11,7 @@ interface PmChatStore {
   ticketContextId: string | null;
   sessions: PmChatSession[];
   messagesBySession: Record<string, PmChatMessage[]>;
+  typingBySession: Record<string, boolean>;
   openChat: (opts?: { ticketId?: string }) => string;
   ensureGlobalSession: () => string;
   createGlobalSession: () => string;
@@ -29,10 +30,15 @@ function welcome(sessionId: string, ticket?: Ticket | null): PmChatMessage {
     ticketId: ticket?.id,
     role: "pm",
     content: ticket
-      ? `I have **#${ticket.originalTicketId}** from **${ticket.customer.name}** loaded, with GitHub (\`acmetech/api-backend\`) and docs in context.\n\nTell me what you're trying to figure out — I'll ask follow-ups until we understand the problem, then we can generate a ticket, send it to dev, or leave it for later.`
-      : `I'm your **PM Agent** — GitHub connected (read-only).\n\nDescribe a customer complaint or internal issue in your own words. I'll ask questions to understand the context, and only suggest filing a ticket once we have enough detail.`,
+      ? `Loaded **#${ticket.originalTicketId}** · ${ticket.customer.name}. Ask anything about this ticket.`
+      : `Tell me about the issue — I'll ask follow-ups before we file anything.`,
     timestamp: new Date().toISOString(),
   };
+}
+
+/** Legacy welcome messages are hidden in UI — new sessions start empty. */
+function emptySessionMessages(): PmChatMessage[] {
+  return [];
 }
 
 function sessionMeta(
@@ -61,7 +67,8 @@ export const usePmChatStore = create<PmChatStore>()(
       activeSessionId: "global",
       ticketContextId: null,
       sessions: [],
-      messagesBySession: { global: [welcome("global")] },
+      messagesBySession: { global: emptySessionMessages() },
+      typingBySession: {},
 
       selectSession: (sessionId) => {
         set({
@@ -71,30 +78,48 @@ export const usePmChatStore = create<PmChatStore>()(
       },
 
       ensureGlobalSession: () => {
-        const { activeSessionId, messagesBySession } = get();
+        const { activeSessionId, messagesBySession, sessions } = get();
+
+        const hasUserMessages = (id: string) =>
+          (messagesBySession[id] ?? []).some((m) => m.role === "user");
+
         if (activeSessionId.startsWith("ticket_")) {
-          const globals = get().sessions.filter((s) => !s.ticketId);
+          const globals = sessions.filter((s) => !s.ticketId);
+          const reusable = globals.find((s) => !hasUserMessages(s.id));
+          if (reusable) {
+            set({ activeSessionId: reusable.id, ticketContextId: null });
+            return reusable.id;
+          }
           if (globals.length > 0) {
             set({ activeSessionId: globals[0].id, ticketContextId: null });
             return globals[0].id;
           }
           return get().createGlobalSession();
         }
-        if (messagesBySession[activeSessionId]?.length) return activeSessionId;
+
+        if (hasUserMessages(activeSessionId)) return activeSessionId;
+
+        const reusable = sessions.find((s) => !s.ticketId && !hasUserMessages(s.id));
+        if (reusable) {
+          set({ activeSessionId: reusable.id, ticketContextId: null });
+          return reusable.id;
+        }
+
+        if (!activeSessionId.startsWith("ticket_")) return activeSessionId;
+
         return get().createGlobalSession();
       },
 
       createGlobalSession: () => {
         const sessionId = `global_${Date.now()}`;
-        const intro = welcome(sessionId, null);
-        const meta = sessionMeta(sessionId, null, intro.content.slice(0, 72));
+        const meta = sessionMeta(sessionId, null, "No messages yet");
         set((s) => ({
           activeSessionId: sessionId,
           ticketContextId: null,
           sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
           messagesBySession: {
             ...s.messagesBySession,
-            [sessionId]: [intro],
+            [sessionId]: emptySessionMessages(),
           },
         }));
         return sessionId;
@@ -107,15 +132,14 @@ export const usePmChatStore = create<PmChatStore>()(
         const ticket = ticketId ? useTicketStore.getState().getById(ticketId) : null;
 
         if (!existing?.length) {
-          const intro = welcome(sessionId, ticket);
-          const meta = sessionMeta(sessionId, ticket, intro.content.slice(0, 72));
+          const meta = sessionMeta(sessionId, ticket, ticket ? `#${ticket.originalTicketId}` : "New conversation");
           set((s) => ({
             activeSessionId: sessionId,
             ticketContextId: ticketId ?? null,
             sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
             messagesBySession: {
               ...s.messagesBySession,
-              [sessionId]: [intro],
+              [sessionId]: emptySessionMessages(),
             },
           }));
         } else {
@@ -149,7 +173,7 @@ export const usePmChatStore = create<PmChatStore>()(
         const history = get().messagesBySession[sessionId] ?? [];
         const reply = generatePmReply(trimmed, { ticket: ticket ?? undefined, history });
         const pmMsg: PmChatMessage = {
-          id: `pm_${Date.now()}`,
+          id: `pm_${Date.now() + 1}`,
           sessionId,
           ticketId: ticket?.id,
           role: "pm",
@@ -158,27 +182,44 @@ export const usePmChatStore = create<PmChatStore>()(
           proposal: reply.proposal,
         };
         const now = new Date().toISOString();
-        set((s) => {
-          const existingMeta = s.sessions.find((x) => x.id === sessionId);
-          const title =
-            existingMeta?.title ??
-            (ticket ? ticket.draftTitle : trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed);
-          const meta: PmChatSession = {
-            id: sessionId,
-            ticketId: ticket?.id ?? existingMeta?.ticketId,
-            title,
-            preview: trimmed,
-            updatedAt: now,
-            createdAt: existingMeta?.createdAt ?? now,
-          };
-          return {
+        const existingMeta = get().sessions.find((x) => x.id === sessionId);
+        const fallbackTitle = ticket
+          ? ticket.draftTitle
+          : trimmed.length > 48
+            ? `${trimmed.slice(0, 48)}…`
+            : trimmed;
+        const title =
+          existingMeta?.title && existingMeta.title !== "New conversation"
+            ? existingMeta.title
+            : fallbackTitle;
+        const meta: PmChatSession = {
+          id: sessionId,
+          ticketId: ticket?.id ?? existingMeta?.ticketId,
+          title,
+          preview: trimmed,
+          updatedAt: now,
+          createdAt: existingMeta?.createdAt ?? now,
+        };
+
+        set((s) => ({
+          typingBySession: { ...s.typingBySession, [sessionId]: true },
+          messagesBySession: {
+            ...s.messagesBySession,
+            [sessionId]: [...(s.messagesBySession[sessionId] ?? []), userMsg],
+          },
+          sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
+        }));
+
+        const delay = 700 + Math.min(trimmed.length * 10, 1200);
+        window.setTimeout(() => {
+          set((s) => ({
+            typingBySession: { ...s.typingBySession, [sessionId]: false },
             messagesBySession: {
               ...s.messagesBySession,
-              [sessionId]: [...(s.messagesBySession[sessionId] ?? []), userMsg, pmMsg],
+              [sessionId]: [...(s.messagesBySession[sessionId] ?? []), pmMsg],
             },
-            sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
-          };
-        });
+          }));
+        }, delay);
       },
 
       confirmProposal: (sessionId, messageId) => {
@@ -266,7 +307,7 @@ export const usePmChatStore = create<PmChatStore>()(
                 const lastUser = [...msgs].reverse().find((m) => m.role === "user");
                 return sessionMeta(id, ticket ?? null, lastUser?.content ?? "Conversation");
               });
-        return { ...current, ...p, messagesBySession, sessions };
+        return { ...current, ...p, messagesBySession, sessions, typingBySession: p.typingBySession ?? {} };
       },
     }
   )

@@ -15,7 +15,6 @@ import {
   Zap,
 } from "lucide-react";
 
-import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
 import { ScopeBadge } from "@/components/shared/ScopeBadge";
 import { AskPmAgentButton } from "@/components/triage/AskPmAgentButton";
 import { TicketDetailPane } from "@/components/triage/TicketDetailPane";
@@ -23,7 +22,6 @@ import { useAskPmAgent } from "@/components/triage/useAskPmAgent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { usePipelineStore, PIPELINE_STAGE_LABELS } from "@/lib/store/pipeline";
 import { useTriageAlertsStore } from "@/lib/store/triage-alerts";
 import { MOCK_CLUSTERS } from "@/lib/mock/clusters";
 import { useTicketStore } from "@/lib/store/tickets";
@@ -61,9 +59,7 @@ function confidenceRing(score: number, level: string) {
 export function TriageWorkspace() {
   const searchParams = useSearchParams();
   const askPmAgent = useAskPmAgent();
-  const pipelineCards = usePipelineStore((s) => s.cards);
   const { tickets, accept, reject, undo, getPending } = useTicketStore();
-  const isNew = useTriageAlertsStore((s) => s.isNew);
   const markSeen = useTriageAlertsStore((s) => s.markSeen);
   const alertsReadyRef = useRef(false);
   const prevPendingRef = useRef<string[]>([]);
@@ -263,7 +259,7 @@ export function TriageWorkspace() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="sticky top-0 z-10 shrink-0 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center">
-        <h1 className="text-base font-semibold tracking-tight">Triage Workspace</h1>
+        <h1 className="text-sm font-medium tracking-tight">Triage</h1>
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -352,7 +348,6 @@ export function TriageWorkspace() {
                   );
                 }
                 const t = enrichTicket(item.ticket!);
-                const pipe = pipelineCards.find((c) => c.ticketId === t.id);
                 return (
                   <div
                     key={item.id}
@@ -367,23 +362,7 @@ export function TriageWorkspace() {
                     <div className="flex gap-3">
                       {confidenceRing(t.aiConfidence ?? 70, t.aiConfidenceLevel ?? "medium")}
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap gap-1 mb-1.5">
-                          <ClassificationBadge classification={t.classification} size="sm" />
-                          <ScopeBadge scope={t.scope} className="size-5 text-[10px]" />
-                          {isNew(t.id) && (
-                            <span className="text-[10px] rounded-full bg-primary px-1.5 py-0.5 font-bold text-primary-foreground animate-pulse">
-                              NEW
-                            </span>
-                          )}
-                          {t.viaPmChat && (
-                            <span className="text-[10px] rounded-full bg-violet-100 text-violet-700 px-1.5 py-0.5 font-medium">via Chat</span>
-                          )}
-                          {pipe && (
-                            <span className="text-[10px] rounded-full bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 font-medium">
-                              {PIPELINE_STAGE_LABELS[pipe.stage]}
-                            </span>
-                          )}
-                        </div>
+                        <p className="text-[11px] font-mono text-muted-foreground mb-1">#{t.originalTicketId}</p>
                         <p className="text-sm font-semibold leading-snug line-clamp-2">{t.draftTitle}</p>
                         <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground gap-2">
                           <span className="truncate">{t.customer.name}</span>

@@ -71,7 +71,7 @@ export default function TeamPage() {
     <div className="flex flex-col h-full">
       <div className="sticky top-0 z-10 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center shrink-0">
         <div>
-          <h1 className="text-base font-semibold tracking-tight">Team & Governance</h1>
+          <h1 className="text-sm font-medium tracking-tight">Team</h1>
           <p className="text-xs text-muted-foreground hidden sm:block">Roles, billing, and audit trail</p>
         </div>
       </div>

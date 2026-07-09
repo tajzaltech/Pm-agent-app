@@ -16,7 +16,7 @@ export default function ConnectionsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="sticky top-0 z-10 shrink-0 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-base font-semibold tracking-tight">Connections & Automation</h1>
+          <h1 className="text-sm font-medium tracking-tight">Connections</h1>
           <p className="text-xs text-muted-foreground hidden sm:block">Map your data flow and automation rules</p>
         </div>
         <Button

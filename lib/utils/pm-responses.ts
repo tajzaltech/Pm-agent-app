@@ -6,6 +6,45 @@ export const PM_QUICK_PROMPTS = [
   "We noticed odd behaviour after a deploy",
 ];
 
+export type PmChatStarter = {
+  label: string;
+  prompt: string;
+  hint: string;
+};
+
+export const PM_CHAT_STARTERS: PmChatStarter[] = [
+  {
+    label: "Customer report",
+    prompt: "A customer says exports fail after they retry — help me triage this",
+    hint: "Repro steps & impact",
+  },
+  {
+    label: "Error logs",
+    prompt: "Help me understand this 500 error from production logs",
+    hint: "Parse stack traces",
+  },
+  {
+    label: "Post-deploy",
+    prompt: "We noticed odd behaviour right after yesterday's deploy",
+    hint: "Diff & rollback options",
+  },
+  {
+    label: "Search codebase",
+    prompt: "Where in GitHub would webhook retries be handled?",
+    hint: "Read-only repo search",
+  },
+  {
+    label: "Prioritize",
+    prompt: "How urgent is this if only one enterprise customer is affected?",
+    hint: "Severity & SLA",
+  },
+  {
+    label: "Draft ticket",
+    prompt: "I have enough context — walk me through filing a ticket",
+    hint: "When you're ready",
+  },
+];
+
 export const TICKET_QUICK_PROMPTS = [
   "What do we know about this so far?",
   "Search GitHub for related code",
