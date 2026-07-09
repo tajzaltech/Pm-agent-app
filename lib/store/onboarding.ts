@@ -8,7 +8,7 @@ import { useConnectionsStore } from "@/lib/store/connections";
 import { useThemeStore } from "@/lib/store/theme";
 import { syncOnboardingToConnections } from "@/lib/utils/sync-onboarding-connections";
 
-export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | "indexing" | "done";
+export type OnboardingStep = 1 | 2 | 3 | 4 | "indexing" | "done";
 export type ProviderStatus = "idle" | "connecting" | "connected" | "error";
 
 export interface TicketSourceConfig {
@@ -75,7 +75,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       step: 1,
       isSetup: false,
       signupInProgress: false,
-      workspaceRole: null,
+      workspaceRole: "pm",
       ticketSources: [],
 
       repoProvider: null,
@@ -220,7 +220,8 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       beginSignup: () => {
         get().resetOnboarding();
-        set({ signupInProgress: true, isSetup: false });
+        useThemeStore.getState().setDefaultLanding("/triage");
+        set({ signupInProgress: true, isSetup: false, workspaceRole: "pm" });
       },
 
       resetOnboarding: () =>
@@ -228,7 +229,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
           step: 1,
           isSetup: false,
           signupInProgress: false,
-          workspaceRole: null,
+          workspaceRole: "pm",
           ticketSources: [],
           repoProvider: null,
           repoProviderStatus: "idle",
@@ -243,7 +244,9 @@ export const useOnboardingStore = create<OnboardingStore>()(
     {
       name: "pm-agent-setup",
       merge: (persisted, current) => {
-        const p = persisted as Partial<OnboardingStore & { ticketSource?: string; issueCategories?: IssueCategory[] }>;
+        const p = persisted as Partial<
+          OnboardingStore & { ticketSource?: string; issueCategories?: IssueCategory[]; flowVersion?: number }
+        >;
         const ticketSources =
           p.ticketSources ??
           (p.ticketSource
@@ -255,12 +258,27 @@ export const useOnboardingStore = create<OnboardingStore>()(
                 },
               ]
             : current.ticketSources);
-        return { ...current, ...p, ticketSources };
+
+        let step = p.step ?? current.step;
+        const flowVersion = p.flowVersion ?? 1;
+        if (flowVersion < 2 && typeof step === "number" && step >= 2 && step <= 5) {
+          step = Math.min(step - 1, 4) as OnboardingStep;
+        }
+
+        return {
+          ...current,
+          ...p,
+          ticketSources,
+          step,
+          flowVersion: 2,
+          workspaceRole: p.workspaceRole ?? current.workspaceRole ?? "pm",
+        };
       },
       partialize: (state) => ({
         isSetup: state.isSetup,
         signupInProgress: state.signupInProgress,
         step: state.step,
+        flowVersion: 2,
         workspaceRole: state.workspaceRole,
         ticketSources: state.ticketSources,
         repoProvider: state.repoProvider,

@@ -137,11 +137,11 @@ export function StepConnectOutput() {
       </div>
 
       <div className="flex items-center justify-between border-t bg-slate-50/50 px-6 py-4">
-        <Button variant="ghost" onClick={() => setStep(3)} className="text-muted-foreground">
+        <Button variant="ghost" onClick={() => setStep(2)} className="text-muted-foreground">
           Back
         </Button>
         <Button
-          onClick={() => setStep(5)}
+          onClick={() => setStep(4)}
           disabled={outputToolStatus !== "connected" || !selectedProject}
           className="min-w-28 gap-2"
         >

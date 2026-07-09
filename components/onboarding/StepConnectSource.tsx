@@ -288,10 +288,7 @@ export function StepConnectSource() {
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="ghost" onClick={() => setStep(1)} className="text-muted-foreground hidden sm:inline-flex">
-              Back
-            </Button>
-            <Button onClick={() => setStep(3)} disabled={!canContinue} className="min-w-28 gap-2">
+            <Button onClick={() => setStep(2)} disabled={!canContinue} className="min-w-28 gap-2">
               Continue
               <ArrowRight className="size-4" />
             </Button>

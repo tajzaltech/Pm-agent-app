@@ -132,11 +132,11 @@ export function StepConnectRepo() {
       </div>
 
       <div className="flex items-center justify-between border-t bg-slate-50/50 px-6 py-4">
-        <Button variant="ghost" onClick={() => setStep(2)} className="text-muted-foreground">
+        <Button variant="ghost" onClick={() => setStep(1)} className="text-muted-foreground">
           Back
         </Button>
         <Button
-          onClick={() => setStep(4)}
+          onClick={() => setStep(3)}
           disabled={repoProviderStatus !== "connected" || selectedRepos.length === 0}
           className="min-w-28 gap-2"
         >

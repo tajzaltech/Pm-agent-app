@@ -26,7 +26,7 @@ export function StepUploadDocs() {
       </div>
 
       <div className="flex items-center justify-between border-t bg-slate-50/50 px-6 py-4">
-        <Button variant="ghost" onClick={() => setStep(4)} className="text-muted-foreground">
+        <Button variant="ghost" onClick={() => setStep(3)} className="text-muted-foreground">
           Back
         </Button>
         <div className="flex items-center gap-2">
