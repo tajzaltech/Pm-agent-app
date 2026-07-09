@@ -69,9 +69,13 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
         activity?: ActivityEntry[];
       };
 
+      const serverTickets = data.tickets ?? [];
+      const hasPending = serverTickets.some((ticket) => ticket.status === "pending");
+
       set({
-        tickets: data.tickets?.length ? data.tickets : get().tickets,
-        activity: data.activity?.length ? data.activity : get().activity,
+        tickets: hasPending ? serverTickets : MOCK_TICKETS,
+        activity:
+          hasPending && data.activity?.length ? data.activity : MOCK_ACTIVITY,
         serverHydrated: true,
       });
     } catch {

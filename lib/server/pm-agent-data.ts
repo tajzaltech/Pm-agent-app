@@ -252,7 +252,20 @@ function activity(action: ActivityAction, ticket: Ticket): ActivityEntry {
   };
 }
 
+function pendingCount(tickets: Ticket[]) {
+  return tickets.filter((ticket) => ticket.status === "pending").length;
+}
+
+/** Live demo: re-seed mock queue when in-memory state has no pending tickets left. */
+function ensureDemoSeed() {
+  const current = state();
+  if (pendingCount(current.tickets) === 0) {
+    globalForPmAgent.__pmAgentState = initialState();
+  }
+}
+
 export function listDraftTickets() {
+  ensureDemoSeed();
   return state().tickets;
 }
 
