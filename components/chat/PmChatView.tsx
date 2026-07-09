@@ -26,6 +26,8 @@ import {
 } from "@/lib/utils/pm-responses";
 import { cn } from "@/lib/utils";
 
+const CHAT_COLUMN = "max-w-[44.1rem]";
+const COMPOSER_COLUMN = "max-w-[46.75rem]";
 const EMPTY_MESSAGES: PmChatMessage[] = [];
 const COMPOSER_H = 148;
 
@@ -179,7 +181,7 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
           <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div
               className={cn(
-                "mx-auto w-full space-y-5 px-3 py-5 pb-[180px] sm:px-4",
+                `mx-auto w-full ${CHAT_COLUMN} space-y-4 px-4 py-5 pb-[180px] sm:px-6`,
                 !sidebarOpen && !ticket && "pt-12"
               )}
             >
@@ -200,18 +202,18 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
           </div>
 
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 border-t border-border/40 bg-background/98 backdrop-blur-md"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-background from-55% via-background/90 to-transparent pb-2 pt-8"
             style={{ minHeight: COMPOSER_H }}
           >
-            <div className="pointer-events-auto mx-auto w-full px-3 py-3 sm:px-4">
-              <div className="mb-2 flex h-7 gap-1.5 overflow-x-auto scrollbar-none">
+            <div className={`pointer-events-auto mx-auto w-full ${COMPOSER_COLUMN} px-3 py-2 sm:px-5`}>
+              <div className="mb-2.5 flex h-7 gap-2 overflow-x-auto scrollbar-none">
                 {starters.slice(0, 3).map((s) => (
                   <button
                     key={s.prompt}
                     type="button"
                     disabled={isTyping || !!streamingMsgId}
                     onClick={() => handleSend(s.prompt)}
-                    className="shrink-0 rounded-full border border-border/60 px-2.5 py-0.5 text-[10px] text-muted-foreground hover:bg-muted/50 hover:text-foreground disabled:opacity-50"
+                    className="shrink-0 rounded-full bg-muted/50 px-3 py-1 text-[10px] font-medium text-muted-foreground shadow-sm ring-1 ring-border/30 transition-colors hover:bg-muted/80 hover:text-foreground disabled:opacity-50"
                   >
                     {s.label}
                   </button>
@@ -253,18 +255,20 @@ function ChatComposer({
   onSend: (text?: string) => void;
   large?: boolean;
 }) {
+  const canSend = input.trim().length > 0 && !isTyping;
+
   return (
     <div className="relative">
       <div
         aria-hidden
         className={cn(
-          "absolute -inset-1 rounded-[1.35rem] bg-primary/12 blur-xl transition-opacity",
-          large ? "opacity-80" : "opacity-60"
+          "absolute -inset-x-1 -bottom-1 top-1/2 rounded-[1.75rem] bg-primary/8 blur-2xl transition-opacity duration-300",
+          canSend || large ? "opacity-100" : "opacity-40"
         )}
       />
       <div
         className={cn(
-          "relative flex items-end gap-2 rounded-2xl border border-border/80 bg-card p-1.5 shadow-md",
+          "relative flex items-end gap-2 rounded-[1.35rem] bg-background/90 p-1.5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)] ring-1 ring-border/50 backdrop-blur-xl",
           large && "p-2"
         )}
       >
@@ -283,7 +287,7 @@ function ChatComposer({
           disabled={isTyping}
           autoFocus={large}
           className={cn(
-            "flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 leading-relaxed outline-none disabled:opacity-60",
+            "flex-1 resize-none overflow-y-auto bg-transparent px-3.5 py-2.5 leading-relaxed outline-none placeholder:text-muted-foreground/55 disabled:opacity-60",
             large ? "text-base" : "text-[15px]"
           )}
           onKeyDown={(e) => {
@@ -295,14 +299,14 @@ function ChatComposer({
         />
         <button
           type="button"
-          disabled={!input.trim() || isTyping}
+          disabled={!canSend}
           onClick={() => onSend()}
           className={cn(
-            "mb-0.5 flex shrink-0 items-center justify-center rounded-xl transition-colors",
+            "mb-0.5 flex shrink-0 items-center justify-center rounded-full transition-all duration-200",
             large ? "size-10" : "size-9",
-            input.trim() && !isTyping
-              ? "bg-primary text-primary-foreground hover:opacity-90"
-              : "bg-muted text-muted-foreground"
+            canSend
+              ? "bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:scale-[1.03] hover:opacity-95"
+              : "bg-muted/80 text-muted-foreground"
           )}
         >
           <ArrowUp className={large ? "size-5" : "size-4"} />
@@ -315,7 +319,7 @@ function ChatComposer({
 function TypingBubble() {
   return (
     <div className="flex w-full justify-start">
-      <div className="max-w-[min(78%,44rem)]">
+      <div className="max-w-[85%]">
         <p className="mb-1 pl-1 text-[11px] font-medium text-muted-foreground">AI PM</p>
         <div className="inline-flex items-center gap-1 rounded-2xl rounded-tl-md border border-border/60 bg-card px-4 py-3 shadow-sm">
           <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:0ms]" />
@@ -347,7 +351,7 @@ function ChatBubble({
   if (msg.role === "user") {
     return (
       <div className="flex w-full justify-end animate-in fade-in slide-in-from-bottom-1 duration-200">
-        <div className="max-w-[min(78%,44rem)] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-[15px] leading-relaxed text-primary-foreground shadow-sm">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-[15px] leading-relaxed text-primary-foreground shadow-sm">
           {msg.content}
         </div>
       </div>
@@ -356,7 +360,7 @@ function ChatBubble({
 
   return (
     <div className="flex w-full justify-start animate-in fade-in slide-in-from-bottom-1 duration-300">
-      <div className="max-w-[min(78%,44rem)]">
+      <div className="max-w-[85%]">
         <p className="mb-1 pl-1 text-[11px] font-medium text-muted-foreground">AI PM</p>
         <div className="rounded-2xl rounded-tl-sm border border-border/60 bg-card px-4 py-3 text-[15px] leading-[1.65] text-foreground/90 shadow-sm">
           <StreamingAgentText
