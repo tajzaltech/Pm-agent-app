@@ -3,7 +3,6 @@
 import { Bot, Code2, MessageSquare } from "lucide-react";
 
 import { AskPmAgentButton } from "@/components/triage/AskPmAgentButton";
-import { TriageFlowStrip } from "@/components/triage/TriageFlowStrip";
 import type { Ticket } from "@/lib/types";
 
 export function AskPmAgentGate({ ticket }: { ticket: Ticket }) {
@@ -11,8 +10,6 @@ export function AskPmAgentGate({ ticket }: { ticket: Ticket }) {
     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-background to-violet-500/5 p-6 sm:p-8">
       <div className="pointer-events-none absolute -right-8 -top-8 size-40 rounded-full bg-primary/10 blur-3xl" />
       <div className="relative space-y-6">
-        <TriageFlowStrip activeStep={2} />
-
         <div className="mx-auto max-w-lg text-center">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
             <Bot className="size-7" />

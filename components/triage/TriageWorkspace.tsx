@@ -18,7 +18,6 @@ import {
 import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
 import { ScopeBadge } from "@/components/shared/ScopeBadge";
 import { AskPmAgentButton } from "@/components/triage/AskPmAgentButton";
-import { TriageFlowStrip } from "@/components/triage/TriageFlowStrip";
 import { TicketDetailPane } from "@/components/triage/TicketDetailPane";
 import { useAskPmAgent } from "@/components/triage/useAskPmAgent";
 import { Button } from "@/components/ui/button";
@@ -264,19 +263,13 @@ export function TriageWorkspace() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="sticky top-0 z-10 shrink-0 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center">
-        <div>
-          <h1 className="text-base font-semibold tracking-tight">Triage Workspace</h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">
-            Query in → Ask PM Agent → Review draft → Decide
-          </p>
-        </div>
+        <h1 className="text-base font-semibold tracking-tight">Triage Workspace</h1>
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Ticket list */}
         <div className="flex w-full min-h-0 shrink-0 flex-col bg-muted/10 lg:w-[min(380px,32vw)] xl:w-[400px]">
           <div className="shrink-0 space-y-3 p-3">
-            <TriageFlowStrip activeStep={1} compact className="px-0.5" />
             <div className="flex items-center gap-2">
               <MiniPill icon={Zap} label="Pending" value={stats.pending} accent="text-primary" />
               <MiniPill icon={Layers} label="Clusters" value={stats.clusters} accent="text-violet-600" />

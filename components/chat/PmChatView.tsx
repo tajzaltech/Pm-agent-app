@@ -11,8 +11,6 @@ import { useTicketStore } from "@/lib/store/tickets";
 import type { PmChatMessage } from "@/lib/types";
 import { PM_QUICK_PROMPTS } from "@/lib/utils/pm-responses";
 import { cn } from "@/lib/utils";
-import { TriageFlowStrip } from "@/components/triage/TriageFlowStrip";
-
 const EMPTY_MESSAGES: PmChatMessage[] = [];
 
 interface PmChatViewProps {
@@ -68,9 +66,7 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
           )}
         >
           {/* Inline title — no separate header bar */}
-          <div className="mb-6">
-            <TriageFlowStrip activeStep={2} className="mb-6" />
-            <div className="text-center">
+          <div className="mb-6 text-center">
             <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <Zap className="size-5" />
             </div>
@@ -92,7 +88,6 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
                 </Link>
               </div>
             )}
-            </div>
           </div>
 
           <div className="space-y-6">

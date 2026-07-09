@@ -22,7 +22,6 @@ import {
 
 import { AiImprovePanel } from "@/components/triage/AiImprovePanel";
 import { AskPmAgentGate } from "@/components/triage/AskPmAgentGate";
-import { TriageFlowStrip } from "@/components/triage/TriageFlowStrip";
 import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
 import { CodeReferenceBlock } from "@/components/shared/CodeReferenceBlock";
 import { ScopeBadge } from "@/components/shared/ScopeBadge";
@@ -182,8 +181,6 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
     <div className="flex h-full min-h-0 flex-col bg-muted/20">
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         <div className="w-full space-y-5 p-5 pb-8 md:p-6 lg:p-8">
-          <TriageFlowStrip activeStep={showFullDetail && enriched.status === "pending" ? 3 : 4} />
-
           {/* Hero header */}
           <div className="rounded-2xl bg-card p-5 shadow-sm space-y-4">
             <div className="flex items-start justify-between gap-3">
