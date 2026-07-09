@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -17,10 +17,15 @@ import {
 
 import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
 import { ScopeBadge } from "@/components/shared/ScopeBadge";
+import { AskPmAgentButton } from "@/components/triage/AskPmAgentButton";
+import { TriageFlowStrip } from "@/components/triage/TriageFlowStrip";
 import { TicketDetailPane } from "@/components/triage/TicketDetailPane";
+import { useAskPmAgent } from "@/components/triage/useAskPmAgent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePipelineStore, PIPELINE_STAGE_LABELS } from "@/lib/store/pipeline";
+import { useTriageAlertsStore } from "@/lib/store/triage-alerts";
 import { MOCK_CLUSTERS } from "@/lib/mock/clusters";
 import { useTicketStore } from "@/lib/store/tickets";
 import type { Ticket } from "@/lib/types";
@@ -28,12 +33,6 @@ import { buildTriageList, enrichTicket, type TriageListItem } from "@/lib/utils/
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 type SortOption = "priority" | "newest" | "confidence_low" | "scope_large";
-
-function priorityAccent(score: number) {
-  if (score >= 75) return "border-l-red-500 bg-gradient-to-r from-red-50/80 to-white";
-  if (score >= 55) return "border-l-amber-500 bg-gradient-to-r from-amber-50/60 to-white";
-  return "border-l-emerald-500/70 bg-white";
-}
 
 function confidenceRing(score: number, level: string) {
   const color =
@@ -62,7 +61,13 @@ function confidenceRing(score: number, level: string) {
 
 export function TriageWorkspace() {
   const searchParams = useSearchParams();
+  const askPmAgent = useAskPmAgent();
+  const pipelineCards = usePipelineStore((s) => s.cards);
   const { tickets, accept, reject, undo, getPending } = useTicketStore();
+  const isNew = useTriageAlertsStore((s) => s.isNew);
+  const markSeen = useTriageAlertsStore((s) => s.markSeen);
+  const alertsReadyRef = useRef(false);
+  const prevPendingRef = useRef<string[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("priority");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -155,11 +160,40 @@ export function TriageWorkspace() {
   const selectItem = (item: TriageListItem) => {
     setSelectedId(item.id);
     setSelectedTicketId(null);
-    if (item.kind === "ticket" && item.ticket) setSelectedTicketId(item.ticket.id);
+    if (item.kind === "ticket" && item.ticket) {
+      setSelectedTicketId(item.ticket.id);
+      markSeen(item.ticket.id);
+    }
     if (item.kind === "cluster" && item.cluster?.tickets[0]) {
       setSelectedTicketId(item.cluster.tickets[0].ticketId);
+      markSeen(item.cluster.tickets[0].ticketId);
     }
   };
+
+  // Toast when a new query lands in the queue
+  useEffect(() => {
+    const pending = getPending();
+    const ids = pending.map((t) => t.id);
+
+    if (!alertsReadyRef.current) {
+      alertsReadyRef.current = true;
+      prevPendingRef.current = ids;
+      return;
+    }
+
+    const incoming = pending.filter((t) => !prevPendingRef.current.includes(t.id));
+    for (const t of incoming) {
+      toast("New query received", {
+        description: `${t.customer.name}: ${t.draftTitle.slice(0, 64)}${t.draftTitle.length > 64 ? "…" : ""}`,
+        duration: 6000,
+        action: {
+          label: "Ask PM Agent",
+          onClick: () => askPmAgent(t, { silent: true }),
+        },
+      });
+    }
+    prevPendingRef.current = ids;
+  }, [tickets, getPending, askPmAgent]);
 
   const handleAccept = useCallback(
     (ticket: Ticket) => {
@@ -229,58 +263,51 @@ export function TriageWorkspace() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="sticky top-0 z-10 shrink-0 border-b bg-white/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between">
+      <div className="sticky top-0 z-10 shrink-0 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Triage Workspace</h1>
           <p className="text-xs text-muted-foreground hidden sm:block">
-            Review AI drafts · improve · accept or reject
+            Query in → Ask PM Agent → Review draft → Decide
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 border-violet-200 text-violet-700 hover:bg-violet-50"
-          onClick={() => setFocusMode(true)}
-        >
-          <Focus className="size-4" /> Focus Mode
-        </Button>
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Smart list */}
-        <div className="flex w-full shrink-0 flex-col border-r bg-gradient-to-b from-slate-50/80 to-white lg:w-[400px] xl:w-[440px] min-h-0">
-          {/* Stats mini strip */}
-          <div className="shrink-0 grid grid-cols-3 gap-px bg-border/60 border-b">
-            <MiniStat icon={Zap} label="Pending" value={stats.pending} accent="text-primary" />
-            <MiniStat icon={Layers} label="Clusters" value={stats.clusters} accent="text-violet-600" />
-            <MiniStat icon={Sparkles} label="Low AI" value={stats.lowConfidence} accent="text-red-600" />
-          </div>
-
-          <div className="shrink-0 border-b p-3 space-y-2 bg-white/80">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search tickets, customers, clusters…"
-                className="h-9 pl-9 bg-white"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+        {/* Ticket list */}
+        <div className="flex w-full min-h-0 shrink-0 flex-col bg-muted/10 lg:w-[min(380px,32vw)] xl:w-[400px]">
+          <div className="shrink-0 space-y-3 p-3">
+            <TriageFlowStrip activeStep={1} compact className="px-0.5" />
+            <div className="flex items-center gap-2">
+              <MiniPill icon={Zap} label="Pending" value={stats.pending} accent="text-primary" />
+              <MiniPill icon={Layers} label="Clusters" value={stats.clusters} accent="text-violet-600" />
+              <MiniPill icon={Sparkles} label="Low AI" value={stats.lowConfidence} accent="text-red-600" />
             </div>
-            <Select value={sort} onValueChange={(v) => v && setSort(v as SortOption)}>
-              <SelectTrigger className="h-8 text-xs bg-white">
-                <ArrowDownUp className="size-3.5 mr-1" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="priority">Priority (risk-ranked)</SelectItem>
-                <SelectItem value="newest">Newest first</SelectItem>
-                <SelectItem value="confidence_low">Low confidence first</SelectItem>
-                <SelectItem value="scope_large">Largest scope first</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search queue…"
+                  className="h-9 border-0 bg-background/80 pl-9 shadow-sm"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <Select value={sort} onValueChange={(v) => v && setSort(v as SortOption)}>
+                <SelectTrigger className="h-9 w-[110px] shrink-0 border-0 bg-background/80 text-xs shadow-sm">
+                  <ArrowDownUp className="size-3.5 mr-1" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="priority">Priority</SelectItem>
+                  <SelectItem value="newest">Newest</SelectItem>
+                  <SelectItem value="confidence_low">Low AI</SelectItem>
+                  <SelectItem value="scope_large">Large scope</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 space-y-2">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 pb-2 space-y-2">
             {listItems.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <p className="text-sm font-medium text-muted-foreground">Queue is clear</p>
@@ -332,15 +359,15 @@ export function TriageWorkspace() {
                   );
                 }
                 const t = enrichTicket(item.ticket!);
+                const pipe = pipelineCards.find((c) => c.ticketId === t.id);
                 return (
                   <div
                     key={item.id}
                     className={cn(
-                      "rounded-xl border border-l-4 p-3 cursor-pointer transition-all hover:shadow-md",
-                      priorityAccent(item.priorityScore),
+                      "rounded-xl bg-card p-3 cursor-pointer transition-all shadow-sm hover:shadow-md",
                       isSelected
-                        ? "border-primary/40 ring-2 ring-primary/15 shadow-sm"
-                        : "border-border hover:border-primary/25"
+                        ? "ring-2 ring-primary/25 shadow-md"
+                        : "hover:ring-1 hover:ring-primary/10"
                     )}
                     onClick={() => selectItem(item)}
                   >
@@ -350,11 +377,32 @@ export function TriageWorkspace() {
                         <div className="flex flex-wrap gap-1 mb-1.5">
                           <ClassificationBadge classification={t.classification} size="sm" />
                           <ScopeBadge scope={t.scope} className="size-5 text-[10px]" />
+                          {isNew(t.id) && (
+                            <span className="text-[10px] rounded-full bg-primary px-1.5 py-0.5 font-bold text-primary-foreground animate-pulse">
+                              NEW
+                            </span>
+                          )}
+                          {t.viaPmChat && (
+                            <span className="text-[10px] rounded-full bg-violet-100 text-violet-700 px-1.5 py-0.5 font-medium">via Chat</span>
+                          )}
+                          {pipe && (
+                            <span className="text-[10px] rounded-full bg-blue-50 text-blue-700 border border-blue-100 px-1.5 py-0.5 font-medium">
+                              {PIPELINE_STAGE_LABELS[pipe.stage]}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm font-semibold leading-snug line-clamp-2">{t.draftTitle}</p>
                         <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground gap-2">
                           <span className="truncate">{t.customer.name}</span>
                           <span className="shrink-0">{formatRelativeTime(t.createdAt)}</span>
+                        </div>
+                        <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
+                          <AskPmAgentButton
+                            ticket={t}
+                            variant="row"
+                            silent
+                            className={cn(isSelected && "bg-primary/15 ring-1 ring-primary/20")}
+                          />
                         </div>
                       </div>
                     </div>
@@ -364,15 +412,15 @@ export function TriageWorkspace() {
             )}
           </div>
 
-          <div className="shrink-0 border-t bg-white/90 px-3 py-2 hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground">
+          <div className="shrink-0 px-3 py-2 hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground">
             <Keyboard className="size-3.5 shrink-0" />
             <span><kbd className="rounded border bg-muted px-1 font-mono">A</kbd> accept</span>
             <span><kbd className="rounded border bg-muted px-1 font-mono">R</kbd> reject</span>
           </div>
         </div>
 
-        {/* Detail pane */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Detail — fills remaining width */}
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
           <TicketDetailPane ticket={activeTicket} onAccept={handleAccept} onReject={handleReject} />
         </div>
       </div>
@@ -380,7 +428,7 @@ export function TriageWorkspace() {
   );
 }
 
-function MiniStat({
+function MiniPill({
   icon: Icon,
   label,
   value,
@@ -392,12 +440,12 @@ function MiniStat({
   accent: string;
 }) {
   return (
-    <div className="bg-white px-3 py-2.5 text-center">
-      <div className={cn("flex items-center justify-center gap-1 text-lg font-bold", accent)}>
-        <Icon className="size-3.5 opacity-70" />
-        {value}
+    <div className="flex flex-1 items-center gap-2 rounded-lg bg-background/80 px-2.5 py-2 shadow-sm">
+      <Icon className={cn("size-3.5 shrink-0 opacity-70", accent)} />
+      <div className="min-w-0">
+        <p className={cn("text-sm font-bold leading-none", accent)}>{value}</p>
+        <p className="text-[9px] text-muted-foreground truncate">{label}</p>
       </div>
-      <p className="text-[10px] text-muted-foreground font-medium">{label}</p>
     </div>
   );
 }

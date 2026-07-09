@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { useDispatchStore, AGENT_LABELS } from "@/lib/store/dispatch";
 import { useDeliveryStore, TOOL_LABELS } from "@/lib/store/delivery";
 
-export default function AutomationPage() {
+export default function AutomationPage({ embedded = false }: { embedded?: boolean }) {
   const {
     preset,
     autoClassify,
@@ -60,15 +60,17 @@ export default function AutomationPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center shrink-0">
+    <div className="flex flex-col h-full min-h-0">
+      {!embedded && (
+      <div className="sticky top-0 z-10 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center shrink-0">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Automation Studio</h1>
           <p className="text-xs text-muted-foreground hidden sm:block">Presets, rules, delivery & agents</p>
         </div>
       </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-4xl mx-auto w-full space-y-8">
+      <div className={cn("flex-1 overflow-y-auto p-4 md:p-6 max-w-4xl mx-auto w-full space-y-8", embedded && "pt-2")}>
         {/* Presets */}
         <section className="space-y-3">
           <h2 className="text-sm font-semibold">Automation Presets</h2>
@@ -79,7 +81,7 @@ export default function AutomationPage() {
                 onClick={() => applyPreset(p)}
                 className={cn(
                   "rounded-xl border p-4 text-left transition-all hover:border-primary/40",
-                  preset === p ? "border-primary bg-primary/5 ring-2 ring-primary/10" : "bg-white"
+                  preset === p ? "border-primary bg-primary/5 ring-2 ring-primary/10" : "bg-card"
                 )}
               >
                 <p className="text-sm font-semibold">{PRESET_LABELS[p].label}</p>
@@ -90,7 +92,7 @@ export default function AutomationPage() {
         </section>
 
         {/* Toggles */}
-        <section className="rounded-xl border bg-white p-5 space-y-4">
+        <section className="rounded-xl border bg-card p-5 space-y-4">
           <h2 className="text-sm font-semibold">Agent behavior</h2>
           {[
             { label: "Auto-classify tickets", value: autoClassify, onChange: setAutoClassify },
@@ -105,7 +107,7 @@ export default function AutomationPage() {
         </section>
 
         {/* Rule builder */}
-        <section className="rounded-xl border bg-white p-5 space-y-4">
+        <section className="rounded-xl border bg-card p-5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Auto-Accept Rules</h2>
             <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addNewRule}>

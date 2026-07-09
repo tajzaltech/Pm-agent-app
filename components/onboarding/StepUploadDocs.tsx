@@ -16,7 +16,7 @@ export function StepUploadDocs() {
       </p>
 
       <div className="flex justify-between">
-        <Button variant="ghost" onClick={() => setStep(3)}>
+        <Button variant="ghost" onClick={() => setStep(4)}>
           Back
         </Button>
         <div className="flex items-center gap-2">

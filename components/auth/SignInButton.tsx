@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useOnboardingStore } from "@/lib/store/onboarding";
+import { useThemeStore } from "@/lib/store/theme";
 
 type Props = {
   className?: string;
@@ -11,11 +12,12 @@ type Props = {
 export function SignInButton({ className, children }: Props) {
   const router = useRouter();
   const completeSetup = useOnboardingStore((s) => s.markSetupDone);
+  const defaultLanding = useThemeStore((s) => s.defaultLanding);
 
   const handleSignIn = () => {
-    // Mark onboarding complete so SetupGuard doesn't redirect returning users
+    // Returning users skip onboarding
     completeSetup();
-    router.push("/queue");
+    router.push(defaultLanding);
   };
 
   return (

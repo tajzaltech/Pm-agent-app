@@ -2,25 +2,30 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { IssueCategory, WorkspaceRole } from "@/lib/types";
+import { useThemeStore } from "@/lib/store/theme";
 
-export type OnboardingStep = 1 | 2 | 3 | 4 | "indexing" | "done";
+export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | "indexing" | "done";
 export type ProviderStatus = "idle" | "connecting" | "connected" | "error";
 
 interface OnboardingStore {
   step: OnboardingStep;
   isSetup: boolean;
+  signupInProgress: boolean;
+  workspaceRole: WorkspaceRole | null;
+  issueCategories: IssueCategory[];
 
-  // Step 1: ticket source
+  // Step 2: ticket source
   ticketSource: string | null;
   ticketSourceStatus: ProviderStatus;
 
-  // Step 2: code repo
+  // Step 3: code repo
   repoProvider: string | null;
   repoProviderStatus: ProviderStatus;
   selectedRepos: string[];
   availableRepos: string[];
 
-  // Step 3: output tool
+  // Step 4: output tool
   outputTool: string | null;
   outputToolStatus: ProviderStatus;
   selectedProject: string | null;
@@ -31,6 +36,8 @@ interface OnboardingStore {
 
   // Actions
   setStep: (step: OnboardingStep) => void;
+  setWorkspaceRole: (role: WorkspaceRole) => void;
+  toggleIssueCategory: (cat: IssueCategory) => void;
   connectTicketSource: (provider: string) => Promise<void>;
   connectRepo: (provider: string) => Promise<void>;
   toggleRepo: (repo: string) => void;
@@ -38,6 +45,7 @@ interface OnboardingStore {
   setSelectedProject: (project: string) => void;
   startIndexing: () => void;
   markSetupDone: () => void;
+  beginSignup: () => void;
   resetOnboarding: () => void;
 }
 
@@ -61,6 +69,9 @@ export const useOnboardingStore = create<OnboardingStore>()(
     (set, get) => ({
       step: 1,
       isSetup: false,
+      signupInProgress: false,
+      workspaceRole: null,
+      issueCategories: ["bug", "how_to"],
 
       ticketSource: null,
       ticketSourceStatus: "idle",
@@ -78,6 +89,21 @@ export const useOnboardingStore = create<OnboardingStore>()(
       indexingStep: "",
 
       setStep: (step) => set({ step }),
+
+      setWorkspaceRole: (role) => {
+        set({ workspaceRole: role });
+        const { setDefaultLanding } = useThemeStore.getState();
+        setDefaultLanding(role === "cs_agent" ? "/chat" : "/triage");
+      },
+
+      toggleIssueCategory: (cat) => {
+        const { issueCategories } = get();
+        set({
+          issueCategories: issueCategories.includes(cat)
+            ? issueCategories.filter((c) => c !== cat)
+            : [...issueCategories, cat],
+        });
+      },
 
       connectTicketSource: async (provider) => {
         set({ ticketSource: provider, ticketSourceStatus: "connecting" });
@@ -133,12 +159,20 @@ export const useOnboardingStore = create<OnboardingStore>()(
         set({ indexingStatus: "done", step: "done" });
       },
 
-      markSetupDone: () => set({ isSetup: true }),
+      markSetupDone: () => set({ isSetup: true, signupInProgress: false }),
+
+      beginSignup: () => {
+        get().resetOnboarding();
+        set({ signupInProgress: true, isSetup: false });
+      },
 
       resetOnboarding: () =>
         set({
           step: 1,
           isSetup: false,
+          signupInProgress: false,
+          workspaceRole: null,
+          issueCategories: ["bug", "how_to"],
           ticketSource: null,
           ticketSourceStatus: "idle",
           repoProvider: null,
@@ -153,7 +187,12 @@ export const useOnboardingStore = create<OnboardingStore>()(
     }),
     {
       name: "pm-agent-setup",
-      partialize: (state) => ({ isSetup: state.isSetup }),
+      partialize: (state) => ({
+        isSetup: state.isSetup,
+        signupInProgress: state.signupInProgress,
+        step: state.step,
+        workspaceRole: state.workspaceRole,
+      }),
     }
   )
 );

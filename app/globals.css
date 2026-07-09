@@ -47,7 +47,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/*  PM Agent — light-only design system (indigo brand accent)         */
+/*  PM Agent — light/dark design system (indigo brand accent)         */
 /* ------------------------------------------------------------------ */
 :root {
   --radius: 0.7rem;
@@ -94,6 +94,32 @@
   --sidebar-accent-foreground: oklch(0.4 0.12 277);
   --sidebar-border: oklch(0.928 0.004 264);
   --sidebar-ring: oklch(0.54 0.215 277);
+}
+
+.dark {
+  --background: oklch(0.18 0.012 264);
+  --foreground: oklch(0.95 0.005 264);
+  --card: oklch(0.22 0.014 264);
+  --card-foreground: oklch(0.95 0.005 264);
+  --popover: oklch(0.22 0.014 264);
+  --popover-foreground: oklch(0.95 0.005 264);
+  --primary: oklch(0.68 0.18 277);
+  --primary-foreground: oklch(0.15 0.01 264);
+  --secondary: oklch(0.28 0.014 264);
+  --secondary-foreground: oklch(0.92 0.005 264);
+  --muted: oklch(0.28 0.014 264);
+  --muted-foreground: oklch(0.68 0.012 264);
+  --accent: oklch(0.3 0.03 277);
+  --accent-foreground: oklch(0.92 0.01 277);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.32 0.012 264);
+  --input: oklch(0.32 0.012 264);
+  --ring: oklch(0.68 0.18 277);
+  --sidebar: oklch(0.2 0.012 264);
+  --sidebar-foreground: oklch(0.88 0.008 264);
+  --sidebar-primary: oklch(0.68 0.18 277);
+  --sidebar-accent: oklch(0.28 0.02 277);
+  --sidebar-border: oklch(0.32 0.012 264);
 }
 
 @layer base {

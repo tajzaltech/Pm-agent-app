@@ -73,14 +73,13 @@ export const SOURCE_CONFIG: Record<
   salesforce: { label: "Salesforce", color: "text-sky-600" },
   sheets: { label: "Google Sheets", color: "text-emerald-600" },
   webhook: { label: "Webhook", color: "text-purple-600" },
+  email: { label: "Email", color: "text-sky-600" },
+  pm_chat: { label: "PM Agent Chat", color: "text-violet-600" },
 };
 
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Command Center", icon: "layout-dashboard" },
   { href: "/triage", label: "Triage", icon: "inbox" },
-  { href: "/pipeline", label: "Pipeline", icon: "git-branch" },
+  { href: "/chat", label: "PM Agent Chat", icon: "message-square" },
   { href: "/insights", label: "Insights", icon: "bar-chart-2" },
-  { href: "/sources", label: "Repos & Sources", icon: "network" },
-  { href: "/automation", label: "Automation", icon: "sliders-horizontal" },
-  { href: "/team", label: "Team", icon: "users" },
+  { href: "/connections", label: "Connections", icon: "network" },
 ] as const;

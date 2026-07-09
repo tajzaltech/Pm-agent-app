@@ -1,6 +1,7 @@
 export type Classification = "bug" | "feature_request" | "question" | "churn_signal";
 export type Scope = "S" | "M" | "L";
-export type TicketStatus = "pending" | "accepted" | "rejected";
+export type TicketStatus = "pending" | "accepted" | "rejected" | "ignored";
+export type TicketResolution = "dev" | "non_technical";
 export type ConfidenceLevel = "high" | "medium" | "low";
 export type PipelineStage = "accepted" | "assigned" | "dev_working" | "pr_open" | "merged" | "shipped";
 export type AutomationPreset = "conservative" | "balanced" | "aggressive";
@@ -8,7 +9,14 @@ export type AuditActorType = "user" | "automation";
 export type IntegrationStatus = "disconnected" | "connecting" | "connected" | "error";
 export type UserRole = "admin" | "reviewer" | "viewer";
 export type RepoStatus = "indexed" | "indexing" | "error" | "needs_reindex";
-export type ActivityAction = "accepted" | "rejected" | "edited" | "edited_accepted" | "new_draft";
+export type ActivityAction =
+  | "accepted"
+  | "rejected"
+  | "ignored"
+  | "edited"
+  | "edited_accepted"
+  | "new_draft"
+  | "accepted_non_technical";
 
 export interface Customer {
   id: string;
@@ -68,7 +76,10 @@ export interface Ticket {
 
   // Customer / source
   customer: Customer;
-  source: "freshdesk" | "zendesk" | "jira_sm" | "salesforce" | "sheets" | "webhook";
+  source: "freshdesk" | "zendesk" | "jira_sm" | "salesforce" | "sheets" | "webhook" | "email" | "pm_chat";
+  resolution?: TicketResolution;
+  viaPmChat?: boolean;
+  linkedChatId?: string;
   originalTicketId: string;
   originalSubject: string;
   originalBody: string;
@@ -257,4 +268,44 @@ export interface AiPerformancePoint {
   overrideRate: number;
   editRate: number;
   acceptanceRate: number;
+}
+
+export type ThemeMode = "light" | "dark";
+export type WorkspaceRole = "pm" | "cs_agent";
+export type IssueCategory =
+  | "bug"
+  | "suggestion"
+  | "how_to"
+  | "billing"
+  | "complaint"
+  | "major_outage";
+
+export type PmChatRole = "user" | "pm" | "system";
+
+export interface PmChatMessage {
+  id: string;
+  ticketId?: string;
+  sessionId: string;
+  role: PmChatRole;
+  content: string;
+  timestamp: string;
+  proposal?: PmChatTicketProposal;
+  createdTicketId?: string;
+}
+
+export interface PmChatTicketProposal {
+  title: string;
+  classification: Classification;
+  scope: Scope;
+  summary: string;
+  severity: "simple" | "escalate";
+}
+
+export interface PmChatSession {
+  id: string;
+  ticketId?: string;
+  title: string;
+  preview: string;
+  updatedAt: string;
+  createdAt: string;
 }

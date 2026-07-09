@@ -49,7 +49,7 @@ function statusMeta(status: string) {
   return { label: "Offline", dot: "bg-red-400", ring: "border-red-200/80 bg-red-50/30" };
 }
 
-export default function SourcesPage() {
+export default function SourcesPage({ embedded = false }: { embedded?: boolean }) {
   const [panel, setPanel] = useState<PanelType>(null);
   const sources = MOCK_INTEGRATIONS.filter((i) => i.type === "source");
   const outputs = MOCK_INTEGRATIONS.filter((i) => i.type === "output");
@@ -67,7 +67,8 @@ export default function SourcesPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="sticky top-0 z-10 shrink-0 border-b bg-white/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between">
+      {!embedded && (
+      <div className="sticky top-0 z-10 shrink-0 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Repos & Sources</h1>
           <p className="text-xs text-muted-foreground hidden sm:block">
@@ -83,8 +84,9 @@ export default function SourcesPage() {
           <RefreshCw className="size-3.5" /> Sync
         </Button>
       </div>
+      )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 md:p-6">
+      <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 md:p-6", embedded && "pt-4")}>
         <div className="mx-auto max-w-6xl space-y-6">
           {/* Stats strip */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

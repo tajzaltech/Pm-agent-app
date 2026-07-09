@@ -51,7 +51,7 @@ export default function TeamPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center shrink-0">
+      <div className="sticky top-0 z-10 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center shrink-0">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Team & Governance</h1>
           <p className="text-xs text-muted-foreground hidden sm:block">Roles, billing, and audit trail</p>
@@ -76,7 +76,7 @@ export default function TeamPage() {
                 onChange={(e) => setAuditQuery(e.target.value)}
               />
             </div>
-            <div className="rounded-xl border bg-white divide-y overflow-hidden">
+            <div className="rounded-xl border bg-card divide-y overflow-hidden">
               {filteredAudit.length === 0 ? (
                 <p className="p-6 text-sm text-muted-foreground text-center">No audit entries found</p>
               ) : (
@@ -101,7 +101,7 @@ export default function TeamPage() {
           </TabsContent>
 
           <TabsContent value="team" className="space-y-4">
-            <div className="rounded-xl border bg-white p-4 flex gap-2 flex-wrap">
+            <div className="rounded-xl border bg-card p-4 flex gap-2 flex-wrap">
               <Input placeholder="name@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="flex-1 min-w-[200px]" />
               <Select value={inviteRole} onValueChange={(v) => v && setInviteRole(v as UserRole)}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
@@ -113,7 +113,7 @@ export default function TeamPage() {
               </Select>
               <Button onClick={handleInvite} className="gap-1.5"><UserPlus className="size-4" /> Invite</Button>
             </div>
-            <div className="rounded-xl border bg-white divide-y">
+            <div className="rounded-xl border bg-card divide-y">
               {members.map((m) => (
                 <div key={m.id} className="px-4 py-3 flex items-center gap-3">
                   <Avatar className="size-8">
@@ -131,7 +131,7 @@ export default function TeamPage() {
           </TabsContent>
 
           <TabsContent value="account" className="space-y-4">
-            <div className="rounded-xl border bg-white p-5 space-y-3">
+            <div className="rounded-xl border bg-card p-5 space-y-3">
               <h3 className="text-sm font-semibold">Plan & Billing</h3>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                 <div>
@@ -141,7 +141,7 @@ export default function TeamPage() {
                 <Button size="sm" variant="outline" onClick={() => toast.info("Billing portal")}>Manage</Button>
               </div>
             </div>
-            <div className="rounded-xl border bg-white p-5 space-y-3">
+            <div className="rounded-xl border bg-card p-5 space-y-3">
               <h3 className="text-sm font-semibold">API Key</h3>
               <div className="flex gap-2">
                 <code className="flex-1 text-xs font-mono bg-muted/40 border rounded-lg px-3 py-2">
@@ -152,7 +152,7 @@ export default function TeamPage() {
                 </Button>
               </div>
             </div>
-            <div className="rounded-xl border bg-white p-5">
+            <div className="rounded-xl border bg-card p-5">
               <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast.info("Export started")}>
                 <Download className="size-4" /> Export all data
               </Button>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Check, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Loader2, Mail } from "lucide-react";
 
 import {
   FreshdeskLogo,
@@ -14,11 +14,13 @@ import {
 import { WebhookEndpointPanel } from "@/components/shared/WebhookEndpointPanel";
 import { Button } from "@/components/ui/button";
 import { useOnboardingStore } from "@/lib/store/onboarding";
+import type { IssueCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const SOURCES = [
   { id: "freshdesk", name: "Freshdesk", Logo: FreshdeskLogo, desc: "Ticket and helpdesk" },
   { id: "zendesk", name: "Zendesk", Logo: ZendeskLogo, desc: "Support platform" },
+  { id: "email", name: "Email", Logo: Mail, desc: "Forward shared support inbox" },
   { id: "jira_sm", name: "Jira Service Mgmt", Logo: JiraLogo, desc: "IT service desk" },
   { id: "salesforce", name: "Salesforce", Logo: SalesforceLogo, desc: "CRM and service cloud" },
   { id: "sheets", name: "Google Sheets", Logo: GoogleSheetsLogo, desc: "Spreadsheet import" },
@@ -32,8 +34,18 @@ const FRESHDESK_WEBHOOK_STEPS = [
   "Create a test ticket to confirm drafts appear in your queue.",
 ];
 
+const CATEGORY_OPTIONS: { id: IssueCategory; label: string }[] = [
+  { id: "bug", label: "Bug reports" },
+  { id: "suggestion", label: "Suggestions" },
+  { id: "how_to", label: "How-to questions" },
+  { id: "billing", label: "Billing / refunds" },
+  { id: "complaint", label: "Complaints" },
+  { id: "major_outage", label: "Major outages" },
+];
+
 export function StepConnectSource() {
-  const { ticketSource, ticketSourceStatus, connectTicketSource, setStep } = useOnboardingStore();
+  const { ticketSource, ticketSourceStatus, connectTicketSource, setStep, issueCategories, toggleIssueCategory } =
+    useOnboardingStore();
   const [connecting, setConnecting] = useState<string | null>(null);
 
   const handleConnect = async (id: string) => {
@@ -119,6 +131,29 @@ export function StepConnectSource() {
           />
         )}
 
+        <div className="mt-6 pt-6 border-t">
+          <h2 className="text-sm font-semibold">Which issue categories does your team handle?</h2>
+          <p className="text-xs text-muted-foreground mt-1 mb-3">Select all that apply — used by PM Agent Chat for triage.</p>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORY_OPTIONS.map(({ id, label }) => {
+              const on = issueCategories.includes(id);
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => toggleIssueCategory(id)}
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                    on ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {ticketSourceStatus === "error" && (
           <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             <AlertCircle className="size-4 shrink-0" />
@@ -136,7 +171,7 @@ export function StepConnectSource() {
             ? `${SOURCES.find((source) => source.id === ticketSource)?.name} connected`
             : "Select a ticket source to continue"}
         </p>
-        <Button onClick={() => setStep(2)} disabled={ticketSourceStatus !== "connected"} className="min-w-28 gap-2">
+        <Button onClick={() => setStep(3)} disabled={ticketSourceStatus !== "connected" || issueCategories.length === 0} className="min-w-28 gap-2">
           Continue
           <span className="text-xs opacity-60">-&gt;</span>
         </Button>

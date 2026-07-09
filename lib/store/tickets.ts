@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Ticket, TicketStatus, ActivityEntry, ActivityAction } from "@/lib/types";
+import type { Ticket, TicketStatus, ActivityEntry, ActivityAction, Classification, Scope } from "@/lib/types";
 import { MOCK_TICKETS } from "@/lib/mock/tickets";
 import { MOCK_ACTIVITY } from "@/lib/mock/activity";
 import { logAudit } from "@/lib/store/audit";
@@ -22,9 +22,19 @@ interface TicketStore {
   // Actions
   hydrateFromApi: () => Promise<void>;
   accept: (id: string) => void;
+  acceptSendToDev: (id: string) => void;
+  acceptNonTechnical: (id: string) => void;
   reject: (id: string) => void;
+  ignore: (id: string) => void;
   editDraft: (id: string, updates: Partial<Ticket>) => void;
   editAndAccept: (id: string, updates: Partial<Ticket>) => void;
+  createFromChat: (payload: {
+    title: string;
+    classification: Classification;
+    scope: Scope;
+    description: string;
+    chatSessionId: string;
+  }) => string;
   undo: () => void;
   clearUndo: () => void;
   getById: (id: string) => Ticket | undefined;
@@ -70,23 +80,20 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
   },
 
   accept: (id) => {
+    get().acceptSendToDev(id);
+  },
+
+  acceptSendToDev: (id) => {
     const ticket = get().tickets.find((t) => t.id === id);
     if (!ticket || ticket.status === "accepted") return;
     const previousStatus = ticket.status;
-
-    // Clear any existing undo timer
     const existing = get().undoRecord;
-    if (existing) {
-      clearTimeout(existing.timerId);
-    }
-
-    const timerId = setTimeout(() => {
-      set({ undoRecord: null });
-    }, 5000);
+    if (existing) clearTimeout(existing.timerId);
+    const timerId = setTimeout(() => set({ undoRecord: null }), 5000);
 
     set((state) => ({
       tickets: state.tickets.map((t) =>
-        t.id === id ? { ...t, status: "accepted" } : t
+        t.id === id ? { ...t, status: "accepted" as TicketStatus, resolution: "dev" as const } : t
       ),
       activity: addActivity(state.activity, {
         action: "accepted" as ActivityAction,
@@ -97,24 +104,82 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
     }));
 
     usePipelineStore.getState().addFromAcceptance(ticket);
-    logAudit("accepted", `Accepted draft and queued for delivery`, {
+    logAudit("accepted", `Accept & send to Dev`, { ticketId: id, ticketTitle: ticket.draftTitle });
+  },
+
+  acceptNonTechnical: (id) => {
+    const ticket = get().tickets.find((t) => t.id === id);
+    if (!ticket || ticket.status !== "pending") return;
+    set((state) => ({
+      tickets: state.tickets.map((t) =>
+        t.id === id ? { ...t, status: "accepted" as TicketStatus, resolution: "non_technical" as const } : t
+      ),
+      activity: addActivity(state.activity, {
+        action: "accepted_non_technical" as ActivityAction,
+        ticketTitle: ticket.draftTitle,
+        ticketId: id,
+      }),
+    }));
+    logAudit("accepted_non_technical", `Accepted (non-technical) — no dev work`, {
       ticketId: id,
       ticketTitle: ticket.draftTitle,
     });
+  },
 
-    void fetch(`/api/draft-tickets/${id}/review`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "accept" }),
-    });
+  ignore: (id) => {
+    const ticket = get().tickets.find((t) => t.id === id);
+    if (!ticket) return;
+    set((state) => ({
+      tickets: state.tickets.map((t) => (t.id === id ? { ...t, status: "ignored" as TicketStatus } : t)),
+      activity: addActivity(state.activity, {
+        action: "ignored" as ActivityAction,
+        ticketTitle: ticket.draftTitle,
+        ticketId: id,
+      }),
+    }));
+    logAudit("ignored", `Ignored duplicate/noise`, { ticketId: id, ticketTitle: ticket.draftTitle });
+  },
 
-    // Trigger developer agent dispatch if configured
-    import("@/lib/store/dispatch").then(({ useDispatchStore }) => {
-      const dispatchStore = useDispatchStore.getState();
-      if (dispatchStore.config.enabled && dispatchStore.config.webhookUrl) {
-        void dispatchStore.dispatch(id, ticket.draftTitle);
-      }
-    });
+  createFromChat: (payload) => {
+    const id = `chat_${Date.now()}`;
+    const ticket: Ticket = {
+      id,
+      status: "pending",
+      classification: payload.classification,
+      scope: payload.scope,
+      draftTitle: payload.title,
+      draftDescription: payload.description,
+      suggestedApproach: "Investigate using connected repo context and confirm repro steps with customer.",
+      acceptanceCriteria: ["Issue reproduced or ruled out", "Customer updated with resolution path"],
+      scopeRationale: "Created from PM Agent Chat escalation",
+      codeRefs: [],
+      customer: {
+        id: "chat",
+        name: "Chat escalation",
+        email: "support@company.com",
+        plan: "growth",
+        avatarInitials: "PC",
+      },
+      source: "pm_chat",
+      viaPmChat: true,
+      linkedChatId: payload.chatSessionId,
+      originalTicketId: id.toUpperCase(),
+      originalSubject: payload.title,
+      originalBody: payload.description,
+      conversation: [],
+      internalNotes: "Originated via PM Agent Chat — conversation linked.",
+      attachments: [],
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({
+      tickets: [ticket, ...state.tickets],
+      activity: addActivity(state.activity, {
+        action: "new_draft" as ActivityAction,
+        ticketTitle: ticket.draftTitle,
+        ticketId: id,
+      }),
+    }));
+    return id;
   },
 
   reject: (id) => {

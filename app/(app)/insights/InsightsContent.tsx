@@ -83,6 +83,55 @@ export default function InsightsContent() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 max-w-6xl mx-auto w-full">
+        {/* 2.1 Recommendation cards */}
+        <div className="grid gap-3 md:grid-cols-2">
+          {[
+            {
+              title: "Billing acceptance dropped 18% this week",
+              body: "3 tickets were re-opened after Accept (non-technical). Review before closing.",
+              href: "/triage?classification=bug",
+            },
+            {
+              title: "Chat-originated tickets: 82% accepted",
+              body: "PM Agent Chat escalations are holding up — 4 pending confirmation in Triage.",
+              href: "/triage",
+            },
+          ].map((card) => (
+            <Link
+              key={card.title}
+              href={card.href}
+              className="rounded-xl border bg-white dark:bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all"
+            >
+              <p className="text-sm font-semibold leading-snug">{card.title}</p>
+              <p className="text-xs text-muted-foreground mt-1.5">{card.body}</p>
+              <span className="text-xs text-primary mt-2 inline-block">View tickets →</span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Delivery view summary */}
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Delivery health</p>
+          <div className="grid grid-cols-3 gap-4 mt-3 text-center">
+            {[
+              { label: "Median cycle", value: "2.4d" },
+              { label: "In Dev Agent", value: "5" },
+              { label: "Shipped this week", value: "12" },
+            ].map((s) => (
+              <div key={s.label}>
+                <p className="text-lg font-bold">{s.value}</p>
+                <p className="text-[10px] text-muted-foreground">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Chat accuracy */}
+        <div className="rounded-xl border border-violet-200 bg-violet-50/50 dark:bg-violet-950/20 p-4">
+          <p className="text-sm font-semibold text-violet-900 dark:text-violet-200">PM Agent Chat accuracy</p>
+          <p className="text-xs text-violet-800/80 dark:text-violet-300 mt-1">74% of chat-filed tickets accepted · 12% rejected · 14% ignored</p>
+        </div>
+
         <div className="grid sm:grid-cols-3 gap-3">
           {[
             { label: "Acceptance rate", current: "74%", prior: "70%", up: true },

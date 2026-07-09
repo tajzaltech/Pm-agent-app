@@ -21,10 +21,13 @@ import {
 } from "lucide-react";
 
 import { AiImprovePanel } from "@/components/triage/AiImprovePanel";
+import { AskPmAgentGate } from "@/components/triage/AskPmAgentGate";
+import { TriageFlowStrip } from "@/components/triage/TriageFlowStrip";
 import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
 import { CodeReferenceBlock } from "@/components/shared/CodeReferenceBlock";
 import { ScopeBadge } from "@/components/shared/ScopeBadge";
 import { SourceBadge } from "@/components/shared/SourceBadge";
+import { TicketActionsBar } from "@/components/triage/TicketActionsBar";
 import { ReasoningTrace } from "@/components/triage/ReasoningTrace";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -33,9 +36,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useTicketStore } from "@/lib/store/tickets";
-import type { Classification, Scope, Ticket } from "@/lib/types";
+import { usePmChatStore } from "@/lib/store/pm-chat";
+import { useTriageAlertsStore } from "@/lib/store/triage-alerts";
+import type { Classification, PmChatMessage, Scope, Ticket } from "@/lib/types";
 import { enrichTicket } from "@/lib/utils/workspace";
 import { cn, formatRelativeTime } from "@/lib/utils";
+
+const EMPTY_CHAT: PmChatMessage[] = [];
 
 interface TicketDetailPaneProps {
   ticket: Ticket | null;
@@ -55,8 +62,8 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={cn("rounded-2xl border bg-white shadow-sm overflow-hidden", className)}>
-      <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/30">
+    <section className={cn("overflow-hidden rounded-2xl bg-card shadow-sm", className)}>
+      <div className="flex items-center gap-2 bg-muted/30 px-4 py-2.5">
         <Icon className="size-3.5 text-primary/70" />
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
       </div>
@@ -67,6 +74,8 @@ function SectionCard({
 
 export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPaneProps) {
   const { editDraft, editAndAccept } = useTicketStore();
+  const hasPmConsulted = useTriageAlertsStore((s) => s.hasPmConsulted);
+  const markPmConsulted = useTriageAlertsStore((s) => s.markPmConsulted);
   const [editMode, setEditMode] = useState(false);
   const [showConversation, setShowConversation] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -90,6 +99,22 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
     setEditScope(enriched.scope);
     setEditMode(false);
   }, [enriched?.id, refreshKey]);
+
+  const chatSessionId = enriched ? `ticket_${enriched.id}` : "";
+  const chatMessages = usePmChatStore((s) => s.messagesBySession[chatSessionId] ?? EMPTY_CHAT);
+  const hasChatActivity = chatMessages.some((m) => m.role === "user");
+
+  useEffect(() => {
+    if (enriched && hasChatActivity) {
+      markPmConsulted(enriched.id);
+    }
+  }, [enriched, hasChatActivity, markPmConsulted]);
+
+  const pmConsulted =
+    enriched != null &&
+    (hasPmConsulted(enriched.id) || hasChatActivity || enriched.viaPmChat === true);
+
+  const showFullDetail = enriched != null && (enriched.status !== "pending" || pmConsulted);
 
   const handleSaveDraft = useCallback(() => {
     if (!enriched) return;
@@ -154,11 +179,13 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
         : "text-amber-600 bg-amber-50 border-amber-200";
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-gradient-to-b from-slate-50/40 to-white">
+    <div className="flex h-full min-h-0 flex-col bg-muted/20">
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <div className="p-5 md:p-6 space-y-5 pb-8 max-w-3xl">
+        <div className="w-full space-y-5 p-5 pb-8 md:p-6 lg:p-8">
+          <TriageFlowStrip activeStep={showFullDetail && enriched.status === "pending" ? 3 : 4} />
+
           {/* Hero header */}
-          <div className="rounded-2xl border bg-white p-5 shadow-sm space-y-4">
+          <div className="rounded-2xl bg-card p-5 shadow-sm space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-2 min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -209,7 +236,7 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
                   )}
                 </div>
               </div>
-              {!editMode && enriched.status === "pending" && (
+              {!editMode && enriched.status === "pending" && showFullDetail && (
                 <Button size="sm" variant="outline" className="gap-1.5 h-8 shrink-0" onClick={() => setEditMode(true)}>
                   <Pencil className="size-3.5" /> Edit
                 </Button>
@@ -230,6 +257,12 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
             </div>
           </div>
 
+          {enriched.status === "pending" && !pmConsulted && (
+            <AskPmAgentGate ticket={enriched} />
+          )}
+
+          {showFullDetail && (
+            <>
           {!editMode && enriched.status === "pending" && (
             <AiImprovePanel ticket={enriched} onApplied={() => setRefreshKey((k) => k + 1)} />
           )}
@@ -352,31 +385,20 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      {enriched.status === "pending" && (
-        <div className="border-t bg-white/95 backdrop-blur-sm px-4 md:px-6 py-3 flex items-center gap-2 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-          {editMode ? (
-            <>
-              <Button variant="outline" size="sm" onClick={() => setEditMode(false)}><X className="size-4" /> Cancel</Button>
-              <Button variant="outline" size="sm" onClick={handleSaveDraft}><Check className="size-4" /> Save draft</Button>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 ml-auto shadow-sm" onClick={handleSaveAccept}>
-                Save & Accept
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => onReject(enriched)}>
-                <XCircle className="size-4" /> Reject
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setEditMode(true)}><Pencil className="size-4" /> Edit</Button>
-              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 ml-auto shadow-sm gap-1.5" onClick={() => onAccept(enriched)}>
-                <CheckCircle className="size-4" /> Accept to Pipeline
-              </Button>
             </>
           )}
         </div>
+      </div>
+
+      {enriched && showFullDetail && (
+        <TicketActionsBar
+          ticket={enriched}
+          editMode={editMode}
+          onEdit={() => setEditMode(true)}
+          onCancelEdit={() => setEditMode(false)}
+          onSaveDraft={handleSaveDraft}
+          onSaveAccept={handleSaveAccept}
+        />
       )}
     </div>
   );

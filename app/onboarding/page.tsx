@@ -1,20 +1,22 @@
 "use client";
 
-import { Check, FileText, GitBranch, Send, TicketCheck, Zap } from "lucide-react";
+import { Check, FileText, GitBranch, Send, TicketCheck, UserCog, Zap } from "lucide-react";
 
 import { IndexingScreen } from "@/components/onboarding/IndexingScreen";
 import { StepConnectOutput } from "@/components/onboarding/StepConnectOutput";
 import { StepConnectRepo } from "@/components/onboarding/StepConnectRepo";
 import { StepConnectSource } from "@/components/onboarding/StepConnectSource";
+import { StepSelectRole } from "@/components/onboarding/StepSelectRole";
 import { StepUploadDocs } from "@/components/onboarding/StepUploadDocs";
 import { useOnboardingStore } from "@/lib/store/onboarding";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { number: 1, label: "Ticket source", description: "Import requests", Icon: TicketCheck },
-  { number: 2, label: "Code repo", description: "Map codebase", Icon: GitBranch },
-  { number: 3, label: "Output tool", description: "Push tickets", Icon: Send },
-  { number: 4, label: "Product docs", description: "Add context", Icon: FileText },
+  { number: 1, label: "Your role", description: "PM or CS agent", Icon: UserCog },
+  { number: 2, label: "Ticket source", description: "Import requests", Icon: TicketCheck },
+  { number: 3, label: "Code repo", description: "Map codebase", Icon: GitBranch },
+  { number: 4, label: "Output tool", description: "Push tickets", Icon: Send },
+  { number: 5, label: "Product docs", description: "Add context", Icon: FileText },
 ];
 
 export default function OnboardingPage() {
@@ -24,11 +26,11 @@ export default function OnboardingPage() {
     return <IndexingScreen />;
   }
 
-  const current = typeof step === "number" ? step : 4;
+  const current = typeof step === "number" ? step : 5;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b bg-white px-8 py-4">
+      <header className="border-b bg-card px-8 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-sm">
@@ -47,7 +49,7 @@ export default function OnboardingPage() {
 
       <main className="flex flex-1 flex-col items-center px-4 py-10">
         <div className="mb-8 w-full max-w-5xl">
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-5">
             {STEPS.map(({ number, label, description, Icon }) => {
               const isDone = current > number;
               const isActive = current === number;
@@ -56,7 +58,7 @@ export default function OnboardingPage() {
                 <div
                   key={number}
                   className={cn(
-                    "relative overflow-hidden rounded-xl border bg-white p-4 transition-all",
+                    "relative overflow-hidden rounded-xl border bg-card p-4 transition-all",
                     isActive && "border-primary shadow-sm ring-2 ring-primary/10",
                     isDone && "border-primary/25 bg-primary/[0.025]"
                   )}
@@ -94,10 +96,11 @@ export default function OnboardingPage() {
         </div>
 
         <div className="w-full max-w-3xl">
-          {step === 1 && <StepConnectSource />}
-          {step === 2 && <StepConnectRepo />}
-          {step === 3 && <StepConnectOutput />}
-          {step === 4 && <StepUploadDocs />}
+          {step === 1 && <StepSelectRole />}
+          {step === 2 && <StepConnectSource />}
+          {step === 3 && <StepConnectRepo />}
+          {step === 4 && <StepConnectOutput />}
+          {step === 5 && <StepUploadDocs />}
         </div>
       </main>
     </div>

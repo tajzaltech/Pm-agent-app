@@ -141,7 +141,12 @@ export function attentionTickets(tickets: Ticket[]): Ticket[] {
   return tickets
     .filter((t) => t.status === "pending")
     .map(enrichTicket)
-    .sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0))
+    .sort((a, b) => {
+      const aChat = a.viaPmChat ? 1 : 0;
+      const bChat = b.viaPmChat ? 1 : 0;
+      if (bChat !== aChat) return bChat - aChat;
+      return (b.priorityScore ?? 0) - (a.priorityScore ?? 0);
+    })
     .slice(0, 8);
 }
 

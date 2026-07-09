@@ -10,7 +10,7 @@ import { Zap, CheckCircle, AlertCircle } from "lucide-react";
 
 export function IndexingScreen() {
   const router = useRouter();
-  const { indexingStatus, indexingStep, markSetupDone, step } = useOnboardingStore();
+  const { indexingStatus, indexingStep, markSetupDone, step, workspaceRole } = useOnboardingStore();
 
   useEffect(() => {
     if (step === "done") {
@@ -59,8 +59,12 @@ export function IndexingScreen() {
                 </p>
               )}
             </div>
-            <Button size="lg" className="w-full" onClick={() => router.push("/dashboard")}>
-              Go to Command Center -&gt;
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => router.push(workspaceRole === "cs_agent" ? "/chat" : "/triage")}
+            >
+              {workspaceRole === "cs_agent" ? "Open PM Agent Chat →" : "Go to Triage Workspace →"}
             </Button>
           </>
         ) : isError ? (

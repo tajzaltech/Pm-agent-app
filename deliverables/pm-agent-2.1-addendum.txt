@@ -1,0 +1,116 @@
+PM Agent 2.1
+Chat-assisted triage, a simplified workspace, and full theming
+This addendum builds directly on the PM Agent 2.0 redesign proposal. It keeps every principle from that proposal — one coherent workspace, every screen answering “so what do I do right now,” and a delivery pipeline that stays visible — and adds a new layer on top: PM Agent is scoped explicitly to two roles, PMs and customer-service agents, and now includes a guided chat interface that can answer questions, read code, and file tickets on a caller's behalf. This document describes every change in detail: the new chat interface and its guardrails, the updated ticket actions in Triage and Command Center, sign-up changes, page consolidation (Pipeline Tracker retired, Repos & Sources merged with Automation Studio), a redesigned Insights page, a full light/dark theme system, and a restructured sidebar with Settings and a Plans & Pricing panel.
+0. Who this is for, and what changes
+SCOPE
+PM Agent 2.1 is used by exactly two roles: Product Managers and Customer Service agents. Every change below is designed around that pairing — CS agents are usually the first to hear about a problem and need a fast way to check “is this expected behaviour or a real bug,” while PMs need a fast way to turn anything real into a scoped, engineering-ready ticket. The chat interface exists specifically to shorten the distance between those two moments.
+WHAT'S CHANGING IN THIS ADDENDUM
+A new PM Agent Chat interface — read-only over the codebase, scoped to product questions and ticket triage, available globally and from any ticket.
+Updated Triage / Command Center ticket actions — Accept & Send to Dev, Accept (non-technical), Edit, Reject, Ignore, and Ask PM Agent.
+Sign-up changes — Email added as a ticket source, and issue categories become multi-select instead of single-select.
+Pipeline Tracker is retired as a standalone page — its status information is folded into Triage and a new Insights delivery view.
+Insights is rebuilt to actually be insightful — recommendation cards, not just charts.
+Repos & Sources and Automation Studio merge into one “Connections & Automation” page.
+The logo/profile icon opens a Plans & Pricing panel; the sidebar gains a Settings entry above Log out.
+Settings introduces a genuine full-palette light/dark theme system, plus other usage-relevant preferences.
+Figure 1 — the redesigned sidebar: logo opens Plans & Pricing, Connections and Automation are merged, Pipeline Tracker is removed, and Settings now sits directly above Log out.
+1. PM Agent Chat — a new, guarded conversational surface
+PURPOSE
+Today, a CS agent who hits something confusing has two options: guess, or interrupt a PM. PM Agent Chat gives them a third option — paste or type the issue, and let the agent read the connected, indexed codebase and product documentation (read-only; PM Agent never gains edit access) to answer directly, or to recognise that the issue is bigger than a question and turn it into a ticket on the spot.
+HOW SEVERITY DECIDES WHAT HAPPENS
+Every message is run through the same classification rubric PM Agent already uses to triage inbound tickets, applied here to a live conversation instead of a queued item:
+Simple / “how does this work” questions — routed to a direct, cited answer in the chat itself. No ticket is created and nothing changes in Triage — this is meant to close the loop in seconds.
+Suggestions, non-working functionality, or any major-category issue — PM Agent proposes filing a ticket, with category, severity and a draft summary already filled in from the conversation, and waits for a one-click confirmation before creating anything.
+Once confirmed, the chat replies with the ticket ID and confirms it now lives in both the Triage Workspace smart list and, if urgent, the Command Center's Attention Needed panel — tagged with “via PM Agent Chat” as its source so its origin is never ambiguous.
+Figure 2 — the chat's triage logic: simple questions get answered inline; anything more serious becomes a confirmed ticket that flows straight into Triage.
+GUARDRAILS
+PM Agent Chat only ever operates inside its lane
+Read-only over code: it can search, cite, and explain files and functions, but it cannot open a pull request, commit, or otherwise modify anything — that stays the job of the connected dev agent once a ticket is accepted.
+Scoped context: answers are grounded only in the connected repos, product documentation, and the ticket/issue categories your team selected at sign-up. It does not attempt general-purpose conversation, and it says so rather than improvising when a question falls outside that scope.
+Every escalation is confirmed, never silent: a ticket is only created after the person in the chat approves the proposed summary and category.
+Full traceability: the originating conversation stays linked to any ticket it produces, so a PM opening that ticket later can see exactly what was asked and why the chat proposed escalating it.
+2. Triage Workspace & Command Center — updated ticket actions
+WHAT CHANGES
+The old three-button action bar (Accept, Reject, Edit & Accept) undersold how differently tickets actually get resolved in practice. It is replaced with six explicit actions that match how PMs and CS agents really dispose of a ticket:
+Accept & send to Dev — routes the ticket into the Pipeline stage of the workflow (previously the standalone Pipeline Tracker page, now folded into Triage's own status chips) and notifies the assigned developer or dev agent.
+Accept (non-technical) — closes tickets a PM can resolve without engineering — a copy fix, a policy clarification, a refund decision — without ever creating dev-facing work.
+Edit — opens the draft spec for inline changes before it is sent onward, exactly as before.
+Reject — declines the ticket outright, e.g. invalid reports or out-of-scope requests.
+Ignore (new) — quietly closes duplicates or noise without flagging it as a rejection, keeping the audit log accurate about why it was closed.
+Ask PM Agent (new) — hands the exact ticket — its summary, code links, and history — to PM Agent Chat for a deeper look before deciding on any of the above.
+ASK PM AGENT, EVERYWHERE IT'S NEEDED
+Triage Workspace gains a persistent “Ask PM Agent” control in its top-right header, always available regardless of which ticket is selected, for open-ended questions about the whole queue. In addition, every individual ticket row and its detail pane get their own “Ask PM Agent” action; clicking it opens the chat interface with that specific ticket's context already loaded, so a PM never has to re-explain what they're looking at.
+Figure 3 — the new six-action bar, plus the two Ask PM Agent entry points: one global (top-right of Triage), one per ticket.
+3. Sign-up — email as a source, and multi-select categories
+TICKET SOURCE: EMAIL ADDED
+Sign-up's ticket-source step (Zendesk, Intercom, Jira Service Desk, and so on) gains Email as a first-class option. A team forwards a shared support inbox address, and every inbound message becomes a ticket candidate through the same pipeline as any other source — no separate import step.
+CATEGORIES BECOME MULTI-SELECT
+The category step, which previously forced a single choice, now allows selecting every category that applies — bug reports, suggestions, how-to questions, billing or refunds, complaints, major outages, and so on. Most support teams handle more than one category simultaneously, and the selections made here now double as the starting rubric PM Agent Chat uses when it decides whether a conversation warrants a ticket.
+Figure 4 — sign-up: Email joins the ticket-source list, and issue categories switch from single-select to multi-select chips.
+4. Pipeline Tracker is retired as a standalone page
+The 2.0 proposal introduced Pipeline Tracker as a live Kanban board for delivery. In 2.1 it is folded rather than removed outright: every ticket in the Triage Workspace now carries a persistent status chip (Accepted → Assigned → Dev Agent Working → PR Open → Merged → Shipped) directly on its row, so delivery state is visible exactly where a PM is already looking, and a new delivery view inside Insights (below) shows the same data in aggregate — cycle time by stage, bottlenecks, and throughput — which is a more useful home for that information than a page of its own.
+5. Insights — rebuilt to actually be insightful
+THE PROBLEM
+Insights (2.0's redesign of Analytics) was already interactive, but on its own, charts you can click through still just describe what happened. This revision adds a layer that tells a PM what to do about it.
+WHAT'S ADDED
+Recommendation cards — plain-language cards generated from the same event log — e.g. “Acceptance rate on billing tickets dropped 18% this week; three were re-opened after Accept (non-technical)” — each linking straight to the underlying tickets.
+A delivery view — cycle time and throughput by pipeline stage, replacing the retired Pipeline Tracker page as the place to see delivery health in aggregate.
+A chat-accuracy panel (new) — tracks how often chat-originated tickets get accepted versus rejected, so a team can see whether PM Agent Chat's judgement about what deserves a ticket is holding up.
+Everything from 2.0 — classification donut, cohort comparisons, and one-click export all carry over unchanged from the 2.0 proposal.
+WHY THIS IS BETTER
+Insights stops being a reporting page and starts being a working page: every card either explains a number or points at the specific tickets behind it, so “why did acceptance rate drop” has an answer inside the product instead of requiring a Slack thread.
+6. Connections & Automation — one merged page
+Repos & Sources and Automation Studio configured two different things (what data flows in, and what PM Agent is allowed to do automatically) but both amounted to “how is this thing set up,” and splitting them across two pages meant a PM often had to visit both to answer one question. They now live as two tabs of a single Connections & Automation page: a Map tab (the same visual source → repo → output graph from 2.0, with live health per node) and a Rules tab (the same preset-driven, if/then rule builder), sharing one page header, one search, and one settings history so configuration reads as a single coherent setup flow rather than two separate destinations.
+7. Sidebar — Plans & Pricing on the logo, Settings above Log out
+LOGO / PROFILE CLICK
+Clicking the PM Agent logo or profile icon at the top of the sidebar now opens a Plans & Pricing panel: current plan, seat and ticket-volume usage against plan limits, and an upgrade path — surfaced from the one place every user already looks at on every page, instead of being buried inside Team & Governance.
+SETTINGS, PROMOTED
+A Settings entry is added directly above Log out at the bottom of the sidebar, styled identically to the rest of the navigation (same rounded card, same hover state) so it reads as a first-class part of the app rather than a bolted-on account link.
+8. Settings — a real theme system, and the rest of what belongs here
+APPEARANCE: LIGHT AND DARK, DONE PROPERLY
+Rather than swapping a single background colour, Settings introduces a token-based theme: surface/canvas, card, border, primary and secondary text, brand accent, and semantic colours (success, warning, danger) are each defined once and re-tuned together whenever the theme is switched. Toggling dark or light mode therefore changes the entire visual character of the product at once — charts, badges, borders, and status colours all shift in a coordinated way, not just the page background.
+Figure 5 — light and dark are full token sets, not a single inverted colour; switching themes re-tunes surfaces, borders, text and accents together.
+OTHER SETTINGS THAT BELONG HERE
+Workspace — appearance (above), density (comfortable / compact), and default landing page after login.
+Notifications — which events trigger an in-app or email alert — e.g. new major-category ticket, chat-originated escalation, dev agent failure.
+Automation defaults — default auto-accept preset, and whether PM Agent Chat may propose tickets without an explicit confirmation step for low-risk categories your team defines.
+Account — profile, password, connected identity providers, and the plan/billing details also reachable from the Plans & Pricing panel.
+Team & Governance — everything already in Team & Governance from the 2.0 proposal — roles, invites, and the audit log — unchanged.
+9. Old vs. new, at a glance
+Area
+Before (2.0)
+Now (2.1)
+Support access
+Any authenticated user
+Restricted to PM and Customer Service roles
+Getting an answer
+Interrupt a PM directly
+PM Agent Chat answers directly from code/docs, or files a confirmed ticket
+Ticket actions
+Accept / Reject / Edit & Accept
+Accept & send to Dev / Accept (non-technical) / Edit / Reject / Ignore / Ask PM Agent
+Ticket sources at sign-up
+Zendesk, Intercom, Jira, etc.
+Same, plus Email
+Issue categories at sign-up
+Single choice
+Multi-select
+Delivery visibility
+Standalone Pipeline Tracker page
+Status chips in Triage + a delivery view inside Insights
+Insights
+Interactive charts
+Charts plus recommendation cards and a chat-accuracy panel
+Setup pages
+Repos & Sources, Automation Studio (separate)
+Connections & Automation (merged, two tabs)
+Logo / profile click
+No action
+Opens Plans & Pricing
+Sidebar bottom
+Log out only
+Settings, then Log out
+Theming
+Not specified
+Full-palette light/dark token system
+In short: the underlying pipeline from the 2.0 proposal is untouched — tickets still arrive, PM Agent still drafts specs against indexed code, and a human still approves before anything ships. What 2.1 adds is a guarded, code-aware conversation layer that shortens the distance between a confused CS agent and a filed ticket, a ticket-action set that matches how work actually gets resolved, and a simpler, more consistently themed workspace around all of it.
