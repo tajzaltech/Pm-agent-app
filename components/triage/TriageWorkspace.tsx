@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowDownUp,
-  CheckCheck,
   Focus,
   Keyboard,
   Layers,
@@ -206,13 +205,6 @@ export function TriageWorkspace() {
     [reject, undo]
   );
 
-  const handleBulkCluster = (item: TriageListItem, action: "accept" | "reject") => {
-    if (item.kind !== "cluster" || !item.cluster) return;
-    const ids = item.cluster.tickets.map((t) => t.ticketId);
-    ids.forEach((id) => (action === "accept" ? accept(id) : reject(id)));
-    toast.success(`${ids.length} tickets ${action === "accept" ? "accepted" : "rejected"}`);
-  };
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).tagName)) return;
@@ -321,29 +313,21 @@ export function TriageWorkspace() {
                         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
                           <Layers className="size-4" />
                         </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold leading-snug line-clamp-2">{item.cluster.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <p className="line-clamp-2 min-h-[2.625rem] text-sm font-semibold leading-snug">
+                            {item.cluster.title}
+                          </p>
+                          <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs leading-snug text-muted-foreground">
                             {item.ticketCount} tickets · {item.cluster.affectedCodeArea}
                           </p>
-                          <div className="flex flex-wrap gap-1.5 mt-2">
+                          <div className="mt-2 flex items-center gap-1.5">
                             <ScopeBadge scope={item.cluster.combinedScope} className="size-5 text-[10px]" />
-                            <span className="text-[10px] rounded-full bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 font-semibold">
+                            <span className="rounded-full border border-red-100 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
                               P{item.priorityScore}
                             </span>
                           </div>
                         </div>
                       </div>
-                      {isSelected && (
-                        <div className="flex gap-1.5 mt-3 pt-3 border-t border-violet-100" onClick={(e) => e.stopPropagation()}>
-                          <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 flex-1" onClick={() => handleBulkCluster(item, "accept")}>
-                            <CheckCheck className="size-3" /> Accept all
-                          </Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200 flex-1" onClick={() => handleBulkCluster(item, "reject")}>
-                            Reject all
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   );
                 }

@@ -1,9 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   CheckCircle,
-  EyeOff,
   Pencil,
   Send,
   XCircle,
@@ -11,6 +11,7 @@ import {
 
 import { AskPmAgentButton } from "@/components/triage/AskPmAgentButton";
 import { Button } from "@/components/ui/button";
+import { usePmChatStore } from "@/lib/store/pm-chat";
 import { useTicketStore } from "@/lib/store/tickets";
 import type { Ticket } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -34,7 +35,9 @@ export function TicketActionsBar({
   onSaveAccept,
   className,
 }: TicketActionsBarProps) {
-  const { acceptSendToDev, acceptNonTechnical, reject, ignore } = useTicketStore();
+  const router = useRouter();
+  const { acceptSendToDev, reject } = useTicketStore();
+  const startNonTechnicalReply = usePmChatStore((s) => s.startNonTechnicalReply);
 
   if (ticket.status !== "pending") return null;
 
@@ -65,9 +68,11 @@ export function TicketActionsBar({
       <ActionBtn
         icon={CheckCircle}
         label="Accept (non-technical)"
+        className="text-violet-700 border-violet-200 hover:bg-violet-50"
         onClick={() => {
-          acceptNonTechnical(ticket.id);
-          toast.success("Closed without dev work");
+          startNonTechnicalReply(ticket.id);
+          toast.success("Opening PM Agent with a draft customer reply");
+          router.push(`/chat/ticket/${ticket.id}`);
         }}
       />
       <ActionBtn icon={Pencil} label="Edit" onClick={onEdit} />
@@ -78,14 +83,6 @@ export function TicketActionsBar({
         onClick={() => {
           reject(ticket.id);
           toast.error("Rejected");
-        }}
-      />
-      <ActionBtn
-        icon={EyeOff}
-        label="Ignore"
-        onClick={() => {
-          ignore(ticket.id);
-          toast.info("Ignored — kept out of rejection stats");
         }}
       />
     </div>

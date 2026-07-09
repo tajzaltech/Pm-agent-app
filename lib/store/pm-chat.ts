@@ -4,7 +4,10 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { PmChatMessage, PmChatSession, Ticket } from "@/lib/types";
 import { generatePmReply } from "@/lib/utils/pm-responses";
+import { buildCustomerReply } from "@/lib/utils/customer-reply";
+import { buildTicketContextMessages } from "@/lib/utils/ticket-chat-context";
 import { useTicketStore } from "@/lib/store/tickets";
+import { useTriageAlertsStore } from "@/lib/store/triage-alerts";
 
 interface PmChatStore {
   activeSessionId: string;
@@ -21,6 +24,8 @@ interface PmChatStore {
   confirmProposal: (sessionId: string, messageId: string) => string | null;
   sendProposalToDev: (sessionId: string, messageId: string) => string | null;
   rejectProposal: (sessionId: string, messageId: string) => void;
+  startNonTechnicalReply: (ticketId: string) => void;
+  sendCustomerReply: (sessionId: string, messageId: string) => boolean;
 }
 
 function welcome(sessionId: string, ticket?: Ticket | null): PmChatMessage {
@@ -128,32 +133,30 @@ export const usePmChatStore = create<PmChatStore>()(
       openChat: (opts) => {
         const ticketId = opts?.ticketId;
         const sessionId = ticketId ? `ticket_${ticketId}` : get().activeSessionId;
-        const existing = get().messagesBySession[sessionId];
+        const existing = get().messagesBySession[sessionId] ?? [];
+        const hasUserMessages = existing.some((m) => m.role === "user");
         const ticket = ticketId ? useTicketStore.getState().getById(ticketId) : null;
 
-        if (!existing?.length) {
-          const meta = sessionMeta(sessionId, ticket, ticket ? `#${ticket.originalTicketId}` : "New conversation");
-          set((s) => ({
-            activeSessionId: sessionId,
-            ticketContextId: ticketId ?? null,
-            sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
-            messagesBySession: {
-              ...s.messagesBySession,
-              [sessionId]: emptySessionMessages(),
-            },
-          }));
-        } else {
-          set({ activeSessionId: sessionId, ticketContextId: ticketId ?? null });
-          if (ticket) {
-            set((s) => ({
-              sessions: s.sessions.some((x) => x.id === sessionId)
-                ? s.sessions.map((x) =>
-                    x.id === sessionId ? { ...x, title: ticket.draftTitle, updatedAt: new Date().toISOString() } : x
-                  )
-                : [sessionMeta(sessionId, ticket), ...s.sessions],
-            }));
-          }
-        }
+        const messages =
+          ticket && ticketId && !hasUserMessages
+            ? buildTicketContextMessages(sessionId, ticket)
+            : existing;
+
+        const preview =
+          ticket != null
+            ? `#${ticket.originalTicketId}`
+            : messages.find((m) => m.role === "user")?.content.slice(0, 48) ?? "New conversation";
+        const meta = sessionMeta(sessionId, ticket, preview);
+
+        set((s) => ({
+          activeSessionId: sessionId,
+          ticketContextId: ticketId ?? null,
+          sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
+          messagesBySession: {
+            ...s.messagesBySession,
+            [sessionId]: messages,
+          },
+        }));
         return sessionId;
       },
 
@@ -286,10 +289,84 @@ export const usePmChatStore = create<PmChatStore>()(
           messagesBySession: {
             ...s.messagesBySession,
             [sessionId]: (s.messagesBySession[sessionId] ?? []).map((m) =>
-              m.id === messageId ? { ...m, proposal: undefined, content: `${m.content}\n\n(No ticket filed.)` } : m
+              m.id === messageId
+                ? {
+                    ...m,
+                    proposal: undefined,
+                    customerReply: undefined,
+                    content: `${m.content}\n\n(Dismissed.)`,
+                  }
+                : m
             ),
           },
         }));
+      },
+
+      startNonTechnicalReply: (ticketId) => {
+        const ticket = useTicketStore.getState().getById(ticketId);
+        if (!ticket) return;
+
+        const sessionId = `ticket_${ticketId}`;
+        const draft = buildCustomerReply(ticket);
+        const now = new Date().toISOString();
+        const userMsg: PmChatMessage = {
+          id: `u_nt_${Date.now()}`,
+          sessionId,
+          ticketId,
+          role: "user",
+          content: `Help me reply to ${ticket.customer.name} — this doesn't need dev work.`,
+          timestamp: now,
+        };
+        const pmMsg: PmChatMessage = {
+          id: `pm_nt_${Date.now() + 1}`,
+          sessionId,
+          ticketId,
+          role: "pm",
+          content: `I've drafted a customer-facing reply for **#${ticket.originalTicketId}**. Review it below — when you're happy, send it back through **${draft.channel}**.`,
+          timestamp: now,
+          customerReply: draft,
+        };
+        const meta = sessionMeta(sessionId, ticket, "Customer reply draft");
+
+        useTriageAlertsStore.getState().markPmConsulted(ticketId);
+
+        set((s) => ({
+          activeSessionId: sessionId,
+          ticketContextId: ticketId,
+          sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
+          messagesBySession: {
+            ...s.messagesBySession,
+            [sessionId]: [userMsg, pmMsg],
+          },
+          typingBySession: { ...s.typingBySession, [sessionId]: false },
+        }));
+      },
+
+      sendCustomerReply: (sessionId, messageId) => {
+        const msgs = get().messagesBySession[sessionId] ?? [];
+        const msg = msgs.find((m) => m.id === messageId);
+        if (!msg?.customerReply || !msg.ticketId) return false;
+
+        const ticket = useTicketStore.getState().getById(msg.ticketId);
+        if (!ticket) return false;
+
+        useTicketStore.getState().acceptNonTechnical(msg.ticketId);
+
+        set((s) => ({
+          messagesBySession: {
+            ...s.messagesBySession,
+            [sessionId]: (s.messagesBySession[sessionId] ?? []).map((m) =>
+              m.id === messageId
+                ? {
+                    ...m,
+                    customerReply: undefined,
+                    content: `${m.content}\n\n✓ **Sent via ${msg.customerReply!.channel}** — reply delivered to ${msg.customerReply!.customerName}.`,
+                  }
+                : m
+            ),
+          },
+        }));
+        return true;
       },
     }),
     {

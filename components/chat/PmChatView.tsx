@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowUp,
   Bug,
   Check,
   GitBranch,
+  Mail,
   MessageSquare,
   Rocket,
   Search,
@@ -45,6 +47,7 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
   const confirmProposal = usePmChatStore((s) => s.confirmProposal);
   const sendProposalToDev = usePmChatStore((s) => s.sendProposalToDev);
   const rejectProposal = usePmChatStore((s) => s.rejectProposal);
+  const sendCustomerReply = usePmChatStore((s) => s.sendCustomerReply);
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -195,6 +198,11 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
                   onConfirm={() => confirmProposal(sessionId, msg.id)}
                   onSendToDev={() => sendProposalToDev(sessionId, msg.id)}
                   onReject={() => rejectProposal(sessionId, msg.id)}
+                  onSendCustomerReply={() => {
+                    if (sendCustomerReply(sessionId, msg.id)) {
+                      toast.success("Reply sent to customer");
+                    }
+                  }}
                 />
               ))}
               {isTyping && <TypingBubble />}
@@ -339,6 +347,7 @@ function ChatBubble({
   onConfirm,
   onSendToDev,
   onReject,
+  onSendCustomerReply,
 }: {
   msg: PmChatMessage;
   stream?: boolean;
@@ -347,6 +356,7 @@ function ChatBubble({
   onConfirm: () => void;
   onSendToDev: () => void;
   onReject: () => void;
+  onSendCustomerReply: () => void;
 }) {
   if (msg.role === "user") {
     return (
@@ -369,6 +379,34 @@ function ChatBubble({
             onTick={onStreamTick}
             onDone={onStreamDone}
           />
+          {!stream && msg.customerReply && (
+            <div className="mt-4 space-y-3 rounded-xl border border-violet-200/60 bg-violet-50/40 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-violet-900">Draft customer reply</p>
+                <span className="text-[10px] text-muted-foreground">via {msg.customerReply.channel}</span>
+              </div>
+              <p className="text-[11px] font-medium text-muted-foreground">{msg.customerReply.subject}</p>
+              <div className="rounded-lg border border-border/50 bg-background/80 px-3 py-2.5 text-sm leading-relaxed whitespace-pre-line text-foreground/90">
+                {msg.customerReply.body}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={onSendCustomerReply}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+                >
+                  <Mail className="size-3.5" /> Send to customer
+                </button>
+                <button
+                  type="button"
+                  onClick={onReject}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3.5" /> Not now
+                </button>
+              </div>
+            </div>
+          )}
           {!stream && msg.proposal && (
             <div className="mt-4 space-y-3 rounded-xl border border-border/60 bg-muted/25 p-3">
               <p className="text-xs font-medium">Ready to act</p>

@@ -69,13 +69,23 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
         activity?: ActivityEntry[];
       };
 
+      const current = get().tickets;
       const serverTickets = data.tickets ?? [];
-      const hasPending = serverTickets.some((ticket) => ticket.status === "pending");
+      const hasPendingOnServer = serverTickets.some((ticket) => ticket.status === "pending");
+      const base = hasPendingOnServer ? serverTickets : MOCK_TICKETS;
+      const baseIds = new Set(base.map((t) => t.id));
+      const localOnly = current.filter(
+        (t) => !baseIds.has(t.id) && (t.source === "pm_chat" || t.viaPmChat)
+      );
 
       set({
-        tickets: hasPending ? serverTickets : MOCK_TICKETS,
+        tickets: [...localOnly, ...base],
         activity:
-          hasPending && data.activity?.length ? data.activity : MOCK_ACTIVITY,
+          localOnly.length > 0
+            ? get().activity
+            : hasPendingOnServer && data.activity?.length
+              ? data.activity
+              : MOCK_ACTIVITY,
         serverHydrated: true,
       });
     } catch {
@@ -183,6 +193,13 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
         ticketId: id,
       }),
     }));
+
+    void fetch("/api/draft-tickets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(ticket),
+    });
+
     return id;
   },
 

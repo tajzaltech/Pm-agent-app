@@ -281,6 +281,13 @@ export type IssueCategory =
 
 export type PmChatRole = "user" | "pm" | "system";
 
+export interface PmChatCustomerReply {
+  subject: string;
+  body: string;
+  channel: string;
+  customerName: string;
+}
+
 export interface PmChatMessage {
   id: string;
   ticketId?: string;
@@ -289,6 +296,7 @@ export interface PmChatMessage {
   content: string;
   timestamp: string;
   proposal?: PmChatTicketProposal;
+  customerReply?: PmChatCustomerReply;
   createdTicketId?: string;
 }
 

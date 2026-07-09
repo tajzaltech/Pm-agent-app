@@ -277,6 +277,18 @@ export function listActivity() {
   return state().activity;
 }
 
+export function addDraftTicketFromChat(ticket: Ticket) {
+  const current = state();
+  const duplicate = current.tickets.find((item) => item.id === ticket.id);
+  if (duplicate) {
+    return { ticket: duplicate, duplicate: true };
+  }
+
+  current.tickets = [ticket, ...current.tickets];
+  current.activity = [activity("new_draft", ticket), ...current.activity];
+  return { ticket, duplicate: false };
+}
+
 export function ingestSourceTicket(input: SourceTicketInput) {
   const provider = input.provider;
   const subject = input.subject?.trim() || "Untitled customer request";
