@@ -15,9 +15,9 @@ export function SignInButton({ className, children }: Props) {
   const defaultLanding = useThemeStore((s) => s.defaultLanding);
 
   const handleSignIn = () => {
-    // Returning users skip onboarding
     completeSetup();
-    router.push(defaultLanding);
+    router.replace(defaultLanding);
+    router.refresh();
   };
 
   return (

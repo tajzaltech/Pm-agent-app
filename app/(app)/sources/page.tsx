@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Bot,
@@ -70,6 +71,7 @@ function statusMeta(status: string) {
 }
 
 export default function SourcesPage({ embedded = false }: { embedded?: boolean }) {
+  const router = useRouter();
   const [panel, setPanel] = useState<PanelType>(null);
   const editMode = useConnectionsStore((s) => s.editMode);
   const setEditMode = useConnectionsStore((s) => s.setEditMode);
@@ -84,6 +86,10 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
   const addOutput = useConnectionsStore((s) => s.addOutput);
   const removeOutput = useConnectionsStore((s) => s.removeOutput);
   const setDevAgentEnabled = useConnectionsStore((s) => s.setDevAgentEnabled);
+
+  useEffect(() => {
+    if (!embedded) router.replace("/connections");
+  }, [embedded, router]);
 
   const availableSources = SOURCE_CATALOG.filter(
     (c) => !sources.some((s) => s.provider === c.id)
@@ -123,6 +129,14 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
     }
     setPanel(null);
   };
+
+  if (!embedded) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">

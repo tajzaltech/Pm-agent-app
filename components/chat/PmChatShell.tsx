@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ArrowLeft, MessageSquarePlus, PanelLeft, PanelLeftClose, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageSquarePlus,
+  PanelLeft,
+  PanelLeftClose,
+  Search,
+  Sparkles,
+  Ticket,
+} from "lucide-react";
 
 import { PmChatView } from "@/components/chat/PmChatView";
 import { Input } from "@/components/ui/input";
@@ -95,53 +103,71 @@ export function PmChatShell({ sessionId, ticketId }: PmChatShellProps) {
       <aside
         style={{ width: sidebarOpen ? SIDEBAR_W : 0 }}
         className={cn(
-          "relative z-10 flex shrink-0 flex-col border-r border-border/70 bg-muted/40 transition-[width] duration-200 ease-out",
+          "relative z-10 flex shrink-0 flex-col transition-[width] duration-200 ease-out",
+          "border-r border-border/50 bg-gradient-to-b from-muted/30 via-background to-muted/20",
+          "shadow-[inset_-1px_0_0_rgba(0,0,0,0.03)]",
           !sidebarOpen && "overflow-hidden"
         )}
       >
-        <div className="flex items-center justify-between gap-1 border-b border-border/60 px-2.5 py-2.5">
-          <p className="text-xs font-semibold tracking-tight text-foreground">AI PM</p>
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15 shadow-sm">
+              <Sparkles className="size-3.5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold tracking-tight text-foreground leading-none">AI PM</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground/80">Product assistant</p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
-            className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-background/80 hover:text-foreground"
+            className="flex size-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-background/80 hover:text-foreground"
             aria-label="Hide history"
           >
             <PanelLeftClose className="size-3.5" />
           </button>
         </div>
 
-        <div className="space-y-1.5 border-b border-border/60 px-2 py-2">
+        {/* Actions */}
+        <div className="space-y-2 px-3 pb-3">
           <button
             type="button"
             onClick={handleNewChat}
-            className="flex w-full items-center justify-center gap-1 rounded-md bg-primary px-2 py-1.5 text-[11px] font-medium text-primary-foreground hover:opacity-90"
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-medium text-primary-foreground shadow-md shadow-primary/20 transition-all hover:opacity-95 hover:shadow-lg hover:shadow-primary/25"
           >
-            <MessageSquarePlus className="size-3" />
-            New chat
+            <MessageSquarePlus className="size-3.5" />
+            New conversation
           </button>
+
           <div className="relative">
-            <Search className="absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search…"
-              className="h-7 rounded-md border border-border/50 bg-background pl-7 text-[11px] shadow-none"
+              placeholder="Search conversations…"
+              className="h-8 rounded-xl border-border/40 bg-background/70 pl-8 text-xs shadow-sm ring-0 backdrop-blur-sm placeholder:text-muted-foreground/50 focus-visible:border-primary/30 focus-visible:ring-primary/15"
             />
           </div>
+
           <Link
             href={backHref}
-            className="flex items-center gap-1 px-0.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground"
           >
-            <ArrowLeft className="size-2.5" />
-            {ticketId ? "Triage" : "Workspace"}
+            <ArrowLeft className="size-3" />
+            {ticketId ? "Back to Triage" : "Back to workspace"}
           </Link>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 space-y-3">
+        <div className="mx-3 h-px bg-border/50" />
+
+        {/* History */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3 space-y-4">
           {grouped.ticketSessions.length > 0 && (
             <SessionGroup
-              label="Triage"
+              label="From Triage"
+              icon={Ticket}
               sessions={grouped.ticketSessions}
               activeSessionId={sessionId}
               onSelect={handleSelectSession}
@@ -156,10 +182,23 @@ export function PmChatShell({ sessionId, ticketId }: PmChatShellProps) {
             />
           )}
           {filtered.length === 0 && (
-            <p className="px-1 py-4 text-center text-[10px] text-muted-foreground">
-              {query ? "No matches" : "No chats yet"}
-            </p>
+            <div className="px-2 py-8 text-center">
+              <p className="text-xs font-medium text-muted-foreground/70">
+                {query ? "No matches" : "No conversations yet"}
+              </p>
+              {!query && (
+                <p className="mt-1 text-[10px] text-muted-foreground/50">Start with New conversation above</p>
+              )}
+            </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 border-t border-border/40 px-3 py-2.5">
+          <p className="text-[10px] text-muted-foreground/60">
+            <span className="inline-block size-1.5 rounded-full bg-emerald-500/80 mr-1.5 align-middle" />
+            GitHub connected · read-only
+          </p>
         </div>
       </aside>
 
@@ -168,7 +207,7 @@ export function PmChatShell({ sessionId, ticketId }: PmChatShellProps) {
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground shadow-sm hover:text-foreground"
+            className="absolute left-3 top-3 z-20 flex size-8 items-center justify-center rounded-xl border border-border/50 bg-background/95 text-muted-foreground shadow-md backdrop-blur-sm transition-colors hover:text-foreground"
             aria-label="Show history"
           >
             <PanelLeft className="size-4" />
@@ -183,21 +222,26 @@ export function PmChatShell({ sessionId, ticketId }: PmChatShellProps) {
 
 function SessionGroup({
   label,
+  icon: Icon,
   sessions,
   activeSessionId,
   onSelect,
 }: {
   label: string;
+  icon?: typeof Ticket;
   sessions: { id: string; ticketId?: string; title: string; preview: string; updatedAt: string }[];
   activeSessionId: string;
   onSelect: (id: string, ticketId?: string) => void;
 }) {
   return (
     <div>
-      <p className="mb-1.5 px-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/65">
-        {label}
-      </p>
-      <ul className="space-y-1.5">
+      <div className="mb-2 flex items-center gap-1.5 px-2">
+        {Icon && <Icon className="size-3 text-muted-foreground/50" />}
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/55">
+          {label}
+        </p>
+      </div>
+      <ul className="space-y-0.5">
         {sessions.map((s) => {
           const active = s.id === activeSessionId;
           const preview = cleanPreview(s.preview);
@@ -210,32 +254,44 @@ function SessionGroup({
                 type="button"
                 onClick={() => onSelect(s.id, s.ticketId)}
                 className={cn(
-                  "w-full rounded-lg border px-2 py-2 text-left transition-all",
+                  "group relative w-full rounded-xl px-2.5 py-2.5 text-left transition-all duration-150",
                   active
-                    ? "border-primary/35 bg-background shadow-sm ring-1 ring-primary/15"
-                    : "border-border/60 bg-background/90 hover:border-border hover:bg-background hover:shadow-sm"
+                    ? "bg-background shadow-sm ring-1 ring-primary/20"
+                    : "hover:bg-background/80"
                 )}
               >
-                <div className="flex items-start justify-between gap-1">
+                {active && (
+                  <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-primary" />
+                )}
+                <div className="flex items-start justify-between gap-2 pl-0.5">
                   <p
                     className={cn(
                       "min-w-0 flex-1 text-[11px] font-medium leading-snug line-clamp-2",
-                      active ? "text-foreground" : "text-foreground/90"
+                      active ? "text-foreground" : "text-foreground/85 group-hover:text-foreground"
                     )}
                   >
                     {title}
                   </p>
-                  <span className="shrink-0 pt-0.5 text-[9px] tabular-nums text-muted-foreground/55">
+                  <span
+                    className={cn(
+                      "shrink-0 text-[9px] tabular-nums",
+                      active ? "text-muted-foreground/70" : "text-muted-foreground/45"
+                    )}
+                  >
                     {formatRelativeTime(s.updatedAt)}
                   </span>
                 </div>
                 <p
                   className={cn(
-                    "mt-1 text-[10px] leading-snug line-clamp-2",
-                    isDraft ? "italic text-muted-foreground/45" : "text-muted-foreground/75"
+                    "mt-1 pl-0.5 text-[10px] leading-snug line-clamp-1",
+                    isDraft
+                      ? "italic text-muted-foreground/40"
+                      : active
+                        ? "text-muted-foreground/75"
+                        : "text-muted-foreground/55 group-hover:text-muted-foreground/70"
                   )}
                 >
-                  {isDraft ? "Empty draft" : preview}
+                  {isDraft ? "Waiting for first message" : preview}
                 </p>
               </button>
             </li>

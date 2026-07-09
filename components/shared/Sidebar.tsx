@@ -11,32 +11,20 @@ import { cn } from "@/lib/utils";
 import { useTicketStore } from "@/lib/store/tickets";
 
 import {
-
   Inbox,
-
   BarChart2,
-
   Network,
-
   Settings,
-
   Zap,
-
   ChevronLeft,
-
   ChevronRight,
-
-  LogOut,
-
   Menu,
-
   X,
-
   Users,
-
   MessageSquare,
-
 } from "lucide-react";
+
+import { SignOutButton } from "@/components/auth/SignOutButton";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -261,27 +249,13 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
 
       </Link>
 
-      <Link
-
-        href="/signin"
-
+      <SignOutButton
         className={cn(
-
-          "flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors",
-
+          "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors",
           collapsed && "justify-center px-2"
-
         )}
-
-        title="Log out"
-
-      >
-
-        <LogOut className="size-3.5 shrink-0" />
-
-        {!collapsed && <span>Log out</span>}
-
-      </Link>
+        collapsed={collapsed}
+      />
 
     </div>
 
