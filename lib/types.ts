@@ -7,7 +7,7 @@ export type PipelineStage = "accepted" | "assigned" | "dev_working" | "pr_open" 
 export type AutomationPreset = "conservative" | "balanced" | "aggressive";
 export type AuditActorType = "user" | "automation";
 export type IntegrationStatus = "disconnected" | "connecting" | "connected" | "error";
-export type UserRole = "admin" | "reviewer" | "viewer";
+export type UserRole = "owner" | "admin" | "user";
 export type RepoStatus = "indexed" | "indexing" | "error" | "needs_reindex";
 export type ActivityAction =
   | "accepted"
@@ -270,7 +270,6 @@ export interface AiPerformancePoint {
   acceptanceRate: number;
 }
 
-export type ThemeMode = "light" | "dark";
 export type WorkspaceRole = "pm" | "cs_agent";
 export type IssueCategory =
   | "bug"

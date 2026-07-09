@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Bot, Check, Code2, Sparkles, X, Zap } from "lucide-react";
+import { ArrowUp, Bot, Check, Code2, Send, X, Zap } from "lucide-react";
 
 import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
 import { ScopeBadge } from "@/components/shared/ScopeBadge";
 import { usePmChatStore } from "@/lib/store/pm-chat";
 import { useTicketStore } from "@/lib/store/tickets";
 import type { PmChatMessage } from "@/lib/types";
-import { PM_QUICK_PROMPTS } from "@/lib/utils/pm-responses";
+import { PM_QUICK_PROMPTS, TICKET_QUICK_PROMPTS } from "@/lib/utils/pm-responses";
 import { cn } from "@/lib/utils";
 const EMPTY_MESSAGES: PmChatMessage[] = [];
 
@@ -24,6 +24,7 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
   const messages = usePmChatStore((s) => s.messagesBySession[sessionId] ?? EMPTY_MESSAGES);
   const sendUserMessage = usePmChatStore((s) => s.sendUserMessage);
   const confirmProposal = usePmChatStore((s) => s.confirmProposal);
+  const sendProposalToDev = usePmChatStore((s) => s.sendProposalToDev);
   const rejectProposal = usePmChatStore((s) => s.rejectProposal);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -39,21 +40,13 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
     sendUserMessage(sessionId, content, ticket ?? null);
   };
 
-  const ticketPrompts = ticket
-    ? [
-        "Explain this issue simply",
-        "Search GitHub for related code",
-        "What's the root cause?",
-        "Should I accept or reject?",
-      ]
-    : [];
-
-  const prompts = ticketPrompts.length ? ticketPrompts : PM_QUICK_PROMPTS.slice(0, 4);
+  const ticketPrompts = ticket ? TICKET_QUICK_PROMPTS : [];
+  const prompts = ticketPrompts.length ? ticketPrompts : PM_QUICK_PROMPTS;
 
   const title = ticket ? ticket.draftTitle : "How can I help?";
   const subtitle = ticket
     ? `#${ticket.originalTicketId} · GitHub + docs context loaded`
-    : "GitHub connected · search code, explain issues, file tickets";
+    : "GitHub connected · describe an issue and I'll ask follow-up questions";
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
@@ -97,6 +90,7 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
                 msg={msg}
                 isFirst={i === 0}
                 onConfirm={() => confirmProposal(sessionId, msg.id)}
+                onSendToDev={() => sendProposalToDev(sessionId, msg.id)}
                 onReject={() => rejectProposal(sessionId, msg.id)}
               />
             ))}
@@ -125,7 +119,7 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={ticket ? "Ask about this ticket…" : "Message PM Agent…"}
+              placeholder={ticket ? "Add context or ask a follow-up…" : "Describe the issue…"}
               rows={1}
               className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[15px] leading-relaxed outline-none text-foreground placeholder:text-muted-foreground"
               onKeyDown={(e) => {
@@ -150,7 +144,7 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
             </button>
           </div>
           <p className="mt-2 text-center text-[10px] text-muted-foreground/70">
-            Read-only · serious issues become confirmed tickets in Triage
+            I'll gather context first · ticket options appear when there's enough detail
           </p>
         </div>
       </div>
@@ -162,11 +156,13 @@ function ChatBubble({
   msg,
   isFirst,
   onConfirm,
+  onSendToDev,
   onReject,
 }: {
   msg: PmChatMessage;
   isFirst?: boolean;
   onConfirm: () => void;
+  onSendToDev: () => void;
   onReject: () => void;
 }) {
   if (msg.role === "user") {
@@ -192,9 +188,9 @@ function ChatBubble({
           {formatAgentText(msg.content)}
         </div>
         {msg.proposal && (
-          <div className="mt-4 space-y-3 rounded-2xl bg-amber-500/10 p-4">
-            <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">Confirm ticket filing</p>
-            <p className="text-sm text-amber-900/80 dark:text-amber-100/80">
+          <div className="mt-4 space-y-3 rounded-2xl bg-primary/5 p-4 ring-1 ring-primary/10">
+            <p className="text-xs font-semibold text-primary">Ready to act</p>
+            <p className="text-sm text-foreground/80">
               {msg.proposal.title} · {msg.proposal.classification.replace("_", " ")} · Scope {msg.proposal.scope}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -203,7 +199,14 @@ function ChatBubble({
                 onClick={onConfirm}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
               >
-                <Check className="size-3.5" /> File ticket
+                <Check className="size-3.5" /> Generate ticket
+              </button>
+              <button
+                type="button"
+                onClick={onSendToDev}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              >
+                <Send className="size-3.5" /> Send to dev team
               </button>
               <button
                 type="button"

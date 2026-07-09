@@ -8,8 +8,6 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-import { useOnboardingStore } from "@/lib/store/onboarding";
-
 import { useTicketStore } from "@/lib/store/tickets";
 
 import {
@@ -39,8 +37,6 @@ import {
   MessageSquare,
 
 } from "lucide-react";
-
-import { PlansPricingSheet } from "@/components/billing/PlansPricingSheet";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -241,69 +237,9 @@ const SIDEBAR_COLLAPSED_KEY = "pm-agent-sidebar-collapsed";
 
 
 
-function SidebarFooter({
-
-  collapsed,
-
-  onPlansClick,
-
-}: {
-
-  collapsed: boolean;
-
-  onPlansClick: () => void;
-
-}) {
-
-  const workspaceRole = useOnboardingStore((s) => s.workspaceRole);
-
-  const roleLabel = workspaceRole === "cs_agent" ? "CS Agent" : workspaceRole === "pm" ? "Product Manager" : "Workspace";
-
-
-
+function SidebarFooter({ collapsed }: { collapsed: boolean }) {
   return (
-
     <div className="border-t border-sidebar-border p-2 shrink-0 space-y-0.5">
-
-      <button
-
-        type="button"
-
-        onClick={onPlansClick}
-
-        className={cn(
-
-          "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-sidebar-accent/60",
-
-          collapsed && "justify-center px-2"
-
-        )}
-
-        title="Plans & Pricing"
-
-      >
-
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-xs font-bold text-primary">
-
-          {roleLabel.slice(0, 2).toUpperCase()}
-
-        </span>
-
-        {!collapsed && (
-
-          <span className="min-w-0 flex-1">
-
-            <span className="block truncate text-xs font-medium text-sidebar-foreground">{roleLabel}</span>
-
-            <span className="block truncate text-[10px] text-sidebar-foreground/60">View plans & pricing</span>
-
-          </span>
-
-        )}
-
-      </button>
-
-      <Link
 
         href="/settings"
 
@@ -356,12 +292,8 @@ function SidebarFooter({
 
 
 function DesktopSidebar() {
-
   const [collapsed, setCollapsed] = useState(false);
-
   const [mounted, setMounted] = useState(false);
-
-  const [plansOpen, setPlansOpen] = useState(false);
 
 
 
@@ -425,60 +357,28 @@ function DesktopSidebar() {
 
       >
 
-        <button
-
-          type="button"
-
-          onClick={() => setPlansOpen(true)}
-
+        <div
           className={cn(
-
-            "flex items-center justify-center size-8 rounded-xl bg-primary shrink-0 transition-opacity duration-200 hover:opacity-90",
-
-            collapsed && "group-hover/sidebar:opacity-25"
-
+            "flex items-center justify-center size-8 rounded-xl bg-primary shrink-0",
+            collapsed && "group-hover/sidebar:opacity-25 transition-opacity duration-200"
           )}
-
-          title="Plans & Pricing"
-
         >
-
           <Zap className="size-4 text-primary-foreground" />
-
-        </button>
-
-
+        </div>
 
         <AnimatePresence initial={false}>
-
           {!collapsed && (
-
-            <motion.button
-
+            <motion.span
               key="brand"
-
-              type="button"
-
               initial={{ opacity: 0, x: -8 }}
-
               animate={{ opacity: 1, x: 0 }}
-
               exit={{ opacity: 0, x: -8 }}
-
               transition={{ duration: 0.13, ease: "easeOut" }}
-
-              onClick={() => setPlansOpen(true)}
-
-              className="font-bold text-sm tracking-tight text-sidebar-foreground whitespace-nowrap flex-1 min-w-0 text-left hover:text-primary transition-colors"
-
+              className="font-bold text-sm tracking-tight text-sidebar-foreground whitespace-nowrap flex-1 min-w-0"
             >
-
               PM Agent
-
-            </motion.button>
-
+            </motion.span>
           )}
-
         </AnimatePresence>
 
 
@@ -551,12 +451,8 @@ function DesktopSidebar() {
 
         <NavContent collapsed={collapsed} />
 
-        <SidebarFooter collapsed={collapsed} onPlansClick={() => setPlansOpen(true)} />
-
+        <SidebarFooter collapsed={collapsed} />
       </div>
-
-      <PlansPricingSheet open={plansOpen} onOpenChange={setPlansOpen} />
-
     </motion.aside>
 
   );
@@ -566,11 +462,7 @@ function DesktopSidebar() {
 
 
 function MobileSidebar() {
-
   const [open, setOpen] = useState(false);
-
-  const [plansOpen, setPlansOpen] = useState(false);
-
   const pathname = usePathname();
 
 
@@ -601,25 +493,12 @@ function MobileSidebar() {
 
         </button>
 
-        <button
-
-          type="button"
-
-          onClick={() => setPlansOpen(true)}
-
-          className="flex items-center gap-2"
-
-        >
-
+        <div className="flex items-center gap-2">
           <div className="flex size-7 items-center justify-center rounded-lg bg-primary">
-
             <Zap className="size-3.5 text-primary-foreground" />
-
           </div>
-
           <span className="font-bold text-sm tracking-tight">PM Agent</span>
-
-        </button>
+        </div>
 
       </div>
 
@@ -671,25 +550,9 @@ function MobileSidebar() {
 
             <div className="flex items-center h-14 px-4 border-b border-sidebar-border gap-3">
 
-              <button
-
-                type="button"
-
-                onClick={() => {
-
-                  setOpen(false);
-
-                  setPlansOpen(true);
-
-                }}
-
-                className="flex size-8 items-center justify-center rounded-xl bg-primary"
-
-              >
-
+              <div className="flex size-8 items-center justify-center rounded-xl bg-primary">
                 <Zap className="size-4 text-primary-foreground" />
-
-              </button>
+              </div>
 
               <span className="font-bold text-sm tracking-tight flex-1">PM Agent</span>
 
@@ -711,16 +574,10 @@ function MobileSidebar() {
 
             <NavContent collapsed={false} onNavClick={() => setOpen(false)} />
 
-            <SidebarFooter collapsed={false} onPlansClick={() => { setOpen(false); setPlansOpen(true); }} />
-
+            <SidebarFooter collapsed={false} />
           </motion.aside>
-
         )}
-
       </AnimatePresence>
-
-      <PlansPricingSheet open={plansOpen} onOpenChange={setPlansOpen} />
-
     </>
 
   );

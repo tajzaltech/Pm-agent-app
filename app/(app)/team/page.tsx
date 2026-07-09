@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -17,37 +17,55 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MOCK_TEAM_MEMBERS } from "@/lib/mock/team";
 import { useAuditStore } from "@/lib/store/audit";
-import type { TeamMember, UserRole } from "@/lib/types";
+import { buildInviteMember, useTeamStore } from "@/lib/store/team";
+import type { UserRole } from "@/lib/types";
+import { inviteableRoles, roleLabel } from "@/lib/utils/team-rbac";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 export default function TeamPage() {
   const { entries, search: searchAudit } = useAuditStore();
-  const [members, setMembers] = useState<TeamMember[]>(MOCK_TEAM_MEMBERS);
+  const members = useTeamStore((s) => s.members);
+  const currentUserId = useTeamStore((s) => s.currentUserId);
+  const currentUser = members.find((m) => m.id === currentUserId);
+  const canRemove = useTeamStore((s) => s.canRemove);
+  const removeMember = useTeamStore((s) => s.removeMember);
+  const addMember = useTeamStore((s) => s.addMember);
+
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<UserRole>("reviewer");
   const [auditQuery, setAuditQuery] = useState("");
   const [apiKeyVisible, setApiKeyVisible] = useState(false);
+
+  const actorRole = currentUser?.role ?? "user";
+  const rolesForInvite = inviteableRoles(actorRole);
+  const [inviteRole, setInviteRole] = useState<UserRole>(rolesForInvite[0] ?? "user");
 
   const filteredAudit = searchAudit(auditQuery);
 
   const handleInvite = () => {
     if (!inviteEmail.trim()) return;
-    setMembers([
-      ...members,
-      {
-        id: `u${Date.now()}`,
-        name: inviteEmail.split("@")[0],
-        email: inviteEmail,
-        role: inviteRole,
-        status: "invited",
-        avatarInitials: inviteEmail[0].toUpperCase(),
-      },
-    ]);
+    if (!rolesForInvite.includes(inviteRole)) {
+      toast.error("Your role cannot invite that permission level");
+      return;
+    }
+    addMember(buildInviteMember(inviteEmail.trim(), inviteRole));
     toast.success(`Invitation sent to ${inviteEmail}`);
     setInviteEmail("");
   };
+
+  const handleRemove = (id: string, name: string) => {
+    if (removeMember(id)) {
+      toast.success(`${name} removed from the team`);
+    } else {
+      toast.error("You don't have permission to remove this member");
+    }
+  };
+
+  const roleHint = useMemo(() => {
+    if (actorRole === "owner") return "You can remove Admins and Users.";
+    if (actorRole === "admin") return "You can remove Users only.";
+    return "Users cannot remove team members.";
+  }, [actorRole]);
 
   return (
     <div className="flex flex-col h-full">
@@ -101,32 +119,81 @@ export default function TeamPage() {
           </TabsContent>
 
           <TabsContent value="team" className="space-y-4">
-            <div className="rounded-xl border bg-card p-4 flex gap-2 flex-wrap">
-              <Input placeholder="name@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="flex-1 min-w-[200px]" />
-              <Select value={inviteRole} onValueChange={(v) => v && setInviteRole(v as UserRole)}>
-                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="reviewer">Reviewer</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={handleInvite} className="gap-1.5"><UserPlus className="size-4" /> Invite</Button>
-            </div>
+            {currentUser && (
+              <p className="text-xs text-muted-foreground rounded-lg bg-muted/40 px-3 py-2">
+                Signed in as <strong className="text-foreground">{currentUser.name}</strong> ({roleLabel(currentUser.role)}). {roleHint}
+              </p>
+            )}
+
+            {rolesForInvite.length > 0 ? (
+              <div className="rounded-xl border bg-card p-4 flex gap-2 flex-wrap">
+                <Input
+                  placeholder="name@company.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="flex-1 min-w-[200px]"
+                />
+                <Select value={inviteRole} onValueChange={(v) => v && setInviteRole(v as UserRole)}>
+                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {rolesForInvite.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {roleLabel(role)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleInvite} className="gap-1.5">
+                  <UserPlus className="size-4" /> Invite
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-xl border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                Users cannot invite new team members.
+              </div>
+            )}
+
             <div className="rounded-xl border bg-card divide-y">
-              {members.map((m) => (
-                <div key={m.id} className="px-4 py-3 flex items-center gap-3">
-                  <Avatar className="size-8">
-                    <AvatarFallback className="text-xs bg-primary/10 text-primary">{m.avatarInitials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{m.name}</p>
-                    <p className="text-xs text-muted-foreground">{m.email}</p>
+              {members.map((m) => {
+                const showRemove = canRemove(m.id);
+                const isSelf = m.id === currentUserId;
+                return (
+                  <div key={m.id} className="px-4 py-3 flex items-center gap-3">
+                    <Avatar className="size-8">
+                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{m.avatarInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">
+                        {m.name}
+                        {isSelf && <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">(you)</span>}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{m.email}</p>
+                    </div>
+                    <Badge variant="outline" className="capitalize text-xs shrink-0">
+                      {roleLabel(m.role)}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={cn("text-xs shrink-0", m.status === "active" ? "text-emerald-700" : "text-amber-700")}
+                    >
+                      {m.status}
+                    </Badge>
+                    {showRemove ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 shrink-0 text-muted-foreground hover:text-red-600 hover:bg-red-50"
+                        onClick={() => handleRemove(m.id, m.name)}
+                        aria-label={`Remove ${m.name}`}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    ) : (
+                      <span className="size-8 shrink-0" aria-hidden />
+                    )}
                   </div>
-                  <Badge variant="outline" className="capitalize text-xs">{m.role}</Badge>
-                  <Badge variant="outline" className={cn("text-xs", m.status === "active" ? "text-emerald-700" : "text-amber-700")}>{m.status}</Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </TabsContent>
 

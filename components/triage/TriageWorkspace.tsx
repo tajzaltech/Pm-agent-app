@@ -270,7 +270,7 @@ export function TriageWorkspace() {
         {/* Ticket list */}
         <div className="flex w-full min-h-0 shrink-0 flex-col bg-muted/10 lg:w-[min(380px,32vw)] xl:w-[400px]">
           <div className="shrink-0 space-y-3 p-3">
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <MiniPill icon={Zap} label="Pending" value={stats.pending} accent="text-primary" />
               <MiniPill icon={Layers} label="Clusters" value={stats.clusters} accent="text-violet-600" />
               <MiniPill icon={Sparkles} label="Low AI" value={stats.lowConfidence} accent="text-red-600" />
@@ -433,11 +433,13 @@ function MiniPill({
   accent: string;
 }) {
   return (
-    <div className="flex flex-1 items-center gap-2 rounded-lg bg-background/80 px-2.5 py-2 shadow-sm">
-      <Icon className={cn("size-3.5 shrink-0 opacity-70", accent)} />
-      <div className="min-w-0">
-        <p className={cn("text-sm font-bold leading-none", accent)}>{value}</p>
-        <p className="text-[9px] text-muted-foreground truncate">{label}</p>
+    <div className="flex h-[52px] items-center gap-2 rounded-lg bg-background/80 px-2.5 shadow-sm">
+      <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/50", accent)}>
+        <Icon className="size-3.5" />
+      </span>
+      <div className="min-w-0 flex flex-col justify-center gap-0.5">
+        <p className={cn("text-sm font-bold leading-none tabular-nums", accent)}>{value}</p>
+        <p className="text-[9px] leading-none text-muted-foreground truncate">{label}</p>
       </div>
     </div>
   );

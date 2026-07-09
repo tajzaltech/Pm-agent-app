@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 
 import { AiImprovePanel } from "@/components/triage/AiImprovePanel";
-import { AskPmAgentGate } from "@/components/triage/AskPmAgentGate";
+import { AskPmAgentButton } from "@/components/triage/AskPmAgentButton";
 import { ClassificationBadge } from "@/components/shared/ClassificationBadge";
 import { CodeReferenceBlock } from "@/components/shared/CodeReferenceBlock";
 import { ScopeBadge } from "@/components/shared/ScopeBadge";
@@ -190,14 +190,18 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
                   <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
                     #{enriched.originalTicketId}
                   </span>
-                  <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border", confidenceColor)}>
-                    {enriched.aiConfidence}% AI confidence
-                  </span>
+                  {showFullDetail && (
+                    <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border", confidenceColor)}>
+                      {enriched.aiConfidence}% AI confidence
+                    </span>
+                  )}
                 </div>
                 {editMode ? (
                   <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="text-lg font-semibold" />
                 ) : (
-                  <h2 className="text-xl md:text-2xl font-bold leading-snug tracking-tight">{enriched.draftTitle}</h2>
+                  <h2 className="text-xl md:text-2xl font-bold leading-snug tracking-tight">
+                    {showFullDetail ? enriched.draftTitle : enriched.originalSubject}
+                  </h2>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
                   {editMode ? (
@@ -220,7 +224,7 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
                         </SelectContent>
                       </Select>
                     </>
-                  ) : (
+                  ) : showFullDetail ? (
                     <>
                       <ClassificationBadge classification={enriched.classification} />
                       <ScopeBadge scope={enriched.scope} />
@@ -230,14 +234,19 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
                         </Badge>
                       )}
                     </>
-                  )}
+                  ) : null}
                 </div>
               </div>
-              {!editMode && enriched.status === "pending" && showFullDetail && (
-                <Button size="sm" variant="outline" className="gap-1.5 h-8 shrink-0" onClick={() => setEditMode(true)}>
-                  <Pencil className="size-3.5" /> Edit
-                </Button>
-              )}
+              <div className="flex shrink-0 items-start gap-2">
+                {!editMode && enriched.status === "pending" && !pmConsulted && (
+                  <AskPmAgentButton ticket={enriched} />
+                )}
+                {!editMode && enriched.status === "pending" && showFullDetail && (
+                  <Button size="sm" variant="outline" className="gap-1.5 h-8" onClick={() => setEditMode(true)}>
+                    <Pencil className="size-3.5" /> Edit
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="rounded-xl border bg-muted/20 p-3 flex items-center gap-3">
@@ -248,14 +257,39 @@ export function TicketDetailPane({ ticket, onAccept, onReject }: TicketDetailPan
               </Avatar>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">{enriched.customer.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{enriched.originalSubject}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {showFullDetail ? enriched.originalSubject : enriched.customer.email}
+                </p>
               </div>
               <span className="text-xs text-muted-foreground shrink-0">{formatRelativeTime(enriched.createdAt)}</span>
             </div>
           </div>
 
           {enriched.status === "pending" && !pmConsulted && (
-            <AskPmAgentGate ticket={enriched} />
+            <>
+              <SectionCard icon={FileText} title="Issue summary">
+                <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-line">{enriched.originalBody}</p>
+              </SectionCard>
+
+              {enriched.conversation.length > 0 && (
+                <SectionCard icon={MessageSquare} title={`Customer thread (${enriched.conversation.length})`}>
+                  <div className="space-y-2">
+                    {enriched.conversation.map((msg) => (
+                      <div key={msg.id} className="rounded-xl border p-3 text-sm bg-muted/20">
+                        <p className="text-xs font-semibold mb-1 flex items-center gap-1.5">
+                          <User className="size-3" /> {msg.author}
+                        </p>
+                        <p className="text-muted-foreground leading-relaxed">{msg.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
+
+              <p className="text-xs text-muted-foreground text-center px-4">
+                Use <strong className="text-foreground">Ask PM Agent</strong> for GitHub search, AI draft, and accept/reject actions.
+              </p>
+            </>
           )}
 
           {showFullDetail && (

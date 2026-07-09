@@ -59,7 +59,7 @@ export default function InsightsContent() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between shrink-0">
+      <div className="sticky top-0 z-10 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-base font-semibold tracking-tight">Insights</h1>
           <p className="text-xs text-muted-foreground hidden sm:block">Click any chart segment to drill down</p>
@@ -100,7 +100,7 @@ export default function InsightsContent() {
             <Link
               key={card.title}
               href={card.href}
-              className="rounded-xl border bg-white dark:bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all"
+              className="rounded-xl border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all"
             >
               <p className="text-sm font-semibold leading-snug">{card.title}</p>
               <p className="text-xs text-muted-foreground mt-1.5">{card.body}</p>
@@ -109,27 +109,29 @@ export default function InsightsContent() {
           ))}
         </div>
 
-        {/* Delivery view summary */}
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Delivery health</p>
-          <div className="grid grid-cols-3 gap-4 mt-3 text-center">
+        {/* Delivery health + chat accuracy */}
+        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+          <div className="border-b bg-muted/30 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Delivery health</p>
+          </div>
+          <div className="grid grid-cols-3 divide-x divide-border">
             {[
-              { label: "Median cycle", value: "2.4d" },
-              { label: "In Dev Agent", value: "5" },
-              { label: "Shipped this week", value: "12" },
+              { label: "Median cycle", value: "2.4d", accent: "text-foreground" },
+              { label: "In Dev Agent", value: "5", accent: "text-violet-600" },
+              { label: "Shipped this week", value: "12", accent: "text-emerald-600" },
             ].map((s) => (
-              <div key={s.label}>
-                <p className="text-lg font-bold">{s.value}</p>
-                <p className="text-[10px] text-muted-foreground">{s.label}</p>
+              <div key={s.label} className="flex flex-col items-center justify-center px-3 py-4 text-center">
+                <p className={cn("text-xl font-bold tabular-nums leading-none", s.accent)}>{s.value}</p>
+                <p className="text-[11px] text-muted-foreground mt-1.5">{s.label}</p>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Chat accuracy */}
-        <div className="rounded-xl border border-violet-200 bg-violet-50/50 dark:bg-violet-950/20 p-4">
-          <p className="text-sm font-semibold text-violet-900 dark:text-violet-200">PM Agent Chat accuracy</p>
-          <p className="text-xs text-violet-800/80 dark:text-violet-300 mt-1">74% of chat-filed tickets accepted · 12% rejected · 14% ignored</p>
+          <div className="border-t bg-muted/20 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <p className="text-sm font-semibold text-foreground">PM Agent Chat accuracy</p>
+            <p className="text-xs text-muted-foreground">
+              74% accepted · 12% rejected · 14% ignored
+            </p>
+          </div>
         </div>
 
         <div className="grid sm:grid-cols-3 gap-3">
@@ -138,7 +140,7 @@ export default function InsightsContent() {
             { label: "Median cycle time", current: "2.4m", prior: "3.2m", up: true },
             { label: "Ticket volume", current: "248", prior: "221", up: false },
           ].map((m) => (
-            <div key={m.label} className="rounded-xl border bg-white p-4">
+            <div key={m.label} className="rounded-xl border bg-card p-4 shadow-sm">
               <p className="text-xs text-muted-foreground">{m.label}</p>
               <div className="flex items-end gap-2 mt-1">
                 <p className="text-2xl font-bold">{m.current}</p>
@@ -152,7 +154,7 @@ export default function InsightsContent() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          <div className="rounded-xl border bg-white p-5">
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="text-sm font-semibold mb-1">Classification breakdown</h2>
             <p className="text-xs text-muted-foreground mb-4">Click a slice to view matching tickets in Triage</p>
             <div className="h-56 flex items-center">
@@ -194,7 +196,7 @@ export default function InsightsContent() {
             </div>
           </div>
 
-          <div className="rounded-xl border bg-white p-5">
+          <div className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="text-sm font-semibold mb-4">Tickets over time</h2>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -210,7 +212,7 @@ export default function InsightsContent() {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white p-5">
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-semibold">AI Performance — override & edit rates</h2>
           <p className="text-xs text-muted-foreground mt-1 mb-4">Lower override rate = more trust in automation over time</p>
           <div className="h-52">
@@ -227,7 +229,7 @@ export default function InsightsContent() {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white p-5">
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-semibold mb-4">Top affected code areas</h2>
           <div className="space-y-2">
             {MOCK_CODE_AREAS.map((area) => (

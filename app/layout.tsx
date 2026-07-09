@@ -3,7 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/shared/ThemeProvider";
+import { LightModeOnly } from "@/components/shared/LightModeOnly";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -34,10 +34,10 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full" suppressHydrationWarning>
-        <ThemeProvider>
+        <LightModeOnly>
           <TooltipProvider delay={200}>{children}</TooltipProvider>
           <Toaster position="bottom-right" richColors closeButton />
-        </ThemeProvider>
+        </LightModeOnly>
       </body>
     </html>
   );

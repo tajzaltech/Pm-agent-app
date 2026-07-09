@@ -18,6 +18,7 @@ interface PmChatStore {
   getMessages: (sessionId: string) => PmChatMessage[];
   sendUserMessage: (sessionId: string, content: string, ticket?: Ticket | null) => void;
   confirmProposal: (sessionId: string, messageId: string) => string | null;
+  sendProposalToDev: (sessionId: string, messageId: string) => string | null;
   rejectProposal: (sessionId: string, messageId: string) => void;
 }
 
@@ -28,8 +29,8 @@ function welcome(sessionId: string, ticket?: Ticket | null): PmChatMessage {
     ticketId: ticket?.id,
     role: "pm",
     content: ticket
-      ? `I'm reading **#${ticket.originalTicketId}** with **GitHub** (\`acmetech/api-backend\`) and docs loaded.\n\n**Your flow:**\n1. Explain the query\n2. Search code for root cause\n3. Return to Triage → full draft unlocks\n4. Accept, reject, or ignore\n\nTry *Search GitHub for related code* or *Explain this issue simply*.`
-      : `I'm your **PM Agent** — **GitHub connected** (read-only).\n\nI search your repo, explain issues, and file confirmed tickets into Triage.\n\nDescribe a customer query or pick a prompt below.`,
+      ? `I have **#${ticket.originalTicketId}** from **${ticket.customer.name}** loaded, with GitHub (\`acmetech/api-backend\`) and docs in context.\n\nTell me what you're trying to figure out — I'll ask follow-ups until we understand the problem, then we can generate a ticket, send it to dev, or leave it for later.`
+      : `I'm your **PM Agent** — GitHub connected (read-only).\n\nDescribe a customer complaint or internal issue in your own words. I'll ask questions to understand the context, and only suggest filing a ticket once we have enough detail.`,
     timestamp: new Date().toISOString(),
   };
 }
@@ -145,7 +146,8 @@ export const usePmChatStore = create<PmChatStore>()(
           content: trimmed,
           timestamp: new Date().toISOString(),
         };
-        const reply = generatePmReply(trimmed, { ticket: ticket ?? undefined });
+        const history = get().messagesBySession[sessionId] ?? [];
+        const reply = generatePmReply(trimmed, { ticket: ticket ?? undefined, history });
         const pmMsg: PmChatMessage = {
           id: `pm_${Date.now()}`,
           sessionId,
@@ -199,6 +201,36 @@ export const usePmChatStore = create<PmChatStore>()(
                     ...m,
                     createdTicketId: id,
                     content: `${m.content}\n\n✓ **Ticket ${id}** created — now in Triage (via PM Agent Chat).`,
+                    proposal: undefined,
+                  }
+                : m
+            ),
+          },
+        }));
+        return id;
+      },
+
+      sendProposalToDev: (sessionId, messageId) => {
+        const msgs = get().messagesBySession[sessionId] ?? [];
+        const msg = msgs.find((m) => m.id === messageId);
+        if (!msg?.proposal) return null;
+        const id = useTicketStore.getState().createFromChat({
+          title: msg.proposal.title,
+          classification: msg.proposal.classification,
+          scope: msg.proposal.scope,
+          description: msg.proposal.summary,
+          chatSessionId: sessionId,
+        });
+        useTicketStore.getState().acceptSendToDev(id);
+        set((s) => ({
+          messagesBySession: {
+            ...s.messagesBySession,
+            [sessionId]: (s.messagesBySession[sessionId] ?? []).map((m) =>
+              m.id === messageId
+                ? {
+                    ...m,
+                    createdTicketId: id,
+                    content: `${m.content}\n\n✓ **Ticket ${id}** sent to the development team.`,
                     proposal: undefined,
                   }
                 : m
