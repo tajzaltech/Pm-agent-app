@@ -24,7 +24,8 @@ import { MOCK_ANALYTICS, MOCK_CLASSIFICATION_DIST, MOCK_CODE_AREAS } from "@/lib
 import { useTicketStore } from "@/lib/store/tickets";
 import { usePipelineStore } from "@/lib/store/pipeline";
 import { filterTicketsByClassification } from "@/lib/utils/workspace";
-import { computeAcceptanceBreakdown, computeProcessingStats } from "@/lib/utils/insights-stats";
+import { computeAcceptanceBreakdown, computeProcessingStats, getProcessingTicketLists, PROCESSING_CATEGORY_LABELS, type ProcessingCategory } from "@/lib/utils/insights-stats";
+import { ProcessingTicketList } from "@/components/insights/ProcessingTicketList";
 import type { Classification } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -46,10 +47,15 @@ export default function InsightsContent() {
   const { tickets } = useTicketStore();
   const pipelineCards = usePipelineStore((s) => s.cards);
   const [dateRange, setDateRange] = useState("30d");
+  const [activeCategory, setActiveCategory] = useState<ProcessingCategory | null>(null);
   const compare = "last_month";
 
   const stats = useMemo(
     () => computeProcessingStats(tickets, pipelineCards),
+    [tickets, pipelineCards]
+  );
+  const ticketLists = useMemo(
+    () => getProcessingTicketLists(tickets, pipelineCards),
     [tickets, pipelineCards]
   );
   const acceptance = useMemo(() => computeAcceptanceBreakdown(tickets), [tickets]);
@@ -73,7 +79,7 @@ export default function InsightsContent() {
       <div className="sticky top-0 z-10 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-sm font-medium tracking-tight">Insights</h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">Click any chart segment to drill down</p>
+          <p className="text-xs text-muted-foreground hidden sm:block">Click ticket processing stats to see ticket lists</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={dateRange} onValueChange={(v) => v && setDateRange(v)}>
@@ -110,47 +116,67 @@ export default function InsightsContent() {
             </Link>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border">
-            {[
-              {
-                label: "Processed",
-                value: stats.processed,
-                hint: "Accepted, rejected, or ignored",
-                accent: "text-foreground",
-                href: "/triage",
-              },
-              {
-                label: "In process",
-                value: stats.inProcess,
-                hint: `${stats.pending} in triage · ${stats.inPipeline} in pipeline`,
-                accent: "text-amber-600",
-                href: "/triage",
-              },
-              {
-                label: "Sent to developer",
-                value: stats.sentToDeveloper,
-                hint: `${stats.inDevAgent} active in Dev Agent`,
-                accent: "text-violet-600",
-                href: "/pipeline",
-              },
-              {
-                label: "Responded back",
-                value: stats.respondedBack,
-                hint: "Non-technical customer replies sent",
-                accent: "text-emerald-600",
-                href: "/triage",
-              },
-            ].map((s) => (
-              <Link
-                key={s.label}
-                href={s.href}
-                className="flex flex-col items-center justify-center px-4 py-5 text-center hover:bg-muted/20 transition-colors"
-              >
-                <p className={cn("text-2xl font-bold tabular-nums leading-none", s.accent)}>{s.value}</p>
-                <p className="text-xs font-semibold mt-2">{s.label}</p>
-                <p className="text-[10px] text-muted-foreground mt-1 max-w-[9rem]">{s.hint}</p>
-              </Link>
-            ))}
+            {(
+              [
+                {
+                  key: "processed" as const,
+                  label: "Processed",
+                  value: stats.processed,
+                  hint: "Accepted, rejected, or ignored",
+                  accent: "text-foreground",
+                },
+                {
+                  key: "in_process" as const,
+                  label: "In process",
+                  value: stats.inProcess,
+                  hint: `${stats.pending} in triage · ${stats.inPipeline} in pipeline`,
+                  accent: "text-amber-600",
+                },
+                {
+                  key: "sent_to_developer" as const,
+                  label: "Sent to developer",
+                  value: stats.sentToDeveloper,
+                  hint: `${stats.inDevAgent} active in Dev Agent`,
+                  accent: "text-violet-600",
+                },
+                {
+                  key: "responded_back" as const,
+                  label: "Responded back",
+                  value: stats.respondedBack,
+                  hint: "Non-technical customer replies sent",
+                  accent: "text-emerald-600",
+                },
+              ] as const
+            ).map((s) => {
+              const isActive = activeCategory === s.key;
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setActiveCategory(isActive ? null : s.key)}
+                  className={cn(
+                    "flex flex-col items-center justify-center px-4 py-5 text-center transition-colors",
+                    isActive ? "bg-primary/5 ring-2 ring-inset ring-primary/25" : "hover:bg-muted/20"
+                  )}
+                >
+                  <p className={cn("text-2xl font-bold tabular-nums leading-none", s.accent)}>{s.value}</p>
+                  <p className="text-xs font-semibold mt-2">{s.label}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1 max-w-[9rem]">{s.hint}</p>
+                  <p className="text-[10px] text-primary mt-1.5 font-medium">
+                    {isActive ? "Hide list ↑" : "View tickets ↓"}
+                  </p>
+                </button>
+              );
+            })}
           </div>
+          {activeCategory && (
+            <ProcessingTicketList
+              category={activeCategory}
+              label={PROCESSING_CATEGORY_LABELS[activeCategory]}
+              items={ticketLists[activeCategory]}
+              onClose={() => setActiveCategory(null)}
+            />
+          )}
         </div>
 
         {/* Recommendation cards */}

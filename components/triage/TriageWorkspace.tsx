@@ -164,6 +164,17 @@ export function TriageWorkspace() {
     }
   };
 
+  useEffect(() => {
+    const onCreated = (e: Event) => {
+      const detail = (e as CustomEvent<{ ticketId: string }>).detail;
+      if (!detail?.ticketId) return;
+      setSelectedTicketId(detail.ticketId);
+      setSelectedId(null);
+    };
+    window.addEventListener("pm-agent:ticket-created", onCreated);
+    return () => window.removeEventListener("pm-agent:ticket-created", onCreated);
+  }, []);
+
   // Toast when a new query lands in the queue
   useEffect(() => {
     const pending = getPending();
@@ -336,7 +347,7 @@ export function TriageWorkspace() {
                   <div
                     key={item.id}
                     className={cn(
-                      "rounded-xl bg-card p-3 cursor-pointer transition-all shadow-sm hover:shadow-md",
+                      "group relative rounded-xl bg-card p-3 cursor-pointer transition-all shadow-sm hover:shadow-md",
                       isSelected
                         ? "ring-2 ring-primary/25 shadow-md"
                         : "hover:ring-1 hover:ring-primary/10"
@@ -352,13 +363,15 @@ export function TriageWorkspace() {
                           <span className="truncate">{t.customer.name}</span>
                           <span className="shrink-0">{formatRelativeTime(t.createdAt)}</span>
                         </div>
-                        <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
-                          <AskPmAgentButton
-                            ticket={t}
-                            variant="row"
-                            silent
-                            className={cn(isSelected && "bg-primary/15 ring-1 ring-primary/20")}
-                          />
+                        <div
+                          className={cn(
+                            "mt-2 overflow-hidden transition-all duration-150",
+                            "max-h-0 opacity-0 group-hover:max-h-8 group-hover:opacity-100",
+                            isSelected && "max-h-8 opacity-100"
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <AskPmAgentButton ticket={t} variant="row" silent />
                         </div>
                       </div>
                     </div>

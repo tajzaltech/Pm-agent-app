@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { ArrowRight, Check, Loader2 } from "lucide-react";
+
+import { ConnectProviderDialog } from "@/components/onboarding/ConnectProviderDialog";
 
 import {
   ClickUpLogo,
@@ -40,6 +42,7 @@ export function StepConnectOutput() {
     setSelectedProject,
     setStep,
   } = useOnboardingStore();
+  const [dialogProvider, setDialogProvider] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<string | null>(null);
 
   const handleConnect = async (id: string) => {
@@ -50,8 +53,10 @@ export function StepConnectOutput() {
   };
 
   const projects = outputTool ? PROJECTS[outputTool] ?? [] : [];
+  const dialogMeta = OUTPUTS.find((o) => o.id === dialogProvider);
 
   return (
+    <>
     <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
       <div className="border-b px-8 pb-6 pt-8">
         <h1 className="text-2xl font-bold tracking-tight">Where should dev tickets go?</h1>
@@ -65,13 +70,15 @@ export function StepConnectOutput() {
           {OUTPUTS.map(({ id, name, Logo, desc }) => {
             const isConnected = outputTool === id && outputToolStatus === "connected";
             const isConnecting = connecting === id;
-            const isDisabled = !isConnected && !isConnecting && outputTool !== null && outputTool !== id;
 
             return (
               <button
                 key={id}
-                disabled={isConnecting || isDisabled}
-                onClick={() => handleConnect(id)}
+                disabled={isConnecting}
+                onClick={() => {
+                  if (isConnected) return;
+                  setDialogProvider(id);
+                }}
                 title={desc}
                 className={cn(
                   "group relative flex min-h-32 flex-col items-center justify-center gap-3 rounded-2xl border-2 bg-white p-4 text-center transition-all duration-150",
@@ -79,9 +86,7 @@ export function StepConnectOutput() {
                     ? "border-primary bg-primary/[0.03] shadow-sm"
                     : isConnecting
                       ? "border-muted-foreground/20 bg-muted/20 cursor-wait"
-                      : isDisabled
-                        ? "border-border bg-muted/10 opacity-40 cursor-not-allowed"
-                        : "border-border hover:border-primary/40 hover:shadow-sm"
+                      : "border-border hover:border-primary/40 hover:shadow-sm"
                 )}
               >
                 {isConnected && (
@@ -141,9 +146,23 @@ export function StepConnectOutput() {
           className="min-w-28 gap-2"
         >
           Continue
-          <span className="text-xs opacity-60">-&gt;</span>
+          <ArrowRight className="size-4" />
         </Button>
       </div>
     </div>
+
+    {dialogMeta && (
+      <ConnectProviderDialog
+        open={!!dialogProvider}
+        providerId={dialogMeta.id}
+        providerName={dialogMeta.name}
+        Logo={dialogMeta.Logo}
+        onClose={() => setDialogProvider(null)}
+        onConnected={async () => {
+          await handleConnect(dialogMeta.id);
+        }}
+      />
+    )}
+    </>
   );
 }

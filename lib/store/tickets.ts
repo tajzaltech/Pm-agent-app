@@ -61,9 +61,13 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
   serverHydrated: false,
 
   hydrateFromApi: async () => {
+    if (get().serverHydrated) return;
     try {
       const response = await fetch("/api/draft-tickets", { cache: "no-store" });
-      if (!response.ok) return;
+      if (!response.ok) {
+        set({ serverHydrated: true });
+        return;
+      }
       const data = (await response.json()) as {
         tickets?: Ticket[];
         activity?: ActivityEntry[];
@@ -75,7 +79,9 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       const base = hasPendingOnServer ? serverTickets : MOCK_TICKETS;
       const baseIds = new Set(base.map((t) => t.id));
       const localOnly = current.filter(
-        (t) => !baseIds.has(t.id) && (t.source === "pm_chat" || t.viaPmChat)
+        (t) =>
+          !baseIds.has(t.id) &&
+          (t.status === "pending" || t.source === "pm_chat" || t.viaPmChat)
       );
 
       set({
@@ -198,6 +204,8 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(ticket),
+    }).catch(() => {
+      /* keep in client queue even if API unavailable */
     });
 
     return id;

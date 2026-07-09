@@ -56,11 +56,11 @@ export function AskPmAgentButton({
         type="button"
         onClick={handleClick}
         className={cn(
-          "flex w-full items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15",
+          "flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary transition-all hover:bg-primary/15",
           className
         )}
       >
-        <MessageSquare className="size-3.5" />
+        <MessageSquare className="size-3" />
         Ask PM Agent
       </button>
     );

@@ -274,6 +274,7 @@ export type WorkspaceRole = "pm" | "cs_agent";
 export type IssueCategory =
   | "bug"
   | "suggestion"
+  | "feature_request"
   | "how_to"
   | "billing"
   | "complaint"

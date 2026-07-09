@@ -251,6 +251,11 @@ export const usePmChatStore = create<PmChatStore>()(
             ),
           },
         }));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("pm-agent:ticket-created", { detail: { ticketId: id, title: msg.proposal.title } })
+          );
+        }
         return id;
       },
 

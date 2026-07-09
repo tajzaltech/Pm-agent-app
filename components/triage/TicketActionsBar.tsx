@@ -9,7 +9,6 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { AskPmAgentButton } from "@/components/triage/AskPmAgentButton";
 import { Button } from "@/components/ui/button";
 import { usePmChatStore } from "@/lib/store/pm-chat";
 import { useTicketStore } from "@/lib/store/tickets";
@@ -55,7 +54,6 @@ export function TicketActionsBar({
 
   return (
     <div className={cn("border-t bg-card px-3 py-2.5 flex flex-wrap items-center gap-1.5 shrink-0", className)}>
-      <AskPmAgentButton ticket={ticket} silent />
       <ActionBtn
         icon={Send}
         label="Accept & send to Dev"

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -40,6 +41,7 @@ function isVisibleMessage(msg: PmChatMessage) {
 }
 
 export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatViewProps) {
+  const router = useRouter();
   const ticket = useTicketStore((s) => (ticketId ? s.getById(ticketId) : undefined));
   const messages = usePmChatStore((s) => s.messagesBySession[sessionId] ?? EMPTY_MESSAGES);
   const isTyping = usePmChatStore((s) => s.typingBySession[sessionId] ?? false);
@@ -195,7 +197,18 @@ export function PmChatView({ sessionId, ticketId, sidebarOpen = true }: PmChatVi
                   stream={msg.id === streamingMsgId}
                   onStreamTick={() => scrollToBottom(true)}
                   onStreamDone={() => setStreamingMsgId(null)}
-                  onConfirm={() => confirmProposal(sessionId, msg.id)}
+                  onConfirm={() => {
+                    const id = confirmProposal(sessionId, msg.id);
+                    if (id) {
+                      toast.success("Ticket added to Triage", {
+                        description: msg.proposal?.title.slice(0, 72),
+                        action: {
+                          label: "Open in Triage",
+                          onClick: () => router.push(`/triage?ticket=${id}`),
+                        },
+                      });
+                    }
+                  }}
                   onSendToDev={() => sendProposalToDev(sessionId, msg.id)}
                   onReject={() => rejectProposal(sessionId, msg.id)}
                   onSendCustomerReply={() => {

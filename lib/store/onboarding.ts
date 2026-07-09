@@ -3,42 +3,47 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { IssueCategory, WorkspaceRole } from "@/lib/types";
+import { DEFAULT_SOURCE_CATEGORIES } from "@/lib/constants/onboarding-sources";
+import { useConnectionsStore } from "@/lib/store/connections";
 import { useThemeStore } from "@/lib/store/theme";
+import { syncOnboardingToConnections } from "@/lib/utils/sync-onboarding-connections";
 
 export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | "indexing" | "done";
 export type ProviderStatus = "idle" | "connecting" | "connected" | "error";
 
-interface OnboardingStore {
+export interface TicketSourceConfig {
+  provider: string;
+  status: ProviderStatus;
+  issueCategories: IssueCategory[];
+  accountLabel?: string;
+  connectedAt?: string;
+}
+
+export interface OnboardingStore {
   step: OnboardingStep;
   isSetup: boolean;
   signupInProgress: boolean;
   workspaceRole: WorkspaceRole | null;
-  issueCategories: IssueCategory[];
 
-  // Step 2: ticket source
-  ticketSource: string | null;
-  ticketSourceStatus: ProviderStatus;
+  ticketSources: TicketSourceConfig[];
 
-  // Step 3: code repo
   repoProvider: string | null;
   repoProviderStatus: ProviderStatus;
   selectedRepos: string[];
   availableRepos: string[];
 
-  // Step 4: output tool
   outputTool: string | null;
   outputToolStatus: ProviderStatus;
   selectedProject: string | null;
 
-  // Indexing
   indexingStatus: "idle" | "running" | "done" | "error";
   indexingStep: string;
 
-  // Actions
   setStep: (step: OnboardingStep) => void;
   setWorkspaceRole: (role: WorkspaceRole) => void;
-  toggleIssueCategory: (cat: IssueCategory) => void;
-  connectTicketSource: (provider: string) => Promise<void>;
+  connectTicketSource: (provider: string, accountLabel?: string) => Promise<void>;
+  disconnectTicketSource: (provider: string) => void;
+  toggleSourceIssueCategory: (provider: string, cat: IssueCategory) => void;
   connectRepo: (provider: string) => Promise<void>;
   toggleRepo: (repo: string) => void;
   connectOutputTool: (tool: string) => Promise<void>;
@@ -71,10 +76,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       isSetup: false,
       signupInProgress: false,
       workspaceRole: null,
-      issueCategories: ["bug", "how_to"],
-
-      ticketSource: null,
-      ticketSourceStatus: "idle",
+      ticketSources: [],
 
       repoProvider: null,
       repoProviderStatus: "idle",
@@ -96,25 +98,75 @@ export const useOnboardingStore = create<OnboardingStore>()(
         setDefaultLanding(role === "cs_agent" ? "/chat" : "/triage");
       },
 
-      toggleIssueCategory: (cat) => {
-        const { issueCategories } = get();
+      connectTicketSource: async (provider, accountLabel) => {
+        const existing = get().ticketSources.find((s) => s.provider === provider);
+        const defaults = DEFAULT_SOURCE_CATEGORIES[provider] ?? ["bug", "how_to"];
+
         set({
-          issueCategories: issueCategories.includes(cat)
-            ? issueCategories.filter((c) => c !== cat)
-            : [...issueCategories, cat],
+          ticketSources: existing
+            ? get().ticketSources.map((s) =>
+                s.provider === provider ? { ...s, status: "connecting" as const } : s
+              )
+            : [
+                ...get().ticketSources,
+                { provider, status: "connecting" as const, issueCategories: [...defaults] },
+              ],
         });
+
+        await new Promise((r) => setTimeout(r, 200));
+
+        set({
+          ticketSources: get().ticketSources.map((s) =>
+            s.provider === provider
+              ? {
+                  ...s,
+                  status: "connected" as const,
+                  accountLabel: accountLabel ?? s.accountLabel,
+                  connectedAt: new Date().toISOString(),
+                  issueCategories: s.issueCategories.length ? s.issueCategories : defaults,
+                }
+              : s
+          ),
+        });
+
+        useConnectionsStore.getState().addSource(provider);
       },
 
-      connectTicketSource: async (provider) => {
-        set({ ticketSource: provider, ticketSourceStatus: "connecting" });
-        await new Promise((r) => setTimeout(r, 1800));
-        set({ ticketSourceStatus: "connected" });
+      disconnectTicketSource: (provider) => {
+        set({
+          ticketSources: get().ticketSources.filter((s) => s.provider !== provider),
+        });
+        const conn = useConnectionsStore.getState();
+        const match = conn.sources.find((s) => s.provider === provider);
+        if (match) conn.removeSource(match.id);
+      },
+
+      toggleSourceIssueCategory: (provider, cat) => {
+        set({
+          ticketSources: get().ticketSources.map((s) => {
+            if (s.provider !== provider) return s;
+            const has = s.issueCategories.includes(cat);
+            return {
+              ...s,
+              issueCategories: has
+                ? s.issueCategories.filter((c) => c !== cat)
+                : [...s.issueCategories, cat],
+            };
+          }),
+        });
       },
 
       connectRepo: async (provider) => {
         set({ repoProvider: provider, repoProviderStatus: "connecting" });
         await new Promise((r) => setTimeout(r, 1800));
-        set({ repoProviderStatus: "connected", selectedRepos: MOCK_REPOS.slice(0, 2) });
+        const selected = MOCK_REPOS.slice(0, 2);
+        set({
+          repoProviderStatus: "connected",
+          selectedRepos: selected,
+        });
+        for (const repo of selected) {
+          useConnectionsStore.getState().addRepo(repo);
+        }
       },
 
       toggleRepo: (repo) => {
@@ -135,11 +187,13 @@ export const useOnboardingStore = create<OnboardingStore>()(
           outputToolStatus: "connected",
           selectedProject: projects[0],
         });
+        useConnectionsStore.getState().addOutput(tool);
       },
 
       setSelectedProject: (project) => set({ selectedProject: project }),
 
       startIndexing: async () => {
+        syncOnboardingToConnections(get());
         set({ step: "indexing", indexingStatus: "running" });
 
         const steps = [
@@ -159,7 +213,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
         set({ indexingStatus: "done", step: "done" });
       },
 
-      markSetupDone: () => set({ isSetup: true, signupInProgress: false }),
+      markSetupDone: () => {
+        syncOnboardingToConnections(get());
+        set({ isSetup: true, signupInProgress: false });
+      },
 
       beginSignup: () => {
         get().resetOnboarding();
@@ -172,9 +229,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
           isSetup: false,
           signupInProgress: false,
           workspaceRole: null,
-          issueCategories: ["bug", "how_to"],
-          ticketSource: null,
-          ticketSourceStatus: "idle",
+          ticketSources: [],
           repoProvider: null,
           repoProviderStatus: "idle",
           selectedRepos: [],
@@ -187,11 +242,33 @@ export const useOnboardingStore = create<OnboardingStore>()(
     }),
     {
       name: "pm-agent-setup",
+      merge: (persisted, current) => {
+        const p = persisted as Partial<OnboardingStore & { ticketSource?: string; issueCategories?: IssueCategory[] }>;
+        const ticketSources =
+          p.ticketSources ??
+          (p.ticketSource
+            ? [
+                {
+                  provider: p.ticketSource,
+                  status: "connected" as const,
+                  issueCategories: p.issueCategories ?? ["bug", "how_to"],
+                },
+              ]
+            : current.ticketSources);
+        return { ...current, ...p, ticketSources };
+      },
       partialize: (state) => ({
         isSetup: state.isSetup,
         signupInProgress: state.signupInProgress,
         step: state.step,
         workspaceRole: state.workspaceRole,
+        ticketSources: state.ticketSources,
+        repoProvider: state.repoProvider,
+        repoProviderStatus: state.repoProviderStatus,
+        selectedRepos: state.selectedRepos,
+        outputTool: state.outputTool,
+        outputToolStatus: state.outputToolStatus,
+        selectedProject: state.selectedProject,
       }),
     }
   )

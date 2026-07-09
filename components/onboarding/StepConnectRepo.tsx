@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, GitBranch, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, Loader2, ShieldCheck } from "lucide-react";
 
+import { ConnectProviderDialog } from "@/components/onboarding/ConnectProviderDialog";
 import { BitbucketLogo, GitHubLogo } from "@/components/shared/BrandLogos";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,6 +25,7 @@ export function StepConnectRepo() {
     toggleRepo,
     setStep,
   } = useOnboardingStore();
+  const [dialogProvider, setDialogProvider] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<string | null>(null);
 
   const handleConnect = async (id: string) => {
@@ -33,9 +35,10 @@ export function StepConnectRepo() {
     setConnecting(null);
   };
 
-  const SelectedProviderLogo = REPO_PROVIDERS.find((provider) => provider.id === repoProvider)?.Logo ?? GitBranch;
+  const dialogMeta = REPO_PROVIDERS.find((p) => p.id === dialogProvider);
 
   return (
+    <>
     <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
       <div className="border-b px-8 pb-6 pt-8">
         <h1 className="text-2xl font-bold tracking-tight">Where does your code live?</h1>
@@ -49,22 +52,22 @@ export function StepConnectRepo() {
           {REPO_PROVIDERS.map(({ id, name, Logo, desc }) => {
             const isConnected = repoProvider === id && repoProviderStatus === "connected";
             const isConnecting = connecting === id;
-            const isDisabled = !isConnected && !isConnecting && repoProvider !== null && repoProvider !== id;
 
             return (
               <button
                 key={id}
-                disabled={isConnecting || isDisabled}
-                onClick={() => handleConnect(id)}
+                disabled={isConnecting}
+                onClick={() => {
+                  if (isConnected) return;
+                  setDialogProvider(id);
+                }}
                 className={cn(
                   "group relative flex items-center gap-4 rounded-2xl border-2 bg-white p-5 text-left transition-all duration-150",
                   isConnected
                     ? "border-primary bg-primary/[0.03] shadow-sm"
                     : isConnecting
                       ? "border-muted-foreground/20 bg-muted/20 cursor-wait"
-                      : isDisabled
-                        ? "border-border bg-muted/10 opacity-40 cursor-not-allowed"
-                        : "border-border hover:border-primary/40 hover:shadow-sm"
+                      : "border-border hover:border-primary/40 hover:shadow-sm"
                 )}
               >
                 {isConnected && (
@@ -100,18 +103,22 @@ export function StepConnectRepo() {
               <span className="text-xs text-muted-foreground">{selectedRepos.length} selected</span>
             </div>
             <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
-              {availableRepos.map((repo) => (
+              {availableRepos.map((repo) => {
+                const ProviderLogo =
+                  REPO_PROVIDERS.find((provider) => provider.id === repoProvider)?.Logo ?? GitHubLogo;
+                return (
                 <label
                   key={repo}
                   className="flex cursor-pointer items-center gap-3 rounded-lg border bg-white p-3 transition-colors hover:bg-muted/20"
                 >
                   <Checkbox checked={selectedRepos.includes(repo)} onCheckedChange={() => toggleRepo(repo)} />
                   <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <SelectedProviderLogo className="size-4 shrink-0" />
+                    <ProviderLogo className="size-4 shrink-0" />
                     <span className="truncate font-mono text-sm">{repo}</span>
                   </div>
                 </label>
-              ))}
+              );
+              })}
             </div>
             <div className="flex items-start gap-2.5 rounded-lg border border-blue-100 bg-blue-50 p-3">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-blue-500" />
@@ -134,9 +141,24 @@ export function StepConnectRepo() {
           className="min-w-28 gap-2"
         >
           Continue
-          <span className="text-xs opacity-60">-&gt;</span>
+          <ArrowRight className="size-4" />
         </Button>
       </div>
     </div>
+
+    {dialogMeta && (
+      <ConnectProviderDialog
+        open={!!dialogProvider}
+        providerId={dialogMeta.id}
+        providerName={dialogMeta.name}
+        Logo={dialogMeta.Logo}
+        onClose={() => setDialogProvider(null)}
+        onConnected={async (accountLabel) => {
+          await handleConnect(dialogMeta.id);
+          void accountLabel;
+        }}
+      />
+    )}
+    </>
   );
 }
