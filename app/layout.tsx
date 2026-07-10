@@ -1,18 +1,24 @@
 import type { Metadata } from "next";
-import { Inter, Fira_Code } from "next/font/google";
+import { Urbanist, JetBrains_Mono, Cinzel } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LightModeOnly } from "@/components/shared/LightModeOnly";
 
-const inter = Inter({
+const urbanist = Urbanist({
   variable: "--font-sans",
   subsets: ["latin"],
   display: "swap",
 });
 
-const firaCode = Fira_Code({
+const jetbrains = JetBrains_Mono({
   variable: "--font-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const cinzel = Cinzel({
+  variable: "--font-display",
   subsets: ["latin"],
   display: "swap",
 });
@@ -31,7 +37,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${firaCode.variable} h-full antialiased`}
+      className={`${urbanist.variable} ${jetbrains.variable} ${cinzel.variable} h-full antialiased`}
     >
       <body className="min-h-full" suppressHydrationWarning>
         <LightModeOnly>

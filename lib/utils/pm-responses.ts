@@ -10,7 +10,7 @@ export const PM_QUICK_PROMPTS = [
 
 export const TICKET_QUICK_PROMPTS = [
   "What's going on with this ticket?",
-  "Check the codebase for related code",
+  "Check the system for related issues",
   "What should we do next?",
 ];
 
@@ -19,7 +19,7 @@ export const PM_CHAT_STARTERS: PmChatStarter[] = [
   { label: "Customer report", prompt: "A customer says exports fail after they retry — help me triage this", hint: "Repro steps & impact" },
   { label: "Error logs", prompt: "Help me understand this 500 error from production logs", hint: "Parse stack traces" },
   { label: "Post-deploy", prompt: "We noticed odd behaviour right after yesterday's deploy", hint: "Diff & rollback options" },
-  { label: "Search codebase", prompt: "Where in GitHub would webhook retries be handled?", hint: "Read-only repo search" },
+  { label: "Search system", prompt: "Where would webhook retries be handled?", hint: "Read-only system search" },
   { label: "Prioritize", prompt: "How urgent is this if only one enterprise customer is affected?", hint: "Severity & SLA" },
   { label: "Draft ticket", prompt: "I have enough context — walk me through filing a ticket", hint: "When you're ready" },
 ];
@@ -123,7 +123,7 @@ function investigationReply(ticket: Ticket): string {
 **What the customer reported:**
 ${ticket.originalSubject}
 
-**What I found in the codebase:**
+**What I found in the system:**
 ${codeSection}
 
 **Root cause analysis:**
@@ -149,7 +149,7 @@ function codeSearchReply(ticket: Ticket): string {
     return `**${i + 1}. \`${r.filePath}\`**${r.functionName ? ` → \`${r.functionName}()\`` : ""}${loc}\n${r.snippet ? "```" + (r.language ?? "") + "\n" + r.snippet.split("\n").slice(0, 6).join("\n") + "\n```" : ""}`;
   }).join("\n\n");
 
-  return `Here's what I found in the codebase:\n\n${lines}\n\n**Analysis:** ${ticket.draftDescription.split(".")[0]}.\n\nThe fix direction would be: ${ticket.suggestedApproach.split(".")[0]}.\n\nWant me to create a dev ticket with this context, or do you need more detail?`;
+  return `Here's what I found in the system:\n\n${lines}\n\n**Analysis:** ${ticket.draftDescription.split(".")[0]}.\n\nThe fix direction would be: ${ticket.suggestedApproach.split(".")[0]}.\n\nWant me to create a dev ticket with this context, or do you need more detail?`;
 }
 
 function rootCauseReply(ticket: Ticket): string {
@@ -242,13 +242,13 @@ function pickFollowUp(turns: string[], ticket?: Ticket): string {
     return `Got it. When did this start — is it new, or has it been happening for a while?`;
   }
   if (!text.match(/error|message|screenshot|log|500|404|timeout|broken|bug/)) {
-    return `Do you have an error message, screenshot, or log entry? Even a rough description of what they see helps me search the codebase.`;
+    return `Do you have an error message, screenshot, or log entry? Even a rough description of what they see helps me search the system.`;
   }
   if (!text.match(/tried|repro|step|click|flow|route/)) {
     return `What steps lead to the problem? If the customer shared repro steps, paste them here.`;
   }
   if (ticket) {
-    return `I think I have enough to work with. Want me to search the codebase for related code, or are you ready to decide on next steps?`;
+    return `I think I have enough to work with. Want me to search the system for related issues, or are you ready to decide on next steps?`;
   }
   return `That's helpful context. I can either help you draft a ticket for dev, or help craft a customer response. What would you like to do?`;
 }

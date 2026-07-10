@@ -47,8 +47,8 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="hidden lg:flex h-[48px] shrink-0 items-center border-b border-border/60 bg-background/80 backdrop-blur-md px-5 gap-4">
-      <h1 className="text-[14px] font-semibold tracking-tight text-foreground">
+    <header className="hidden lg:flex h-[48px] shrink-0 items-center border-b border-border/40 bg-white/60 backdrop-blur-xl px-5 gap-4">
+      <h1 className="text-[14px] font-bold tracking-tight text-foreground">
         {title}
       </h1>
 

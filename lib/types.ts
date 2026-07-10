@@ -239,6 +239,15 @@ export interface DispatchRecord {
   error?: string;
 }
 
+export interface AutoAcceptRule {
+  id: string;
+  classification: Classification | "any";
+  scope: Scope | "any";
+  enabled: boolean;
+  action?: "auto_accept" | "auto_reply" | "escalate" | "tag";
+  label?: string;
+}
+
 export interface PipelineCard {
   id: string;
   ticketId: string;

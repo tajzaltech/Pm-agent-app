@@ -17,12 +17,17 @@ import {
   Question,
   Lightbulb,
   ArrowsClockwise,
+  Paperclip,
+  Microphone,
+  Stop,
 } from "@phosphor-icons/react";
 
 import { usePmChatStore } from "@/lib/store/pm-chat";
 import { useTicketStore } from "@/lib/store/tickets";
 import type { PmChatMessage, Ticket } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const COL = "max-w-[720px]";
 const EMPTY: PmChatMessage[] = [];
@@ -86,26 +91,42 @@ export function PmChatView({ sessionId, ticketId }: Props) {
   /* ─── Empty state ─── */
   if (!hasMessages) {
     const prompts = ticket
-      ? [`What's going on with #${ticket.originalTicketId}?`, "Check the codebase", "What should we do?"]
-      : ["A customer reported something broken", "Help me understand an issue", "Draft a ticket for dev"];
+      ? [
+          { icon: MagnifyingGlass, text: "Investigate this ticket", sub: "Deep-dive into root cause" },
+          { icon: Bug, text: "Is this a bug or config issue?", sub: "Classify and assess severity" },
+          { icon: Code, text: "Who should own the fix?", sub: "Route to the right team" },
+          { icon: EnvelopeSimple, text: "Review and draft customer reply", sub: "Prepare a response" },
+        ]
+      : [
+          { icon: MagnifyingGlass, text: "Customer says checkout is failing", sub: "Triage a support ticket" },
+          { icon: Bug, text: "500 errors after yesterday's deploy", sub: "Investigate a production issue" },
+          { icon: PaperPlaneTilt, text: "Draft a Jira ticket for a bug", sub: "Create a dev-ready ticket" },
+          { icon: EnvelopeSimple, text: "Help me write a customer response", sub: "Draft a professional reply" },
+        ];
 
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-6 pb-8">
-        <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary ring-1 ring-primary/10">
-          <ChatCircleDots size={28} weight="duotone" />
-        </div>
-        <h1 className="text-xl font-semibold tracking-tight text-center">
-          {ticket
-            ? `Investigate #${ticket.originalTicketId}`
-            : "What are you working on?"}
-        </h1>
-        <p className="mt-2 text-[13px] text-muted-foreground text-center max-w-md leading-relaxed">
-          {ticket
-            ? `I'll analyze ${ticket.customer.name}'s report against the codebase and recommend next steps.`
-            : "Paste a customer message, describe a bug, or ask me to investigate an issue. I'll check the codebase and suggest what to do."}
-        </p>
+      <div className="flex flex-1 flex-col items-center justify-center px-6">
+        <div className="w-full max-w-2xl space-y-8">
+          {/* Hero heading */}
+          <div className="text-center space-y-2">
+            {ticket ? (
+              <>
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-[12px] font-semibold text-primary mb-2">
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  {ticket.source} · #{ticket.originalTicketId}
+                </div>
+                <h1 className="text-[32px] font-extrabold tracking-tight leading-tight">
+                  {ticket.customer.name}&apos;s issue
+                </h1>
+              </>
+            ) : (
+              <h1 className="text-[36px] font-extrabold tracking-tight leading-tight bg-gradient-to-r from-primary via-[oklch(0.55_0.22_300)] to-[oklch(0.50_0.20_320)] bg-clip-text text-transparent font-[family-name:var(--font-display)]">
+                Ask PM
+              </h1>
+            )}
+          </div>
 
-        <div className="mt-8 w-full max-w-xl">
+          {/* Composer */}
           <Composer
             input={input}
             setInput={setInput}
@@ -113,20 +134,31 @@ export function PmChatView({ sessionId, ticketId }: Props) {
             disabled={isTyping || !!streamId}
             onSend={send}
             large
-            placeholder={ticket ? `Ask about #${ticket.originalTicketId}…` : "Describe the issue or paste a customer message…"}
+            placeholder={ticket ? `Ask about #${ticket.originalTicketId}…` : "Describe an issue, paste a customer message, or ask anything…"}
           />
-        </div>
 
-        <div className="mt-5 flex flex-wrap justify-center gap-2">
-          {prompts.map((p) => (
-            <button
-              key={p}
-              onClick={() => send(p)}
-              className="rounded-full border px-3.5 py-1.5 text-[12px] text-muted-foreground transition-all hover:border-primary/30 hover:text-foreground hover:shadow-sm"
-            >
-              {p}
-            </button>
-          ))}
+          {/* Prompt suggestions */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {prompts.map(({ icon: PromptIcon, text, sub }) => (
+              <button
+                key={text}
+                onClick={() => send(text)}
+                className="group flex items-start gap-3 rounded-2xl border border-border/40 bg-white px-4 py-3.5 text-left transition-all hover:border-primary/25 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary mt-0.5 transition-colors group-hover:from-primary/15 group-hover:to-primary/10">
+                  <PromptIcon size={16} weight="duotone" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground/80 group-hover:text-foreground leading-snug">
+                    {text}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                    {sub}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -162,7 +194,7 @@ export function PmChatView({ sessionId, ticketId }: Props) {
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-background from-60% to-transparent pt-6 pb-3">
+      <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-white from-60% to-transparent pt-6 pb-3">
         <div className={`mx-auto w-full ${COL} px-4`}>
           <Composer
             input={input}
@@ -191,44 +223,109 @@ function Composer({
   placeholder?: string;
 }) {
   const canSend = input.trim().length > 0 && !disabled;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [attachedFile, setAttachedFile] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachedFile(file.name);
+      toast.success(`Attached: ${file.name}`);
+    }
+    e.target.value = "";
+  };
+
+  const toggleRecording = () => {
+    if (recording) {
+      setRecording(false);
+      toast.success("Voice input captured");
+      setInput(input + (input ? " " : "") + "Customer reported the issue occurs intermittently during peak hours…");
+    } else {
+      setRecording(true);
+      toast("Listening…", { duration: 2000 });
+    }
+  };
 
   return (
-    <div className={cn(
-      "flex items-end gap-2 rounded-2xl border bg-card p-1.5 shadow-sm transition-shadow focus-within:shadow-md focus-within:border-primary/20",
-      large && "p-2"
-    )}>
-      <textarea
-        ref={textareaRef}
-        value={input}
-        onChange={(e) => {
-          setInput(e.target.value);
-          e.target.style.height = large ? "48px" : "40px";
-          e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-        }}
-        placeholder={placeholder ?? (large ? "Describe the issue…" : "Ask a follow-up…")}
-        rows={1}
-        style={{ height: large ? 48 : 40 }}
-        disabled={disabled}
-        autoFocus={large}
-        className="flex-1 resize-none bg-transparent px-3 py-2 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
-        }}
-      />
-      <button
-        type="button"
-        disabled={!canSend}
-        onClick={() => onSend()}
-        className={cn(
-          "mb-0.5 flex shrink-0 items-center justify-center rounded-xl transition-all",
-          large ? "size-9" : "size-8",
-          canSend
-            ? "bg-primary text-primary-foreground shadow-sm hover:opacity-90"
-            : "bg-muted text-muted-foreground"
-        )}
-      >
-        <ArrowUp size={16} weight="bold" />
-      </button>
+    <div className="space-y-0">
+      {attachedFile && (
+        <div className="flex items-center gap-2 px-3 pb-1">
+          <div className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            <Paperclip size={11} />
+            {attachedFile}
+            <button type="button" onClick={() => setAttachedFile(null)} className="ml-1 hover:text-foreground">
+              <XIcon size={10} />
+            </button>
+          </div>
+        </div>
+      )}
+      <div className={cn(
+        "flex items-end gap-1 rounded-2xl border border-border/60 bg-white p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] transition-all focus-within:shadow-[0_2px_20px_rgba(0,0,0,0.08)] focus-within:border-primary/30",
+        large && "p-2",
+        recording && "border-red-300 ring-1 ring-red-200"
+      )}>
+        <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.xlsx" onChange={handleFileChange} />
+
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={disabled}
+          className="mb-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+          title="Attach document"
+        >
+          <Paperclip size={16} />
+        </button>
+
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            e.target.style.height = large ? "48px" : "40px";
+            e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+          }}
+          placeholder={placeholder ?? (large ? "Describe the issue…" : "Ask a follow-up…")}
+          rows={1}
+          style={{ height: large ? 48 : 40 }}
+          disabled={disabled}
+          autoFocus={large}
+          className="flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={toggleRecording}
+          disabled={disabled}
+          className={cn(
+            "mb-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50",
+            recording
+              ? "bg-red-500 text-white animate-pulse"
+              : "text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground"
+          )}
+          title={recording ? "Stop recording" : "Voice input"}
+        >
+          {recording ? <Stop size={14} weight="fill" /> : <Microphone size={16} />}
+        </button>
+
+        <button
+          type="button"
+          disabled={!canSend}
+          onClick={() => { onSend(); setAttachedFile(null); }}
+          className={cn(
+            "mb-0.5 flex shrink-0 items-center justify-center rounded-xl transition-all",
+            large ? "size-9" : "size-8",
+            canSend
+              ? "bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] text-white shadow-md hover:shadow-lg hover:scale-105"
+              : "bg-muted/60 text-muted-foreground/40"
+          )}
+        >
+          <ArrowUp size={16} weight="bold" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -237,7 +334,7 @@ function Composer({
 
 const TICKET_STEPS = [
   { icon: MagnifyingGlass, label: "Reading ticket details…" },
-  { icon: Code, label: "Searching codebase…" },
+  { icon: Code, label: "Searching the system…" },
   { icon: ShieldCheck, label: "Analyzing impact…" },
 ];
 
@@ -314,7 +411,7 @@ function Bubble({
   if (msg.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground">
+        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
           {msg.content}
         </div>
       </div>
@@ -441,6 +538,60 @@ function ActionBtn({ icon: Icon, label, onClick, variant = "default" }: {
   );
 }
 
+/* ─────────────────────── Markdown renderer ─────────────────────── */
+
+function Markdown({ children }: { children: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({ children }) => <p className="mb-2 last:mb-0 leading-[1.7]">{children}</p>,
+        strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+        em: ({ children }) => <em className="italic">{children}</em>,
+        h1: ({ children }) => <h1 className="text-base font-bold mt-4 mb-2 text-foreground">{children}</h1>,
+        h2: ({ children }) => <h2 className="text-[15px] font-bold mt-3 mb-1.5 text-foreground">{children}</h2>,
+        h3: ({ children }) => <h3 className="text-[14px] font-semibold mt-3 mb-1 text-foreground">{children}</h3>,
+        ul: ({ children }) => <ul className="mb-2 ml-4 list-disc space-y-1 marker:text-muted-foreground/50">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal space-y-1 marker:text-muted-foreground/50">{children}</ol>,
+        li: ({ children }) => <li className="leading-[1.6] text-[13.5px]">{children}</li>,
+        code: ({ className, children, ...props }) => {
+          const isBlock = className?.includes("language-");
+          if (isBlock) {
+            return (
+              <code className={cn("block rounded-lg bg-muted/60 border px-4 py-3 text-[12px] font-mono leading-relaxed overflow-x-auto my-2", className)} {...props}>
+                {children}
+              </code>
+            );
+          }
+          return (
+            <code className="rounded-md bg-muted/60 border px-1.5 py-0.5 text-[12px] font-mono text-foreground" {...props}>
+              {children}
+            </code>
+          );
+        },
+        pre: ({ children }) => <pre className="my-2">{children}</pre>,
+        blockquote: ({ children }) => (
+          <blockquote className="my-2 border-l-2 border-primary/30 pl-3 text-muted-foreground italic">{children}</blockquote>
+        ),
+        a: ({ href, children }) => (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:opacity-80">{children}</a>
+        ),
+        hr: () => <hr className="my-3 border-border/50" />,
+        table: ({ children }) => (
+          <div className="my-2 overflow-x-auto rounded-lg border">
+            <table className="w-full text-[12px]">{children}</table>
+          </div>
+        ),
+        thead: ({ children }) => <thead className="bg-muted/40 border-b">{children}</thead>,
+        th: ({ children }) => <th className="px-3 py-1.5 text-left font-semibold text-foreground">{children}</th>,
+        td: ({ children }) => <td className="px-3 py-1.5 border-t border-border/40">{children}</td>,
+      }}
+    >
+      {children}
+    </ReactMarkdown>
+  );
+}
+
 /* ─────────────────────── Streaming text ─────────────────────── */
 
 function StreamText({ text, stream, onTick, onDone }: {
@@ -484,17 +635,9 @@ function StreamText({ text, stream, onTick, onDone }: {
   }, [text, stream]);
 
   return (
-    <span className="whitespace-pre-line">
-      {active ? vis : fmtBold(vis)}
+    <div>
+      {active ? <span className="whitespace-pre-line">{vis}</span> : <Markdown>{vis}</Markdown>}
       {active && <span className="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-px animate-pulse bg-foreground/40 align-middle" />}
-    </span>
-  );
-}
-
-function fmtBold(t: string) {
-  return t.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
-    p.startsWith("**") && p.endsWith("**")
-      ? <strong key={i} className="font-medium text-foreground">{p.slice(2, -2)}</strong>
-      : p
+    </div>
   );
 }

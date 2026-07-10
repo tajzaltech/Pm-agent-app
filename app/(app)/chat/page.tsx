@@ -10,7 +10,7 @@ export default function GlobalChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (activeSessionId && !activeSessionId.startsWith("ticket_")) {
+    if (activeSessionId) {
       setSessionId(activeSessionId);
     } else {
       setSessionId(ensureGlobalSession());
@@ -25,5 +25,7 @@ export default function GlobalChatPage() {
     );
   }
 
-  return <PmChatShell sessionId={sessionId} />;
+  const ticketId = sessionId.startsWith("ticket_") ? sessionId.slice("ticket_".length) : undefined;
+
+  return <PmChatShell sessionId={sessionId} ticketId={ticketId} />;
 }

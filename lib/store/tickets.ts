@@ -6,6 +6,7 @@ import { MOCK_TICKETS } from "@/lib/mock/tickets";
 import { MOCK_ACTIVITY } from "@/lib/mock/activity";
 import { logAudit } from "@/lib/store/audit";
 import { usePipelineStore } from "@/lib/store/pipeline";
+import { useWorkspaceStore } from "@/lib/store/workspace";
 
 interface UndoRecord {
   ticketId: string;
@@ -39,6 +40,8 @@ interface TicketStore {
   clearUndo: () => void;
   getById: (id: string) => Ticket | undefined;
 
+  switchWorkspace: () => void;
+
   // Computed helpers (called as methods for simplicity)
   getPending: () => Ticket[];
   getAccepted: () => Ticket[];
@@ -54,11 +57,37 @@ function addActivity(activity: ActivityEntry[], entry: Omit<ActivityEntry, "id" 
   return [newEntry, ...activity];
 }
 
+function getWorkspaceTickets() {
+  try {
+    return useWorkspaceStore.getState().getActiveData().tickets;
+  } catch {
+    return MOCK_TICKETS;
+  }
+}
+
+function getWorkspaceActivity() {
+  try {
+    return useWorkspaceStore.getState().getActiveData().activity;
+  } catch {
+    return MOCK_ACTIVITY;
+  }
+}
+
 export const useTicketStore = create<TicketStore>((set, get) => ({
-  tickets: MOCK_TICKETS,
-  activity: MOCK_ACTIVITY,
+  tickets: getWorkspaceTickets(),
+  activity: getWorkspaceActivity(),
   undoRecord: null,
   serverHydrated: false,
+
+  switchWorkspace: () => {
+    const data = useWorkspaceStore.getState().getActiveData();
+    set({
+      tickets: data.tickets,
+      activity: data.activity,
+      undoRecord: null,
+      serverHydrated: false,
+    });
+  },
 
   hydrateFromApi: async () => {
     if (get().serverHydrated) return;
@@ -76,7 +105,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       const current = get().tickets;
       const serverTickets = data.tickets ?? [];
       const hasPendingOnServer = serverTickets.some((ticket) => ticket.status === "pending");
-      const base = hasPendingOnServer ? serverTickets : MOCK_TICKETS;
+      const base = hasPendingOnServer ? serverTickets : getWorkspaceTickets();
       const baseIds = new Set(base.map((t) => t.id));
       const localOnly = current.filter(
         (t) =>
@@ -91,7 +120,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
             ? get().activity
             : hasPendingOnServer && data.activity?.length
               ? data.activity
-              : MOCK_ACTIVITY,
+              : getWorkspaceActivity(),
         serverHydrated: true,
       });
     } catch {

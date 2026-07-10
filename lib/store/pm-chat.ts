@@ -26,6 +26,7 @@ interface PmChatStore {
   rejectProposal: (sessionId: string, messageId: string) => void;
   startNonTechnicalReply: (ticketId: string) => void;
   sendCustomerReply: (sessionId: string, messageId: string) => boolean;
+  switchWorkspace: (workspaceId: string) => void;
 }
 
 function welcome(sessionId: string, ticket?: Ticket | null): PmChatMessage {
@@ -375,6 +376,16 @@ export const usePmChatStore = create<PmChatStore>()(
           },
         }));
         return true;
+      },
+
+      switchWorkspace: (workspaceId) => {
+        set({
+          activeSessionId: "global",
+          ticketContextId: null,
+          sessions: [],
+          messagesBySession: {},
+          typingBySession: {},
+        });
       },
     }),
     {

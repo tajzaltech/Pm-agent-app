@@ -71,14 +71,14 @@ export function AuthShell({
   ];
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border bg-white shadow-sm lg:grid-cols-[1fr_460px]">
-        <section className="hidden border-r bg-slate-50/70 p-10 lg:flex lg:flex-col">
+    <main className="min-h-screen bg-gradient-to-br from-background via-background to-[oklch(0.96_0.02_280)] px-4 py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border bg-white/80 backdrop-blur-xl shadow-lg lg:grid-cols-[1fr_460px]">
+        <section className="hidden border-r bg-gradient-to-br from-[oklch(0.96_0.03_280)] to-[oklch(0.94_0.02_310)] p-10 lg:flex lg:flex-col">
           <Link href="/" className="flex w-fit items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-primary shadow-sm">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] shadow-md">
               <Zap className="size-5 text-primary-foreground" />
             </span>
-            <span className="text-sm font-semibold text-foreground">PM Agent</span>
+            <span className="text-sm font-bold text-foreground">PM Agent</span>
           </Link>
 
           <div className="my-8 flex flex-1 items-center">
@@ -93,7 +93,7 @@ export function AuthShell({
           </div>
 
           <div className="max-w-md">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">{sideTitle}</h1>
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">{sideTitle}</h1>
           </div>
         </section>
 

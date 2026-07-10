@@ -119,7 +119,7 @@ function Row({ ticket }: { ticket: Ticket }) {
   return (
     <Link
       href={`/chat/ticket/${ticket.id}`}
-      className="group flex items-center gap-4 px-4 md:px-6 py-3.5 hover:bg-muted/20 transition-colors"
+      className="group flex items-center gap-4 px-4 md:px-6 py-3.5 hover:bg-primary/[0.03] transition-all border-l-2 border-l-transparent hover:border-l-primary/40"
     >
       <StatusDot status={ticket.status} />
 
