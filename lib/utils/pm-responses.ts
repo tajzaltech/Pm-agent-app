@@ -1,67 +1,45 @@
 import type { Classification, PmChatMessage, PmChatTicketProposal, Scope, Ticket } from "@/lib/types";
 
+/* ─── Quick prompts for UI ─── */
+
 export const PM_QUICK_PROMPTS = [
-  "A customer says something is broken",
-  "Help me understand an error report",
-  "We noticed odd behaviour after a deploy",
-];
-
-export type PmChatStarter = {
-  label: string;
-  prompt: string;
-  hint: string;
-};
-
-export const PM_CHAT_STARTERS: PmChatStarter[] = [
-  {
-    label: "Customer report",
-    prompt: "A customer says exports fail after they retry — help me triage this",
-    hint: "Repro steps & impact",
-  },
-  {
-    label: "Error logs",
-    prompt: "Help me understand this 500 error from production logs",
-    hint: "Parse stack traces",
-  },
-  {
-    label: "Post-deploy",
-    prompt: "We noticed odd behaviour right after yesterday's deploy",
-    hint: "Diff & rollback options",
-  },
-  {
-    label: "Search codebase",
-    prompt: "Where in GitHub would webhook retries be handled?",
-    hint: "Read-only repo search",
-  },
-  {
-    label: "Prioritize",
-    prompt: "How urgent is this if only one enterprise customer is affected?",
-    hint: "Severity & SLA",
-  },
-  {
-    label: "Draft ticket",
-    prompt: "I have enough context — walk me through filing a ticket",
-    hint: "When you're ready",
-  },
+  "A customer reported something broken",
+  "Help me understand an issue",
+  "Draft a ticket for dev",
 ];
 
 export const TICKET_QUICK_PROMPTS = [
-  "What do we know about this so far?",
-  "Search GitHub for related code",
-  "How bad is the customer impact?",
+  "What's going on with this ticket?",
+  "Check the codebase for related code",
+  "What should we do next?",
 ];
 
-const CODE_SEARCH = /code|github|repo|file|search|where|function|route|api/i;
-const DECIDE = /accept|reject|ignore|decide|what should i do|recommend/i;
+export type PmChatStarter = { label: string; prompt: string; hint: string };
+export const PM_CHAT_STARTERS: PmChatStarter[] = [
+  { label: "Customer report", prompt: "A customer says exports fail after they retry — help me triage this", hint: "Repro steps & impact" },
+  { label: "Error logs", prompt: "Help me understand this 500 error from production logs", hint: "Parse stack traces" },
+  { label: "Post-deploy", prompt: "We noticed odd behaviour right after yesterday's deploy", hint: "Diff & rollback options" },
+  { label: "Search codebase", prompt: "Where in GitHub would webhook retries be handled?", hint: "Read-only repo search" },
+  { label: "Prioritize", prompt: "How urgent is this if only one enterprise customer is affected?", hint: "Severity & SLA" },
+  { label: "Draft ticket", prompt: "I have enough context — walk me through filing a ticket", hint: "When you're ready" },
+];
+
+/* ─── Intent detection ─── */
+
+const CODE_SEARCH = /code|github|repo|file|search|where|function|route|api|codebase/i;
+const DECIDE = /accept|reject|ignore|decide|what should (i|we) do|recommend|next step/i;
 const FILE_INTENT = /file.*ticket|create.*ticket|generate.*ticket|log.*ticket|make.*ticket/i;
 const DEV_INTENT = /send.*(dev|development)|escalate.*dev|hand.*off.*dev/i;
+const ROOT_CAUSE = /root cause|why is|why does|what'?s causing|what happened|what went wrong/i;
+const EXPLAIN = /explain|summary|what'?s.*(issue|problem|happening|going on|this about)/i;
 
 const QUICK_PROMPTS = [...PM_QUICK_PROMPTS, ...TICKET_QUICK_PROMPTS];
-
 function isQuickPrompt(text: string) {
   const t = text.trim().toLowerCase();
   return QUICK_PROMPTS.some((p) => p.toLowerCase() === t);
 }
+
+/* ─── Helpers ─── */
 
 function userTurns(history: PmChatMessage[], current: string): string[] {
   return [...history.filter((m) => m.role === "user").map((m) => m.content), current];
@@ -77,17 +55,14 @@ function proposalAlreadyOffered(history: PmChatMessage[]): boolean {
 
 function hasEnoughContext(turns: string[], ticket?: Ticket): boolean {
   const text = combinedText(turns);
-  const totalLen = text.length;
-
   if (ticket) {
     if (turns.length >= 2) return true;
     const last = turns[turns.length - 1] ?? "";
     if (isQuickPrompt(last)) return false;
-    return last.length >= 40 || totalLen >= 60;
+    return last.length >= 40 || text.length >= 60;
   }
-
-  if (turns.length >= 3 && totalLen >= 100) return true;
-  if (turns.length >= 2 && totalLen >= 120) return true;
+  if (turns.length >= 3 && text.length >= 100) return true;
+  if (turns.length >= 2 && text.length >= 120) return true;
   if (turns.some((t) => t.length >= 150)) return true;
   return false;
 }
@@ -105,6 +80,8 @@ function inferScope(text: string): Scope {
   return "M";
 }
 
+/* ─── Proposal builder ─── */
+
 export function buildTicketProposal(turns: string[], ticket?: Ticket): PmChatTicketProposal {
   const text = combinedText(turns);
   const classification = ticket?.classification ?? inferClassification(text);
@@ -114,9 +91,7 @@ export function buildTicketProposal(turns: string[], ticket?: Ticket): PmChatTic
     : text;
 
   return {
-    title:
-      ticket?.draftTitle ??
-      (turns[0]?.length > 72 ? `${turns[0].slice(0, 72)}…` : turns[0] || "Customer issue from PM Agent Chat"),
+    title: ticket?.draftTitle ?? (turns[0]?.length > 72 ? `${turns[0].slice(0, 72)}…` : turns[0] || "Customer issue from PM Agent Chat"),
     classification,
     scope,
     summary,
@@ -124,105 +99,158 @@ export function buildTicketProposal(turns: string[], ticket?: Ticket): PmChatTic
   };
 }
 
-function githubSearchReply(ticket: Ticket): string {
+export function classifyChatMessage(text: string): "simple" | "escalate" {
+  if (/bug|broken|not working|error|fail|crash|outage|urgent|double|wrong/i.test(text)) return "escalate";
+  if (/how (do|does|to)|what is|where is|expected|work\?/i.test(text)) return "simple";
+  return text.length > 120 || text.includes("?") ? "simple" : "escalate";
+}
+
+/* ─── Ticket-aware investigation replies ─── */
+
+function investigationReply(ticket: Ticket): string {
   const refs = ticket.codeRefs.slice(0, 3);
-  const repo = "acmetech/api-backend";
-  const lines = refs.length
-    ? refs
-        .map(
-          (r, i) =>
-            `${i + 1}. \`${r.filePath}\`${r.functionName ? ` → \`${r.functionName}()\`` : ""}${r.lineStart ? ` (L${r.lineStart}–${r.lineEnd})` : ""}`
-        )
-        .join("\n")
-    : "1. `src/exports/audit-log.ts` → `exportAuditBatch()`\n2. `src/webhooks/delivery.ts` → `retryFailedExport()`";
+  const codeSection = refs.length
+    ? refs.map((r, i) =>
+        `${i + 1}. \`${r.filePath}\`${r.functionName ? ` → \`${r.functionName}()\`` : ""} (lines ${r.lineStart}–${r.lineEnd})`
+      ).join("\n")
+    : "No direct code references found yet.";
 
-  return `I searched **${repo}** (read-only) for areas tied to this report:
+  const scopeLabel = ticket.scope === "S" ? "Small" : ticket.scope === "M" ? "Medium" : "Large";
+  const classLabel = ticket.classification.replace("_", " ");
 
-${lines}
+  return `I've analyzed ticket **#${ticket.originalTicketId}** from **${ticket.customer.name}** (${ticket.customer.plan} plan).
 
-From the code and docs, the likely problem is: ${ticket.draftDescription.split(".")[0]}.
+**What the customer reported:**
+${ticket.originalSubject}
 
-A sensible fix direction: ${ticket.suggestedApproach.split(".")[0]}.
+**What I found in the codebase:**
+${codeSection}
 
-Does that line up with what you're seeing? If anything from the customer thread changes the picture, tell me.`;
+**Root cause analysis:**
+${ticket.draftDescription}
+
+**Impact:** ${ticket.customer.plan === "enterprise" ? "High — enterprise customer, likely affecting other users on this tier" : "Moderate — affects " + ticket.customer.plan + " tier users"}
+**Classification:** ${classLabel} · **Scope:** ${scopeLabel} — ${ticket.scopeRationale}
+
+**Recommended approach:**
+${ticket.suggestedApproach}
+
+What would you like to do? I can **create a ticket for dev** or help you **draft a response to ${ticket.customer.name}**.`;
 }
 
-function decideReply(ticket: Ticket): string {
-  const highRisk = (ticket.priorityScore ?? 0) >= 70 || ticket.classification === "churn_signal";
-  if (highRisk) {
-    return `Given the urgency and ${ticket.customer.name}'s report, I'd lean toward **Accept & send to Dev** in Triage.
-
-The classification looks like ${ticket.classification.replace("_", " ")} with elevated priority. Want me to walk through the code refs first, or are you ready to decide back in Triage?`;
+function codeSearchReply(ticket: Ticket): string {
+  const refs = ticket.codeRefs.slice(0, 3);
+  if (!refs.length) {
+    return `I searched the connected repository but couldn't find a direct code match for this issue. The problem might be in configuration or infrastructure rather than application code.\n\nWant me to focus on drafting a response to ${ticket.customer.name} instead?`;
   }
-  if (ticket.aiConfidenceLevel === "low") {
-    return `Confidence is only **${ticket.aiConfidence}%** on the auto-draft — there may be missing context.
 
-Before deciding in Triage, is there anything the customer said that we haven't accounted for yet?`;
-  }
-  return `If the code refs look right, **Accept & send to Dev** is reasonable. If it's ops/process-only, **Accept (non-technical)** may fit better.
+  const lines = refs.map((r, i) => {
+    const loc = r.lineStart ? ` (L${r.lineStart}–${r.lineEnd})` : "";
+    return `**${i + 1}. \`${r.filePath}\`**${r.functionName ? ` → \`${r.functionName}()\`` : ""}${loc}\n${r.snippet ? "```" + (r.language ?? "") + "\n" + r.snippet.split("\n").slice(0, 6).join("\n") + "\n```" : ""}`;
+  }).join("\n\n");
 
-Anything still unclear about the customer's situation?`;
-}
-
-function explainTicket(ticket: Ticket): string {
-  return `Here's the issue in plain language:
-
-**Customer:** ${ticket.customer.name}
-**They reported:** ${ticket.originalSubject}
-
-${ticket.originalBody.slice(0, 500)}${ticket.originalBody.length > 500 ? "…" : ""}
-
-**My read:** ${ticket.draftDescription.split(".")[0]}.
-
-What part of this do you want to dig into — impact, repro steps, or the code path?`;
+  return `Here's what I found in the codebase:\n\n${lines}\n\n**Analysis:** ${ticket.draftDescription.split(".")[0]}.\n\nThe fix direction would be: ${ticket.suggestedApproach.split(".")[0]}.\n\nWant me to create a dev ticket with this context, or do you need more detail?`;
 }
 
 function rootCauseReply(ticket: Ticket): string {
   const code = ticket.codeRefs[0];
-  return `Based on what's indexed in GitHub and the customer report:
+  const codeRef = code
+    ? `The issue traces to \`${code.filePath}\`${code.functionName ? ` in the \`${code.functionName}()\` function` : ""} (lines ${code.lineStart}–${code.lineEnd}).`
+    : "I'm still narrowing down the exact code path.";
 
-**What's going wrong:** ${ticket.draftDescription.split(".")[0]}.
-**Relevant code:** ${code ? `\`${code.filePath}\`${code.functionName ? ` · \`${code.functionName}()\`` : ""}` : "still narrowing down the match"}
-**Suggested approach:** ${ticket.suggestedApproach}
+  return `**Root cause for #${ticket.originalTicketId}:**
 
-Is there customer context that contradicts this, or does it match what you know?`;
+${ticket.draftDescription}
+
+**Code trace:**
+${codeRef}
+
+**Suggested fix:**
+${ticket.suggestedApproach}
+
+**Acceptance criteria:**
+${ticket.acceptanceCriteria.map((c) => `• ${c}`).join("\n")}
+
+This is a ${ticket.scope === "S" ? "small" : ticket.scope === "M" ? "medium" : "large"}-scope fix. Want me to turn this into a dev ticket?`;
 }
+
+function explainReply(ticket: Ticket): string {
+  return `Here's ticket **#${ticket.originalTicketId}** in plain language:
+
+**Who:** ${ticket.customer.name} (${ticket.customer.email}) — ${ticket.customer.plan} plan
+**What they said:** "${ticket.originalSubject}"
+
+${ticket.originalBody.slice(0, 600)}${ticket.originalBody.length > 600 ? "…" : ""}
+
+**What I think is happening:**
+${ticket.draftDescription.split(".").slice(0, 2).join(".")}.
+
+**Internal notes:** ${ticket.internalNotes}
+
+What would you like to explore — the code behind this, the impact, or ready to decide on next steps?`;
+}
+
+function decideReply(ticket: Ticket): string {
+  if (ticket.classification === "bug" || ticket.classification === "churn_signal") {
+    return `Based on my analysis, this needs engineering attention. Here's what I'd recommend:
+
+**${ticket.draftTitle}**
+• Classification: ${ticket.classification.replace("_", " ")}
+• Scope: ${ticket.scope} — ${ticket.scopeRationale}
+• Customer: ${ticket.customer.name} (${ticket.customer.plan})
+
+The fix is clear: ${ticket.suggestedApproach.split(".")[0]}.
+
+I'd say **send this to dev**. Want me to create the ticket?`;
+  }
+
+  if (ticket.classification === "question") {
+    return `This looks like a support/documentation gap rather than a code bug.
+
+**${ticket.customer.name}** is asking about: ${ticket.originalSubject}
+
+I'd recommend **drafting a customer reply** with the answer, rather than creating a dev ticket. The underlying fix (${ticket.suggestedApproach.split(".")[0].toLowerCase()}) is small enough to handle separately.
+
+What would you prefer — reply to the customer, or still create a dev ticket?`;
+  }
+
+  return `Here's my recommendation for **#${ticket.originalTicketId}**:
+
+This is a ${ticket.classification.replace("_", " ")} with ${ticket.scope} scope. ${ticket.suggestedApproach.split(".")[0]}.
+
+You can:
+• **Create a ticket for dev** — if this needs engineering work
+• **Draft a customer reply** — if this can be resolved with guidance
+• **Skip for now** — if you need more info
+
+What makes sense?`;
+}
+
+/* ─── Global chat (no ticket) replies ─── */
 
 function pickFollowUp(turns: string[], ticket?: Ticket): string {
   const text = combinedText(turns).toLowerCase();
-  const last = turns[turns.length - 1] ?? "";
 
-  if (ticket && turns.length === 1 && isQuickPrompt(last)) {
-    if (/github|code|search/i.test(last)) {
-      return `Before I search the repo — anything the customer said that isn't in the ticket yet? Even one detail can change where I look.`;
-    }
-    if (/impact|bad|know/i.test(last)) {
-      return `Happy to assess impact. Are customers blocked entirely, or is this intermittent / affecting a subset?`;
-    }
-    if (/explain|know|what do we/i.test(last)) {
-      return explainTicket(ticket);
-    }
+  if (ticket && turns.length === 1 && isQuickPrompt(turns[0])) {
+    return investigationReply(ticket);
   }
 
-  if (!text.match(/customer|user|client/)) {
-    return `Who is affected — one customer, a segment, or everyone?`;
+  if (!text.match(/customer|user|client|who/)) {
+    return `Who is affected — one customer, a segment, or everyone? And do you have a ticket ID or customer name I can look up?`;
   }
   if (!text.match(/when|since|started|after|before|today|yesterday|week/)) {
-    return `When did this start, and does it happen every time or only sometimes?`;
+    return `Got it. When did this start — is it new, or has it been happening for a while?`;
   }
-  if (!text.match(/error|message|screenshot|log|500|404|timeout/)) {
-    return `Have you seen an error message, failed request, or any logs that point to where it breaks?`;
+  if (!text.match(/error|message|screenshot|log|500|404|timeout|broken|bug/)) {
+    return `Do you have an error message, screenshot, or log entry? Even a rough description of what they see helps me search the codebase.`;
   }
   if (!text.match(/tried|repro|step|click|flow|route/)) {
-    return `What steps lead to the problem — or what has the customer already tried?`;
-  }
-  if (!text.match(/urgent|critical|block|workaround|sla/)) {
-    return `How urgent is this for the customer — are they blocked, or is there a workaround?`;
+    return `What steps lead to the problem? If the customer shared repro steps, paste them here.`;
   }
   if (ticket) {
-    return `Anything else from ${ticket.customer.name}'s thread that changes how we should handle this?`;
+    return `I think I have enough to work with. Want me to search the codebase for related code, or are you ready to decide on next steps?`;
   }
-  return `Thanks — that helps. Anything else I should know before we decide whether to file a ticket or send this to the dev team?`;
+  return `That's helpful context. I can either help you draft a ticket for dev, or help craft a customer response. What would you like to do?`;
 }
 
 function discoveryReply(turns: string[], ticket?: Ticket): string {
@@ -230,54 +258,43 @@ function discoveryReply(turns: string[], ticket?: Ticket): string {
 
   if (turns.length === 1 && !ticket) {
     if (isQuickPrompt(last)) {
-      return `Sure — tell me what's happening in your own words. Who reported it, what they expected, and what's going wrong instead.`;
+      return `Sure — give me the details. Who reported it, what they expected to happen, and what went wrong instead. If you have a ticket ID, I can pull the context automatically.`;
     }
-    return `Got it. ${pickFollowUp(turns, ticket)}`;
+    return `Got it — let me dig into this.\n\n${pickFollowUp(turns, ticket)}`;
   }
 
   if (turns.length === 1 && ticket) {
-    if (/explain|simply|summary|what.*issue/i.test(last)) {
-      return explainTicket(ticket);
-    }
-    if (isQuickPrompt(last)) {
-      return pickFollowUp(turns, ticket);
-    }
-    return `I've got **#${ticket.originalTicketId}** from ${ticket.customer.name} loaded. ${pickFollowUp(turns, ticket)}`;
+    return investigationReply(ticket);
   }
 
-  const ack =
-    last.length > 20
-      ? `Thanks — "${last.length > 60 ? `${last.slice(0, 60)}…` : last}" gives me more to work with.`
-      : `Understood.`;
+  const ack = last.length > 30
+    ? `Thanks for that detail.`
+    : `Understood.`;
 
   return `${ack}\n\n${pickFollowUp(turns, ticket)}`;
 }
 
 function summarizeForProposal(turns: string[], ticket?: Ticket): string {
+  if (ticket) {
+    return `I've completed my analysis of **#${ticket.originalTicketId}**.
+
+**Summary:** ${ticket.draftTitle}
+**Root cause:** ${ticket.draftDescription.split(".")[0]}.
+**Scope:** ${ticket.scope} — ${ticket.scopeRationale}
+**Fix:** ${ticket.suggestedApproach.split(".")[0]}.
+
+Ready to take action:`;
+  }
+
   const text = combinedText(turns);
-  const headline = ticket
-    ? `I think I have enough context on **#${ticket.originalTicketId}** (${ticket.customer.name}).`
-    : `I think I have enough context on this issue.`;
+  return `I think I have enough context on this issue.
 
-  const gist = ticket
-    ? `${ticket.originalSubject} — ${ticket.draftDescription.split(".")[0]}.`
-    : text.slice(0, 200) + (text.length > 200 ? "…" : "");
+**Summary:** ${text.slice(0, 200)}${text.length > 200 ? "…" : ""}
 
-  return `${headline}
-
-**Summary:** ${gist}
-
-When you're ready, choose below:
-• **Generate ticket** — file in Triage for review
-• **Send to development team** — create and route straight to dev
-• **Not now** — keep chatting or drop it`;
+Ready to take action:`;
 }
 
-export function classifyChatMessage(text: string): "simple" | "escalate" {
-  if (/bug|broken|not working|error|fail|crash|outage|urgent|double|wrong/i.test(text)) return "escalate";
-  if (/how (do|does|to)|what is|where is|expected|work\?/i.test(text)) return "simple";
-  return text.length > 120 || text.includes("?") ? "simple" : "escalate";
-}
+/* ─── Main entry point ─── */
 
 export function generatePmReply(
   userMessage: string,
@@ -290,29 +307,36 @@ export function generatePmReply(
   const alreadyOffered = proposalAlreadyOffered(history);
 
   if (ticket) {
-    if (CODE_SEARCH.test(userMessage) && !isQuickPrompt(userMessage)) {
-      return { text: githubSearchReply(ticket) };
+    if (turns.length === 1) {
+      return { text: investigationReply(ticket) };
     }
-    if (CODE_SEARCH.test(userMessage) && isQuickPrompt(userMessage)) {
-      return { text: `${githubSearchReply(ticket)}\n\nWant to add anything from the customer before we decide next steps?` };
+
+    if (CODE_SEARCH.test(userMessage)) {
+      return { text: codeSearchReply(ticket) };
     }
-    if (DECIDE.test(userMessage) && ready) {
-      return { text: decideReply(ticket), proposal: buildTicketProposal(turns, ticket) };
-    }
-    if (DECIDE.test(userMessage) && !ready) {
-      return { text: `${decideReply(ticket)}\n\nI can suggest filing options once we've covered a bit more context.` };
-    }
-    if (/root cause|why is|why does|what's causing/i.test(userMessage)) {
+    if (ROOT_CAUSE.test(userMessage)) {
       return { text: rootCauseReply(ticket) };
     }
-    if (/explain|simply|summary|what.*(issue|problem|happening)/i.test(userMessage)) {
-      return { text: explainTicket(ticket) };
+    if (EXPLAIN.test(userMessage)) {
+      return { text: explainReply(ticket) };
+    }
+    if (DECIDE.test(userMessage) || FILE_INTENT.test(userMessage) || DEV_INTENT.test(userMessage)) {
+      return { text: summarizeForProposal(turns, ticket), proposal: buildTicketProposal(turns, ticket) };
     }
     if (/who|assign|developer|team/i.test(userMessage)) {
       const code = ticket.codeRefs[0];
+      const team = code?.filePath.includes("api") || code?.filePath.includes("checkout") || code?.filePath.includes("service")
+        ? "backend" : "frontend";
       return {
-        text: `Based on \`${code?.filePath ?? "the codebase"}\`, this likely routes to **backend** for API/webhooks, or **frontend** if it's UI-only.\n\nDoes that match your understanding of the report?`,
+        text: `Based on the code paths involved (\`${code?.filePath ?? "TBD"}\`), this routes to the **${team} team**.\n\nWant me to create the ticket and assign it?`,
       };
+    }
+
+    if (ready && !alreadyOffered) {
+      return { text: summarizeForProposal(turns, ticket), proposal: buildTicketProposal(turns, ticket) };
+    }
+    if (ready && alreadyOffered) {
+      return { text: `I've already provided my analysis and action options above. Is there something specific you'd like me to dig into further, or are you ready to pick an action?` };
     }
   }
 
@@ -320,9 +344,7 @@ export function generatePmReply(
     if (ready) {
       return { text: summarizeForProposal(turns, ticket), proposal: buildTicketProposal(turns, ticket) };
     }
-    return {
-      text: `I can file this once I understand the problem a little better.\n\n${pickFollowUp(turns, ticket)}`,
-    };
+    return { text: `I can create a ticket once I understand the issue a bit better.\n\n${pickFollowUp(turns, ticket)}` };
   }
 
   if (ready && !alreadyOffered) {
@@ -330,9 +352,7 @@ export function generatePmReply(
   }
 
   if (ready && alreadyOffered) {
-    return {
-      text: `I've already suggested filing options above. Tell me if anything changed, or pick an action there.`,
-    };
+    return { text: `I've already suggested action options above. Let me know if anything changed, or pick an action from the card.` };
   }
 
   return { text: discoveryReply(turns, ticket) };

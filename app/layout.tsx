@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, Fira_Code } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,14 +11,14 @@ const inter = Inter({
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const firaCode = Fira_Code({
   variable: "--font-mono",
   subsets: ["latin"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "PM Agent - Review draft tickets",
+  title: "PM Agent",
   description:
     "PM Agent connects customer support tickets to your codebase and drafts dev-ready engineering tickets for review.",
 };
@@ -31,7 +31,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${firaCode.variable} h-full antialiased`}
     >
       <body className="min-h-full" suppressHydrationWarning>
         <LightModeOnly>

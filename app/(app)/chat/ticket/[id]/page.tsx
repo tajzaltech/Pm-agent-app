@@ -1,21 +1,26 @@
 "use client";
 
-import { use, useEffect } from "react";
+import { useEffect, useState, use } from "react";
 import { PmChatShell } from "@/components/chat/PmChatShell";
 import { usePmChatStore } from "@/lib/store/pm-chat";
 
 export default function TicketChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const openChat = usePmChatStore((s) => s.openChat);
-  const sessionId = `ticket_${id}`;
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
-    openChat({ ticketId: id });
+    const sid = openChat({ ticketId: id });
+    setSessionId(sid);
   }, [id, openChat]);
 
-  return (
-    <div className="h-screen min-h-0">
-      <PmChatShell sessionId={sessionId} ticketId={id} />
-    </div>
-  );
+  if (!sessionId) {
+    return (
+      <div className="flex h-full items-center justify-center bg-background">
+        <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  return <PmChatShell sessionId={sessionId} ticketId={id} />;
 }

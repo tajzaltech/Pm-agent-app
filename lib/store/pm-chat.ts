@@ -55,7 +55,7 @@ function sessionMeta(
   return {
     id: sessionId,
     ticketId: ticket?.id,
-    title: ticket ? ticket.draftTitle : "New conversation",
+    title: ticket ? ticket.draftTitle : "New task",
     preview: preview ?? (ticket ? `#${ticket.originalTicketId} · ticket context` : "Ask anything about code or docs"),
     updatedAt: now,
     createdAt: now,
@@ -72,7 +72,7 @@ export const usePmChatStore = create<PmChatStore>()(
       activeSessionId: "global",
       ticketContextId: null,
       sessions: [],
-      messagesBySession: { global: emptySessionMessages() },
+      messagesBySession: {},
       typingBySession: {},
 
       selectSession: (sessionId) => {
@@ -145,7 +145,7 @@ export const usePmChatStore = create<PmChatStore>()(
         const preview =
           ticket != null
             ? `#${ticket.originalTicketId}`
-            : messages.find((m) => m.role === "user")?.content.slice(0, 48) ?? "New conversation";
+            : messages.find((m) => m.role === "user")?.content.slice(0, 48) ?? "New task";
         const meta = sessionMeta(sessionId, ticket, preview);
 
         set((s) => ({
@@ -192,7 +192,7 @@ export const usePmChatStore = create<PmChatStore>()(
             ? `${trimmed.slice(0, 48)}…`
             : trimmed;
         const title =
-          existingMeta?.title && existingMeta.title !== "New conversation"
+          existingMeta?.title && existingMeta.title !== "New task"
             ? existingMeta.title
             : fallbackTitle;
         const meta: PmChatSession = {
@@ -213,7 +213,10 @@ export const usePmChatStore = create<PmChatStore>()(
           sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
         }));
 
-        const delay = 700 + Math.min(trimmed.length * 10, 1200);
+        const isTicketContext = !!ticket;
+        const delay = isTicketContext
+          ? 2800 + Math.min(trimmed.length * 5, 500)
+          : 700 + Math.min(trimmed.length * 10, 1200);
         window.setTimeout(() => {
           set((s) => ({
             typingBySession: { ...s.typingBySession, [sessionId]: false },
@@ -375,7 +378,7 @@ export const usePmChatStore = create<PmChatStore>()(
       },
     }),
     {
-      name: "pm-agent-chat-v2",
+      name: "pm-agent-chat-v4",
       merge: (persisted, current) => {
         const p = persisted as Partial<PmChatStore>;
         const messagesBySession = p.messagesBySession ?? current.messagesBySession;

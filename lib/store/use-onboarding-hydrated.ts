@@ -8,6 +8,6 @@ export function useOnboardingHydrated() {
   return useSyncExternalStore(
     (callback) => useOnboardingStore.persist.onFinishHydration(callback),
     () => useOnboardingStore.persist.hasHydrated(),
-    () => true
+    () => false
   );
 }

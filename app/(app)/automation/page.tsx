@@ -1,22 +1,33 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Eye, Plus, Settings2, Trash2, X, Zap } from "lucide-react";
+import {
+  Lightning,
+  Plus,
+  Trash,
+  Eye,
+  Robot,
+  ArrowsClockwise,
+  Gauge,
+  ShieldCheck,
+  Scales,
+  RocketLaunch,
+} from "@phosphor-icons/react";
 
-import { ProductDocsManager } from "@/components/shared/ProductDocsManager";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAutomationStore, PRESET_LABELS } from "@/lib/store/automation";
 import { useTicketStore } from "@/lib/store/tickets";
 import { logAudit } from "@/lib/store/audit";
-import type { AutoAcceptRule, AutomationPreset, Classification, Scope } from "@/lib/types";
+import type { AutoAcceptRule, AutomationPreset } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useDispatchStore, AGENT_LABELS } from "@/lib/store/dispatch";
-import { useDeliveryStore, TOOL_LABELS } from "@/lib/store/delivery";
+
+const PRESET_ICONS: Record<string, typeof ShieldCheck> = {
+  conservative: ShieldCheck,
+  balanced: Scales,
+  aggressive: RocketLaunch,
+};
 
 export default function AutomationPage({ embedded = false }: { embedded?: boolean }) {
   const {
@@ -35,8 +46,6 @@ export default function AutomationPage({ embedded = false }: { embedded?: boolea
     previewRule,
   } = useAutomationStore();
   const { tickets } = useTicketStore();
-  const dispatchConfig = useDispatchStore((s) => s.config);
-  const deliveryConfig = useDeliveryStore((s) => s.config);
   const [previewRuleId, setPreviewRuleId] = useState<string | null>(null);
 
   const previewMatches = previewRuleId
@@ -50,151 +59,156 @@ export default function AutomationPage({ embedded = false }: { embedded?: boolea
   };
 
   const addNewRule = () => {
-    const rule: AutoAcceptRule = {
+    addRule({
       id: `rule_${Date.now()}`,
       classification: "question",
       scope: "S",
       enabled: false,
-    };
-    addRule(rule);
+    });
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      {!embedded && (
-      <div className="sticky top-0 z-10 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center shrink-0">
-        <div>
-          <h1 className="text-base font-semibold tracking-tight">Automation Studio</h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">Presets, rules, delivery & agents</p>
-        </div>
-      </div>
-      )}
+    <div className="flex flex-col h-full min-h-0 overflow-y-auto">
+      <div className={cn("max-w-3xl mx-auto w-full px-4 md:px-6 py-6 space-y-6", embedded && "pt-3")}>
 
-      <div className={cn("flex-1 overflow-y-auto p-4 md:p-6 max-w-4xl mx-auto w-full space-y-8", embedded && "pt-2")}>
         {/* Presets */}
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold">Automation Presets</h2>
+          <div>
+            <h2 className="text-[13px] font-semibold">Workflow Presets</h2>
+            <p className="text-[11px] text-muted-foreground">Choose how aggressively the agent auto-processes tickets</p>
+          </div>
           <div className="grid sm:grid-cols-3 gap-3">
-            {(Object.keys(PRESET_LABELS) as AutomationPreset[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => applyPreset(p)}
-                className={cn(
-                  "rounded-xl border p-4 text-left transition-all hover:border-primary/40",
-                  preset === p ? "border-primary bg-primary/5 ring-2 ring-primary/10" : "bg-card"
-                )}
-              >
-                <p className="text-sm font-semibold">{PRESET_LABELS[p].label}</p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{PRESET_LABELS[p].description}</p>
-              </button>
-            ))}
+            {(Object.keys(PRESET_LABELS) as AutomationPreset[]).map((p) => {
+              const isActive = preset === p;
+              const Icon = PRESET_ICONS[p] ?? Lightning;
+              return (
+                <button
+                  key={p}
+                  onClick={() => applyPreset(p)}
+                  className={cn(
+                    "rounded-xl border p-4 text-left transition-all hover:shadow-sm",
+                    isActive
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                      : "bg-card hover:border-primary/20"
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={cn(
+                      "flex size-7 items-center justify-center rounded-lg",
+                      isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                    )}>
+                      <Icon size={15} weight={isActive ? "fill" : "regular"} />
+                    </div>
+                    <p className={cn("text-[13px] font-semibold", isActive && "text-primary")}>
+                      {PRESET_LABELS[p].label}
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {PRESET_LABELS[p].description}
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </section>
 
-        {/* Toggles */}
-        <section className="rounded-xl border bg-card p-5 space-y-4">
-          <h2 className="text-sm font-semibold">Agent behavior</h2>
+        {/* Agent behavior */}
+        <section className="rounded-xl border bg-card divide-y">
+          <div className="px-4 py-3">
+            <h2 className="text-[13px] font-semibold flex items-center gap-2">
+              <Robot size={15} weight="duotone" className="text-primary" />
+              Agent Behavior
+            </h2>
+          </div>
           {[
-            { label: "Auto-classify tickets", value: autoClassify, onChange: setAutoClassify },
-            { label: "Scope estimation", value: scopeEstimation, onChange: setScopeEstimation },
-            { label: "Auto-dispatch to dev agent", value: autoDispatch, onChange: setAutoDispatch },
-          ].map(({ label, value, onChange }) => (
-            <div key={label} className="flex items-center justify-between">
-              <span className="text-sm">{label}</span>
+            { label: "Auto-classify tickets", desc: "Automatically assign classification and priority", value: autoClassify, onChange: setAutoClassify },
+            { label: "Scope estimation", desc: "Estimate effort and affected files", value: scopeEstimation, onChange: setScopeEstimation },
+            { label: "Auto-dispatch to dev", desc: "Send accepted tickets directly to dev agents", value: autoDispatch, onChange: setAutoDispatch },
+          ].map(({ label, desc, value, onChange }) => (
+            <div key={label} className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="text-[13px] font-medium">{label}</p>
+                <p className="text-[11px] text-muted-foreground">{desc}</p>
+              </div>
               <Switch checked={value} onCheckedChange={onChange} />
             </div>
           ))}
         </section>
 
-        {/* Rule builder */}
-        <section className="rounded-xl border bg-card p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Auto-Accept Rules</h2>
-            <Button size="sm" variant="outline" className="h-7 gap-1 text-xs" onClick={addNewRule}>
-              <Plus className="size-3.5" /> Add rule
+        {/* Rules */}
+        <section className="rounded-xl border bg-card">
+          <div className="flex items-center justify-between px-4 py-3 border-b">
+            <div>
+              <h2 className="text-[13px] font-semibold flex items-center gap-2">
+                <Gauge size={15} weight="duotone" className="text-primary" />
+                Auto-Accept Rules
+              </h2>
+              <p className="text-[11px] text-muted-foreground">Tickets matching these rules skip manual review</p>
+            </div>
+            <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={addNewRule}>
+              <Plus size={12} /> Add rule
             </Button>
           </div>
-          <div className="space-y-2">
+
+          <div className="divide-y">
+            {autoAcceptRules.length === 0 && (
+              <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
+                No rules configured. Add one to auto-accept tickets by type and scope.
+              </p>
+            )}
             {autoAcceptRules.map((rule) => (
-              <RuleBlock
-                key={rule.id}
-                rule={rule}
-                onToggle={() => toggleRule(rule.id)}
-                onRemove={() => removeRule(rule.id)}
-                onPreview={() => setPreviewRuleId(previewRuleId === rule.id ? null : rule.id)}
-                isPreviewing={previewRuleId === rule.id}
-              />
+              <div key={rule.id} className="flex flex-wrap items-center gap-2.5 px-4 py-3">
+                <Switch checked={rule.enabled} onCheckedChange={() => toggleRule(rule.id)} />
+                <div className="flex items-center gap-1.5 text-[12px]">
+                  <span className="text-muted-foreground">If</span>
+                  <span className="rounded-md border bg-muted/40 px-2 py-0.5 font-medium">
+                    {rule.classification === "any" ? "any type" : rule.classification}
+                  </span>
+                  <span className="text-muted-foreground">+</span>
+                  <span className="rounded-md border bg-muted/40 px-2 py-0.5 font-medium">
+                    {rule.scope === "any" ? "any scope" : `scope ${rule.scope}`}
+                  </span>
+                  <span className="text-muted-foreground">then auto-accept</span>
+                </div>
+                <div className="ml-auto flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant={previewRuleId === rule.id ? "default" : "ghost"}
+                    className="h-6 px-2 text-[10px] gap-1"
+                    onClick={() => setPreviewRuleId(previewRuleId === rule.id ? null : rule.id)}
+                  >
+                    <Eye size={11} /> Preview
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-6 text-muted-foreground hover:text-red-500"
+                    onClick={() => removeRule(rule.id)}
+                  >
+                    <Trash size={12} />
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
+
           {previewRuleId && (
-            <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
-              <p className="text-xs font-semibold flex items-center gap-1"><Eye className="size-3.5" /> Preview — last 20 matching tickets</p>
+            <div className="border-t bg-muted/10 px-4 py-3 space-y-1.5">
+              <p className="text-[11px] font-semibold flex items-center gap-1.5">
+                <Eye size={12} /> Preview — matching pending tickets
+              </p>
               {previewMatches.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No pending tickets would match this rule.</p>
+                <p className="text-[11px] text-muted-foreground">No pending tickets match this rule.</p>
               ) : (
                 previewMatches.map((t) => (
-                  <p key={t.id} className="text-xs truncate">{t.draftTitle}</p>
+                  <p key={t.id} className="text-[11px] truncate text-muted-foreground">
+                    {t.draftTitle}
+                  </p>
                 ))
               )}
             </div>
           )}
         </section>
-
-        {/* Sub-pages */}
-        <Tabs defaultValue="delivery" className="space-y-4">
-          <TabsList className="h-9 flex-wrap">
-            <TabsTrigger value="delivery">Delivery</TabsTrigger>
-            <TabsTrigger value="agents">Dev Agents</TabsTrigger>
-            <TabsTrigger value="docs">Product Docs</TabsTrigger>
-          </TabsList>
-          <TabsContent value="delivery" className="rounded-xl border bg-white p-5 space-y-2">
-            <p className="text-sm font-semibold flex items-center gap-2"><Settings2 className="size-4" /> Delivery configuration</p>
-            <p className="text-xs text-muted-foreground">
-              Default tool: <strong>{TOOL_LABELS[deliveryConfig.defaultTool]}</strong> · Auto-deliver: {deliveryConfig.autoDeliver ? "On" : "Off"}
-            </p>
-            <Link href="/pipeline"><Button variant="outline" size="sm" className="h-8 text-xs mt-2">View Pipeline Tracker →</Button></Link>
-          </TabsContent>
-          <TabsContent value="agents" className="rounded-xl border bg-white p-5 space-y-2">
-            <p className="text-sm font-semibold flex items-center gap-2"><Zap className="size-4" /> Dev agent dispatch</p>
-            <p className="text-xs text-muted-foreground">
-              Agent: <strong>{AGENT_LABELS[dispatchConfig.agentType]}</strong> · Enabled: {dispatchConfig.enabled ? "Yes" : "No"}
-            </p>
-          </TabsContent>
-          <TabsContent value="docs" className="rounded-xl border bg-white p-5">
-            <ProductDocsManager variant="settings" />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
-
-function RuleBlock({
-  rule,
-  onToggle,
-  onRemove,
-  onPreview,
-  isPreviewing,
-}: {
-  rule: AutoAcceptRule;
-  onToggle: () => void;
-  onRemove: () => void;
-  onPreview: () => void;
-  isPreviewing: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg border bg-muted/20 text-sm">
-      <Switch checked={rule.enabled} onCheckedChange={onToggle} />
-      <span className="text-muted-foreground text-xs">If</span>
-      <span className="font-medium">{rule.classification === "any" ? "any type" : rule.classification}</span>
-      <span className="text-muted-foreground text-xs">+</span>
-      <span className="font-medium">{rule.scope === "any" ? "any scope" : rule.scope}</span>
-      <span className="text-muted-foreground text-xs">→ auto-accept</span>
-      <div className="ml-auto flex gap-1">
-        <Button size="sm" variant={isPreviewing ? "default" : "outline"} className="h-7 text-xs" onClick={onPreview}>
-          <Eye className="size-3" /> Preview
-        </Button>
-        <Button size="icon" variant="ghost" className="size-7" onClick={onRemove}><Trash2 className="size-3.5" /></Button>
       </div>
     </div>
   );
