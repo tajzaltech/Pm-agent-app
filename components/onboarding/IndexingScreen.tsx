@@ -62,9 +62,9 @@ export function IndexingScreen() {
             <Button
               size="lg"
               className="w-full"
-              onClick={() => router.replace(workspaceRole === "cs_agent" ? "/chat" : "/pipeline")}
+              onClick={() => router.replace("/chat")}
             >
-              {workspaceRole === "cs_agent" ? "Open PM Agent Chat →" : "Open Pipeline →"}
+              Open Ask PM →
             </Button>
           </>
         ) : isError ? (

@@ -11,14 +11,14 @@ interface ThemeStore {
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set) => ({
-      defaultLanding: "/pipeline",
+      defaultLanding: "/chat",
       setDefaultLanding: (defaultLanding) => set({ defaultLanding }),
     }),
     {
       name: "pm-agent-theme",
       merge: (persisted, current) => {
         const saved = (persisted as Partial<ThemeStore>)?.defaultLanding;
-        const defaultLanding = saved === "/chat" || saved === "/pipeline" ? saved : "/pipeline";
+        const defaultLanding = saved === "/chat" || saved === "/pipeline" ? saved : "/chat";
         return { ...current, ...(persisted as Partial<ThemeStore>), defaultLanding };
       },
     }

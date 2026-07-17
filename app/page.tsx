@@ -31,9 +31,8 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-3 text-center">
+      <div aria-label="Loading" className="flex items-center justify-center">
         <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="text-sm text-muted-foreground">Opening your workspace...</p>
       </div>
     </main>
   );

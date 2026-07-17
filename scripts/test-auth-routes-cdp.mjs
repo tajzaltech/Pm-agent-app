@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process"
-import { mkdtemp } from "node:fs/promises"
+import { mkdtemp, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -150,15 +150,23 @@ await evaluate(`(() => {
   document.querySelector("form").requestSubmit()
 })()`)
 state = await waitFor("Sign-in redirect", (current) =>
-  current.href.includes("/pipeline") && current.text.includes("Pipeline"),
+  current.href.includes("/chat") && current.text.includes("Ask PM"),
 )
-record("sign in opens the PM workspace", state)
+record("sign in opens Ask PM", state)
+
+if (process.env.PM_AGENT_SCREENSHOT_PATH) {
+  const image = await command("Page.captureScreenshot", {
+    format: "png",
+    captureBeyondViewport: false,
+  })
+  await writeFile(process.env.PM_AGENT_SCREENSHOT_PATH, image.data, "base64")
+}
 
 await navigate("/")
 state = await waitFor("Returning root redirect", (current) =>
-  current.href.includes("/pipeline"),
+  current.href.includes("/chat"),
 )
-record("returning root opens Pipeline", state)
+record("returning root opens Ask PM", state)
 
 await navigate("/triage?search=refund&classification=bug")
 state = await waitFor("Legacy route redirect", (current) =>

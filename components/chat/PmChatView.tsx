@@ -105,8 +105,8 @@ export function PmChatView({ sessionId, ticketId }: Props) {
         ];
 
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-6">
-        <div className="w-full max-w-2xl space-y-8">
+      <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 sm:px-8">
+        <div className="w-full max-w-[840px] -translate-y-6 space-y-8 sm:space-y-9">
           {/* Hero heading */}
           <div className="text-center space-y-2">
             {ticket ? (
@@ -120,7 +120,7 @@ export function PmChatView({ sessionId, ticketId }: Props) {
                 </h1>
               </>
             ) : (
-              <h1 className="text-[36px] font-extrabold tracking-tight leading-tight bg-gradient-to-r from-primary via-[oklch(0.55_0.22_300)] to-[oklch(0.50_0.20_320)] bg-clip-text text-transparent font-[family-name:var(--font-display)]">
+              <h1 className="text-[38px] font-extrabold tracking-[-0.045em] leading-none bg-gradient-to-r from-primary via-[oklch(0.55_0.22_300)] to-[oklch(0.50_0.20_320)] bg-clip-text text-transparent sm:text-[42px]">
                 Ask PM
               </h1>
             )}
@@ -138,21 +138,21 @@ export function PmChatView({ sessionId, ticketId }: Props) {
           />
 
           {/* Prompt suggestions */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {prompts.map(({ icon: PromptIcon, text, sub }) => (
               <button
                 key={text}
                 onClick={() => send(text)}
-                className="group flex items-start gap-3 rounded-2xl border border-border/40 bg-white px-4 py-3.5 text-left transition-all hover:border-primary/25 hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:scale-[1.01] active:scale-[0.99]"
+                className="group flex min-h-[82px] items-center gap-3.5 rounded-2xl border border-border/55 bg-card px-5 py-4 text-left shadow-[0_1px_2px_rgba(35,24,67,0.02)] transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_10px_24px_rgba(84,50,180,0.08)] active:translate-y-0"
               >
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary mt-0.5 transition-colors group-hover:from-primary/15 group-hover:to-primary/10">
-                  <PromptIcon size={16} weight="duotone" />
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/12 to-primary/5 text-primary transition-colors group-hover:from-primary/18 group-hover:to-primary/10">
+                  <PromptIcon size={17} weight="duotone" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground/80 group-hover:text-foreground leading-snug">
+                  <p className="text-[14px] font-semibold text-foreground/85 group-hover:text-foreground leading-snug">
                     {text}
                   </p>
-                  <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                  <p className="mt-1 text-[12px] text-muted-foreground/70">
                     {sub}
                   </p>
                 </div>
@@ -261,8 +261,8 @@ function Composer({
         </div>
       )}
       <div className={cn(
-        "flex items-end gap-1 rounded-2xl border border-border/60 bg-white p-1.5 shadow-[0_2px_12px_rgba(0,0,0,0.06)] transition-all focus-within:shadow-[0_2px_20px_rgba(0,0,0,0.08)] focus-within:border-primary/30",
-        large && "p-2",
+        "flex items-center gap-1.5 rounded-[22px] border border-border/70 bg-card p-1.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all focus-within:border-primary/45 focus-within:shadow-[0_8px_28px_rgba(98,65,196,0.10)]",
+        large && "min-h-[82px] rounded-[24px] border-primary/35 px-2 py-2",
         recording && "border-red-300 ring-1 ring-red-200"
       )}>
         <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.xlsx" onChange={handleFileChange} />
@@ -271,7 +271,7 @@ function Composer({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={disabled}
-          className="mb-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted/60 hover:text-foreground disabled:opacity-50"
+          className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted/70 hover:text-foreground disabled:opacity-50"
           title="Attach document"
         >
           <Paperclip size={16} />
@@ -290,7 +290,7 @@ function Composer({
           style={{ height: large ? 48 : 40 }}
           disabled={disabled}
           autoFocus={large}
-          className="flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/50 disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent px-2 py-2.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/55 disabled:opacity-50"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
           }}
@@ -301,7 +301,7 @@ function Composer({
           onClick={toggleRecording}
           disabled={disabled}
           className={cn(
-            "mb-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50",
+            "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50",
             recording
               ? "bg-red-500 text-white animate-pulse"
               : "text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground"
@@ -317,7 +317,7 @@ function Composer({
           onClick={() => { onSend(); setAttachedFile(null); }}
           className={cn(
             "mb-0.5 flex shrink-0 items-center justify-center rounded-xl transition-all",
-            large ? "size-9" : "size-8",
+            large ? "size-11" : "size-9",
             canSend
               ? "bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] text-white shadow-md hover:shadow-lg hover:scale-105"
               : "bg-muted/60 text-muted-foreground/40"
