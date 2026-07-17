@@ -18,10 +18,7 @@ import {
   Lightbulb,
   ArrowsClockwise,
   Paperclip,
-  Microphone,
-  Stop,
   Plus,
-  Waveform,
 } from "@phosphor-icons/react";
 
 import { usePmChatStore } from "@/lib/store/pm-chat";
@@ -227,7 +224,6 @@ function Composer({
   const canSend = input.trim().length > 0 && !disabled;
   const fileRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<string | null>(null);
-  const [recording, setRecording] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -236,17 +232,6 @@ function Composer({
       toast.success(`Attached: ${file.name}`);
     }
     e.target.value = "";
-  };
-
-  const toggleRecording = () => {
-    if (recording) {
-      setRecording(false);
-      toast.success("Voice input captured");
-      setInput(input + (input ? " " : "") + "Customer reported the issue occurs intermittently during peak hours…");
-    } else {
-      setRecording(true);
-      toast("Listening…", { duration: 2000 });
-    }
   };
 
   return (
@@ -265,7 +250,6 @@ function Composer({
       <div className={cn(
         "flex items-center gap-1.5 rounded-full border border-border/80 bg-card p-1.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all focus-within:border-primary/45 focus-within:shadow-[0_8px_28px_rgba(98,65,196,0.10)]",
         large && "min-h-[68px] border-primary/35 px-2 py-2",
-        recording && "border-red-300 ring-1 ring-red-200"
       )}>
         <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.xlsx" onChange={handleFileChange} />
 
@@ -303,39 +287,20 @@ function Composer({
 
         <button
           type="button"
-          onClick={toggleRecording}
-          disabled={disabled}
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-50",
-            recording
-              ? "bg-red-500 text-white animate-pulse"
-              : "text-muted-foreground/70 hover:bg-muted hover:text-foreground"
-          )}
-          title={recording ? "Stop recording" : "Voice input"}
-        >
-          {recording ? <Stop size={14} weight="fill" /> : <Microphone size={large ? 18 : 16} />}
-        </button>
-
-        <button
-          type="button"
-          disabled={disabled}
+          disabled={!canSend}
           onClick={() => {
-            if (canSend) {
-              onSend();
-              setAttachedFile(null);
-            } else {
-              toggleRecording();
-            }
+            onSend();
+            setAttachedFile(null);
           }}
           className={cn(
             "flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45",
             large ? "size-11" : "size-9",
             canSend
               ? "bg-gradient-to-br from-primary to-[#8E6CF3] hover:shadow-lg"
-              : "bg-primary"
+              : "bg-muted text-muted-foreground"
           )}
         >
-          {canSend ? <ArrowUp size={18} weight="bold" /> : <Waveform size={large ? 21 : 18} weight="bold" />}
+          <ArrowUp size={18} weight="bold" />
         </button>
       </div>
     </div>
