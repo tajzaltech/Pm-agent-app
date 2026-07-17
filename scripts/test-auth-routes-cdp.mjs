@@ -154,6 +154,14 @@ state = await waitFor("Sign-in redirect", (current) =>
 )
 record("sign in opens Ask PM", state)
 
+await navigate("/chat/ticket/acme_t003")
+state = await waitFor("Ticket chat context", (current) =>
+  current.href.includes("/chat/ticket/acme_t003") &&
+  current.text.includes("Tom Bradley's issue") &&
+  current.text.includes("#ZD-18190"),
+)
+record("pipeline ticket opens its contextual chat", state)
+
 if (process.env.PM_AGENT_CHAT_SCREENSHOT_PATH) {
   const image = await command("Page.captureScreenshot", {
     format: "png",
