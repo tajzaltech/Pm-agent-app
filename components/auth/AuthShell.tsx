@@ -74,7 +74,7 @@ export function AuthShell({
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border bg-white/80 backdrop-blur-xl shadow-lg lg:grid-cols-[1fr_460px]">
         <section className="hidden border-r bg-gradient-to-br from-[#f4f2fc] to-[#eeeafd] p-10 lg:flex lg:flex-col">
           <Link href="/" className="flex w-fit items-center gap-2">
-            <PMAgentLogo className="size-12 object-contain" />
+            <PMAgentLogo className="size-12 -mr-3 object-contain" />
             <span className="text-sm font-bold text-foreground">Ask PM</span>
           </Link>
 
@@ -98,7 +98,7 @@ export function AuthShell({
           <div className="w-full max-w-sm">
             <div className="mb-8 lg:hidden">
               <Link href="/" className="flex w-fit items-center gap-2">
-                <PMAgentLogo className="size-12 object-contain" />
+                <PMAgentLogo className="size-12 -mr-3 object-contain" />
                 <span className="text-sm font-semibold text-foreground">Ask PM</span>
               </Link>
             </div>
