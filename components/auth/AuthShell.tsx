@@ -45,7 +45,7 @@ export function AuthShell({
     { label: "Salesforce", Logo: SalesforceLogo, className: "left-[68%] top-[7%] rotate-[8deg] scale-110" },
     { label: "Google Sheets", Logo: GoogleSheetsLogo, className: "left-[86%] top-[13%] rotate-[-7deg]" },
     // Row 2
-    { label: "PM Agent", Logo: PMAgentLogo, className: "left-[14%] top-[28%] rotate-[10deg]" },
+    { label: "PM Agent", Logo: PMAgentLogo, className: "left-[14%] top-[28%] rotate-[10deg] scale-[1.45]" },
     { label: "GitHub", Logo: GitHubLogo, className: "left-[30%] top-[30%] rotate-[-10deg] scale-105" },
     { label: "Linear", Logo: LinearLogo, className: "left-[62%] top-[32%] rotate-[9deg]" },
     { label: "Monday.com", Logo: MondayLogo, className: "left-[80%] top-[28%] rotate-[-5deg] scale-110" },
@@ -73,8 +73,8 @@ export function AuthShell({
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-[#f4f2fc] px-4 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border bg-white/80 backdrop-blur-xl shadow-lg lg:grid-cols-[1fr_460px]">
         <section className="hidden border-r bg-gradient-to-br from-[#f4f2fc] to-[#eeeafd] p-10 lg:flex lg:flex-col">
-          <Link href="/" className="flex w-fit items-center gap-3">
-            <PMAgentLogo className="size-10 object-contain" />
+          <Link href="/" className="flex w-fit items-center gap-2">
+            <PMAgentLogo className="size-12 object-contain" />
             <span className="text-sm font-bold text-foreground">Ask PM</span>
           </Link>
 
@@ -84,7 +84,7 @@ export function AuthShell({
                 <ToolLogoCell key={tool.label} tool={tool} />
               ))}
               <div className="absolute left-[50%] top-[46%] z-20 -translate-x-1/2 -translate-y-1/2">
-                <PMAgentLogo className="size-14 object-contain drop-shadow-[0_4px_12px_rgba(91,79,242,0.35)]" />
+                <PMAgentLogo className="size-16 object-contain drop-shadow-[0_4px_12px_rgba(91,79,242,0.35)]" />
               </div>
             </div>
           </div>
@@ -97,8 +97,8 @@ export function AuthShell({
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-sm">
             <div className="mb-8 lg:hidden">
-              <Link href="/" className="flex w-fit items-center gap-3">
-                <PMAgentLogo className="size-10 object-contain" />
+              <Link href="/" className="flex w-fit items-center gap-2">
+                <PMAgentLogo className="size-12 object-contain" />
                 <span className="text-sm font-semibold text-foreground">Ask PM</span>
               </Link>
             </div>

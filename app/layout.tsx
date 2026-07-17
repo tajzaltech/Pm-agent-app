@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   description:
     "PM Agent connects customer support tickets to your codebase and drafts dev-ready engineering tickets for review.",
   icons: {
-    icon: "/icon.png",
-    apple: "/apple-icon.png",
+    icon: [{ url: "/icon.png", type: "image/png", sizes: "any" }],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
 };
 
