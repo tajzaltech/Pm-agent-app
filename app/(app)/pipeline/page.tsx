@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
+import { redirect, useSearchParams } from "next/navigation";
 import {
   MagnifyingGlass,
   Tray,
@@ -34,13 +35,30 @@ const CLASS_COLORS: Record<string, string> = {
 };
 
 export default function PipelinePage() {
+  return (
+    <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading pipeline...</div>}>
+      <PipelineContent />
+    </Suspense>
+  );
+}
+
+function PipelineContent() {
+  const searchParams = useSearchParams();
+  const ticketParam = searchParams.get("ticket");
+  const clusterParam = searchParams.get("cluster");
+  const classificationParam = searchParams.get("classification");
+
   const tickets = useTicketStore((s) => s.tickets);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
   const [tab, setTab] = useState<Tab>("pending");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const filtered = useMemo(() => {
     let list = tab === "all" ? tickets : tickets.filter((t) => t.status === tab);
+    if (clusterParam) list = list.filter((ticket) => ticket.clusterId === clusterParam);
+    if (classificationParam) {
+      list = list.filter((ticket) => ticket.classification === classificationParam);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -51,7 +69,7 @@ export default function PipelinePage() {
       );
     }
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [tickets, search, tab]);
+  }, [tickets, search, tab, clusterParam, classificationParam]);
 
   const counts = useMemo(() => {
     const c = { pending: 0, accepted: 0, rejected: 0, all: tickets.length };
@@ -62,6 +80,8 @@ export default function PipelinePage() {
     }
     return c;
   }, [tickets]);
+
+  if (ticketParam) redirect(`/chat/ticket/${encodeURIComponent(ticketParam)}`);
 
   return (
     <div className="flex h-full min-h-0 flex-col">

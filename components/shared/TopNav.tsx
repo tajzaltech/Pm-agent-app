@@ -7,6 +7,7 @@ import {
   User,
   SignOut,
   GearSix,
+  UsersThree,
 } from "@phosphor-icons/react";
 import { signOut } from "@/lib/auth/sign-out";
 import { useState, useRef, useEffect } from "react";
@@ -16,8 +17,10 @@ import { cn } from "@/lib/utils";
 const PAGE_TITLES: Record<string, string> = {
   "/chat": "Ask PM",
   "/pipeline": "Pipeline",
+  "/insights": "Insights",
   "/connections": "Connections",
   "/automation": "Automation",
+  "/team": "Team",
   "/settings": "Settings",
 };
 
@@ -122,6 +125,15 @@ export function TopNav() {
               <p className="text-[12px] font-medium">Demo User</p>
               <p className="text-[11px] text-muted-foreground">demo@pmagent.io</p>
             </div>
+            <Link
+              href="/team"
+              role="menuitem"
+              onClick={() => setProfileOpen(false)}
+              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
+              <UsersThree size={14} />
+              Team
+            </Link>
             <Link
               href="/settings"
               role="menuitem"

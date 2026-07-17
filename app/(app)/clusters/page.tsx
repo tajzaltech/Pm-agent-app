@@ -1,5 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 
-export default function ClustersRedirect() {
-  redirect("/triage");
+import { redirectPath, type RouteSearchParams } from "@/lib/utils/route-redirect";
+
+export default async function ClustersRedirect({ searchParams }: { searchParams: Promise<RouteSearchParams> }) {
+  redirect(redirectPath("/pipeline", await searchParams));
 }

@@ -17,6 +17,7 @@ import {
   Plus,
   Ticket,
   ChatText,
+  ChartBar,
 } from "@phosphor-icons/react";
 import { signOut } from "@/lib/auth/sign-out";
 import { useEffect, useState, useMemo, useRef } from "react";
@@ -28,6 +29,7 @@ import { WorkspaceLogo } from "@/components/shared/WorkspaceLogo";
 const NAV = [
   { href: "/chat", label: "Ask PM", Icon: ChatCircleDots },
   { href: "/pipeline", label: "Pipeline", Icon: Queue },
+  { href: "/insights", label: "Insights", Icon: ChartBar },
   { href: "/connections", label: "Connections", Icon: Plugs },
   { href: "/automation", label: "Automation", Icon: Lightning },
 ];
@@ -282,8 +284,6 @@ function MobileBar() {
   const router = useRouter();
   const pendingCount = useTicketStore((s) => s.getPending().length);
   const ensureGlobalSession = usePmChatStore((s) => s.ensureGlobalSession);
-
-  useEffect(() => { setOpen(false); }, [pathname]);
 
   return (
     <>

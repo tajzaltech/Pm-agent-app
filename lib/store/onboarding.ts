@@ -95,7 +95,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       setWorkspaceRole: (role) => {
         set({ workspaceRole: role });
         const { setDefaultLanding } = useThemeStore.getState();
-        setDefaultLanding(role === "cs_agent" ? "/chat" : "/triage");
+        setDefaultLanding(role === "cs_agent" ? "/chat" : "/pipeline");
       },
 
       connectTicketSource: async (provider, accountLabel) => {
@@ -220,7 +220,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       beginSignup: () => {
         get().resetOnboarding();
-        useThemeStore.getState().setDefaultLanding("/triage");
+        useThemeStore.getState().setDefaultLanding("/pipeline");
         set({ signupInProgress: true, isSetup: false, workspaceRole: "pm" });
       },
 

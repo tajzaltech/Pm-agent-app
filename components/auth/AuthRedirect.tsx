@@ -3,6 +3,8 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { useAuthStore } from "@/lib/store/auth";
+import { useAuthHydrated } from "@/lib/store/use-auth-hydrated";
 import { useOnboardingStore } from "@/lib/store/onboarding";
 import { useOnboardingHydrated } from "@/lib/store/use-onboarding-hydrated";
 import { useThemeStore } from "@/lib/store/theme";
@@ -10,21 +12,21 @@ import { useThemeStore } from "@/lib/store/theme";
 /** If workspace already set up, skip auth pages. */
 export function AuthRedirect({ mode }: { mode: "signin" | "signup" }) {
   const router = useRouter();
-  const hydrated = useOnboardingHydrated();
+  const authHydrated = useAuthHydrated();
+  const onboardingHydrated = useOnboardingHydrated();
+  const hydrated = authHydrated && onboardingHydrated;
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isSetup = useOnboardingStore((s) => s.isSetup);
-  const signupInProgress = useOnboardingStore((s) => s.signupInProgress);
   const defaultLanding = useThemeStore((s) => s.defaultLanding);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !isAuthenticated) return;
     if (isSetup) {
       router.replace(defaultLanding);
       return;
     }
-    if (mode === "signin" && signupInProgress) {
-      router.replace("/onboarding");
-    }
-  }, [hydrated, isSetup, signupInProgress, mode, router, defaultLanding]);
+    router.replace("/onboarding");
+  }, [hydrated, isAuthenticated, isSetup, mode, router, defaultLanding]);
 
   return null;
 }

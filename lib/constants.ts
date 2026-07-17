@@ -78,8 +78,9 @@ export const SOURCE_CONFIG: Record<
 };
 
 export const NAV_ITEMS = [
-  { href: "/triage", label: "Triage", icon: "inbox" },
-  { href: "/chat", label: "AI PM", icon: "message-square" },
+  { href: "/chat", label: "Ask PM", icon: "message-square" },
+  { href: "/pipeline", label: "Pipeline", icon: "inbox" },
   { href: "/insights", label: "Insights", icon: "bar-chart-2" },
   { href: "/connections", label: "Connections", icon: "network" },
+  { href: "/automation", label: "Automation", icon: "zap" },
 ] as const;

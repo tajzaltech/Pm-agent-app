@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-import { useOnboardingStore } from "@/lib/store/onboarding";
+import { useAuthStore } from "@/lib/store/auth";
 
-export function useOnboardingHydrated() {
+export function useAuthHydrated() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     let active = true;
 
-    void Promise.resolve(useOnboardingStore.persist.rehydrate()).then(() => {
+    void Promise.resolve(useAuthStore.persist.rehydrate()).then(() => {
       if (active) setHydrated(true);
     });
 

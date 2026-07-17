@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 
-export default function AnalyticsRedirect() {
-  redirect("/insights");
+import { redirectPath, type RouteSearchParams } from "@/lib/utils/route-redirect";
+
+export default async function AnalyticsRedirect({ searchParams }: { searchParams: Promise<RouteSearchParams> }) {
+  redirect(redirectPath("/insights", await searchParams));
 }

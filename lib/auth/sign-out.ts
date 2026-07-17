@@ -1,9 +1,9 @@
 "use client";
 
-import { useOnboardingStore } from "@/lib/store/onboarding";
+import { useAuthStore } from "@/lib/store/auth";
 
-/** Clear workspace session and hard-navigate to sign-in (full refresh). */
+/** End the browser session while preserving the user's workspace setup. */
 export function signOut() {
-  useOnboardingStore.getState().resetOnboarding();
-  window.location.assign("/signin");
+  useAuthStore.getState().signOut();
+  window.location.replace("/signin");
 }

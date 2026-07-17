@@ -1,6 +1,14 @@
 import { redirect } from "next/navigation";
 
-export default async function ClusterDetailRedirect({ params }: { params: Promise<{ id: string }> }) {
+import { redirectPath, type RouteSearchParams } from "@/lib/utils/route-redirect";
+
+export default async function ClusterDetailRedirect({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<RouteSearchParams>;
+}) {
   const { id } = await params;
-  redirect(`/triage?cluster=${id}`);
+  redirect(redirectPath("/pipeline", await searchParams, { cluster: id }));
 }

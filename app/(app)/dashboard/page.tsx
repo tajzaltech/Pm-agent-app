@@ -1,5 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 
-export default function DashboardPage() {
-  redirect("/chat");
+import { redirectPath, type RouteSearchParams } from "@/lib/utils/route-redirect";
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<RouteSearchParams> }) {
+  redirect(redirectPath("/pipeline", await searchParams));
 }
