@@ -154,6 +154,14 @@ state = await waitFor("Sign-in redirect", (current) =>
 )
 record("sign in opens Ask PM", state)
 
+if (process.env.PM_AGENT_CHAT_SCREENSHOT_PATH) {
+  const image = await command("Page.captureScreenshot", {
+    format: "png",
+    captureBeyondViewport: false,
+  })
+  await writeFile(process.env.PM_AGENT_CHAT_SCREENSHOT_PATH, image.data, "base64")
+}
+
 await navigate("/")
 state = await waitFor("Returning root redirect", (current) =>
   current.href.includes("/chat"),

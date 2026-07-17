@@ -20,6 +20,8 @@ import {
   Paperclip,
   Microphone,
   Stop,
+  Plus,
+  Waveform,
 } from "@phosphor-icons/react";
 
 import { usePmChatStore } from "@/lib/store/pm-chat";
@@ -134,7 +136,7 @@ export function PmChatView({ sessionId, ticketId }: Props) {
             disabled={isTyping || !!streamId}
             onSend={send}
             large
-            placeholder={ticket ? `Ask about #${ticket.originalTicketId}…` : "Describe an issue, paste a customer message, or ask anything…"}
+            placeholder={ticket ? `Ask about #${ticket.originalTicketId}…` : "Ask anything…"}
           />
 
           {/* Prompt suggestions */}
@@ -261,8 +263,8 @@ function Composer({
         </div>
       )}
       <div className={cn(
-        "flex items-center gap-1.5 rounded-[22px] border border-border/70 bg-card p-1.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all focus-within:border-primary/45 focus-within:shadow-[0_8px_28px_rgba(98,65,196,0.10)]",
-        large && "min-h-[82px] rounded-[24px] border-primary/35 px-2 py-2",
+        "flex items-center gap-1.5 rounded-full border border-border/80 bg-card p-1.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all focus-within:border-primary/45 focus-within:shadow-[0_8px_28px_rgba(98,65,196,0.10)]",
+        large && "min-h-[68px] border-primary/35 px-2 py-2",
         recording && "border-red-300 ring-1 ring-red-200"
       )}>
         <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.xlsx" onChange={handleFileChange} />
@@ -271,10 +273,13 @@ function Composer({
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={disabled}
-          className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground/60 transition-colors hover:bg-muted/70 hover:text-foreground disabled:opacity-50"
-          title="Attach document"
+          className={cn(
+            "flex shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:opacity-50",
+            large ? "size-11" : "size-9"
+          )}
+          title="Add attachment"
         >
-          <Paperclip size={16} />
+          <Plus size={large ? 22 : 18} weight="regular" />
         </button>
 
         <textarea
@@ -290,7 +295,7 @@ function Composer({
           style={{ height: large ? 48 : 40 }}
           disabled={disabled}
           autoFocus={large}
-          className="flex-1 resize-none bg-transparent px-2 py-2.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/55 disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent px-1 py-2.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
           }}
@@ -301,29 +306,36 @@ function Composer({
           onClick={toggleRecording}
           disabled={disabled}
           className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-50",
+            "flex shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-50",
             recording
               ? "bg-red-500 text-white animate-pulse"
-              : "text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground"
+              : "text-muted-foreground/70 hover:bg-muted hover:text-foreground"
           )}
           title={recording ? "Stop recording" : "Voice input"}
         >
-          {recording ? <Stop size={14} weight="fill" /> : <Microphone size={16} />}
+          {recording ? <Stop size={14} weight="fill" /> : <Microphone size={large ? 18 : 16} />}
         </button>
 
         <button
           type="button"
-          disabled={!canSend}
-          onClick={() => { onSend(); setAttachedFile(null); }}
+          disabled={disabled}
+          onClick={() => {
+            if (canSend) {
+              onSend();
+              setAttachedFile(null);
+            } else {
+              toggleRecording();
+            }
+          }}
           className={cn(
-            "mb-0.5 flex shrink-0 items-center justify-center rounded-xl transition-all",
+            "flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45",
             large ? "size-11" : "size-9",
             canSend
-              ? "bg-gradient-to-br from-primary to-[#8E6CF3] text-white shadow-md hover:shadow-lg hover:scale-105"
-              : "bg-muted/60 text-muted-foreground/40"
+              ? "bg-gradient-to-br from-primary to-[#8E6CF3] hover:shadow-lg"
+              : "bg-primary"
           )}
         >
-          <ArrowUp size={16} weight="bold" />
+          {canSend ? <ArrowUp size={18} weight="bold" /> : <Waveform size={large ? 21 : 18} weight="bold" />}
         </button>
       </div>
     </div>
