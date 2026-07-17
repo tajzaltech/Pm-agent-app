@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import {
+  type Icon,
   GearSix,
   Bell,
   Palette,
@@ -301,7 +302,7 @@ function SettingRow({
   description,
   children,
 }: {
-  icon: React.ComponentType<{ size?: number; weight?: string; className?: string }>;
+  icon: Icon;
   title: string;
   description: string;
   children: React.ReactNode;
