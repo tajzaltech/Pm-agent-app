@@ -154,6 +154,32 @@ state = await waitFor("Sign-in redirect", (current) =>
 )
 record("sign in opens Ask PM", state)
 
+await navigate("/")
+state = await waitFor("Returning root redirect", (current) =>
+  current.href.includes("/chat"),
+)
+record("returning root opens Ask PM", state)
+
+await navigate("/connections")
+state = await waitFor("Connections workspace", (current) =>
+  current.text.includes("Ticket Sources") && current.text.includes("Indexed Repos"),
+)
+record("connections shows the three-stage workspace", state)
+
+await evaluate(`(() => {
+  const add = [...document.querySelectorAll("button")]
+    .find((button) => button.textContent?.trim() === "Add")
+  add?.click()
+})()`)
+await waitFor("Source add panel", (current) => current.text.includes("Add ticket source"))
+await evaluate(`(() => {
+  const email = [...document.querySelectorAll("button")]
+    .find((button) => button.textContent?.trim() === "Email")
+  email?.click()
+})()`)
+state = await waitFor("New source card", (current) => current.text.includes("Email"))
+record("adding a source updates the connected workspace", state)
+
 if (process.env.PM_AGENT_SCREENSHOT_PATH) {
   const image = await command("Page.captureScreenshot", {
     format: "png",
@@ -161,12 +187,6 @@ if (process.env.PM_AGENT_SCREENSHOT_PATH) {
   })
   await writeFile(process.env.PM_AGENT_SCREENSHOT_PATH, image.data, "base64")
 }
-
-await navigate("/")
-state = await waitFor("Returning root redirect", (current) =>
-  current.href.includes("/chat"),
-)
-record("returning root opens Ask PM", state)
 
 await navigate("/triage?search=refund&classification=bug")
 state = await waitFor("Legacy route redirect", (current) =>

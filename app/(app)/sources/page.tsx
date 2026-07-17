@@ -204,7 +204,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
               title="Ticket Sources"
               description="Where customer feedback arrives"
               accent="from-teal-500/10 to-transparent border-teal-100/80"
-              editMode={editMode}
               onAdd={() => setPanel("source")}
             >
               {sources.length === 0 ? (
@@ -233,7 +232,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
               title="Indexed Repos"
               description="Code the agent maps tickets against"
               accent="from-violet-500/10 to-transparent border-violet-100/80"
-              editMode={editMode}
               onAdd={() => setPanel("repo")}
             >
               {repos.length === 0 ? (
@@ -257,7 +255,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
               title="Outputs & Agents"
               description="Where approved work gets delivered"
               accent="from-indigo-500/10 to-transparent border-indigo-100/80"
-              editMode={editMode}
               onAdd={() => setPanel("output")}
             >
               {outputs.length === 0 && !devAgentEnabled ? (
@@ -304,7 +301,7 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
             </FlowColumn>
           </div>
 
-          {panel && editMode && (
+          {panel && (
             <AddConnectionPanel
               type={panel}
               availableSources={availableSources}
@@ -414,14 +411,12 @@ function FlowColumn({
   title,
   description,
   accent,
-  editMode,
   onAdd,
   children,
 }: {
   title: string;
   description: string;
   accent: string;
-  editMode: boolean;
   onAdd: () => void;
   children: React.ReactNode;
 }) {
@@ -432,11 +427,9 @@ function FlowColumn({
           <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
           <p className="text-[11px] text-muted-foreground mt-0.5">{description}</p>
         </div>
-        {editMode && (
-          <Button variant="ghost" size="sm" className="h-7 shrink-0 gap-1 text-xs text-primary" onClick={onAdd}>
-            <Plus className="size-3.5" /> Add
-          </Button>
-        )}
+        <Button variant="outline" size="sm" className="h-7 shrink-0 gap-1 text-xs" onClick={onAdd}>
+          <Plus className="size-3.5" /> Add
+        </Button>
       </div>
       <div className="flex flex-col gap-2 p-3 bg-white/50">{children}</div>
     </section>
