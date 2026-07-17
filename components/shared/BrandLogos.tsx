@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 
+import Image from "next/image";
+
 type LogoProps = {
   className?: string;
 };
@@ -101,17 +103,13 @@ export function GitHubIssuesLogo({ className }: LogoProps) {
 
 export function PMAgentLogo({ className }: LogoProps) {
   return (
-    <svg viewBox="0 0 54 54" className={className} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PM Agent logo">
-      <rect width="54" height="54" rx="14" fill="url(#pmGrad)" />
-      <defs>
-        <linearGradient id="pmGrad" x1="0" y1="0" x2="54" y2="54" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#7C6FFF" />
-          <stop offset="100%" stopColor="#4338CA" />
-        </linearGradient>
-      </defs>
-      <path d="M33.5 8.5 16 31.8c-.9 1.3 0 3.1 1.6 3.1H28.2l-3.1 15.4c-.4 2.1 2.3 3.4 3.6 1.7l15.4-20.5c1-1.4.1-3.2-1.6-3.2H32l4.5-17.6c.6-2.2-2.3-3.5-3-1.2Z" fill="white" />
-      <path d="M33.3 10.3 19.6 29.1c-.6.8 0 1.9.9 1.9H31.3L27.8 47l13.1-17.5c.6-.8 0-1.9-.9-1.9H28.5l4.8-17.3Z" fill="white" fillOpacity=".3" />
-    </svg>
+    <Image
+      src="/ask-pm-logo-v2.png"
+      alt="Ask PM"
+      width={54}
+      height={54}
+      className={className}
+    />
   );
 }
 

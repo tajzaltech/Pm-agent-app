@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import { useTicketStore } from "@/lib/store/tickets";
@@ -36,8 +37,9 @@ const NAV = [
 
 function BrandMark() {
   return (
-    <span className="text-[15px] font-extrabold tracking-tight text-foreground">
-      pm<span className="gradient-text">agent</span>
+    <span className="flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-foreground">
+      <Image src="/ask-pm-logo-v2.png" alt="Ask PM" width={24} height={24} className="size-6 object-contain" />
+      Ask <span className="gradient-text">PM</span>
     </span>
   );
 }

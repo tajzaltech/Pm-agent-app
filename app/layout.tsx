@@ -24,9 +24,13 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  title: "PM Agent",
+  title: "Ask PM",
   description:
     "PM Agent connects customer support tickets to your codebase and drafts dev-ready engineering tickets for review.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({

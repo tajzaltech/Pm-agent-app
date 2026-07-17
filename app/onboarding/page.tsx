@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, FileText, GitBranch, Send, TicketCheck, Zap } from "lucide-react";
+import { Check, FileText, GitBranch, Send, TicketCheck } from "lucide-react";
 
 import { IndexingScreen } from "@/components/onboarding/IndexingScreen";
+import { PMAgentLogo } from "@/components/shared/BrandLogos";
 import { StepConnectOutput } from "@/components/onboarding/StepConnectOutput";
 import { StepConnectRepo } from "@/components/onboarding/StepConnectRepo";
 import { StepConnectSource } from "@/components/onboarding/StepConnectSource";
@@ -31,11 +32,9 @@ export default function OnboardingPage() {
       <header className="border-b bg-card px-8 py-4">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-sm">
-              <Zap className="size-4 text-primary-foreground" />
-            </div>
+            <PMAgentLogo className="size-9 object-contain" />
             <div>
-              <p className="text-sm font-semibold leading-none text-foreground">PM Agent</p>
+              <p className="text-sm font-semibold leading-none text-foreground">Ask PM</p>
               <p className="mt-1 text-xs text-muted-foreground">Workspace setup</p>
             </div>
           </div>

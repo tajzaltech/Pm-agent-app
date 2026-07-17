@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BotMessageSquare, Zap } from "lucide-react";
 
 import {
   BitbucketLogo,
@@ -75,10 +74,8 @@ export function AuthShell({
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border bg-white/80 backdrop-blur-xl shadow-lg lg:grid-cols-[1fr_460px]">
         <section className="hidden border-r bg-gradient-to-br from-[oklch(0.96_0.03_280)] to-[oklch(0.94_0.02_310)] p-10 lg:flex lg:flex-col">
           <Link href="/" className="flex w-fit items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] shadow-md">
-              <Zap className="size-5 text-primary-foreground" />
-            </span>
-            <span className="text-sm font-bold text-foreground">PM Agent</span>
+            <PMAgentLogo className="size-10 object-contain" />
+            <span className="text-sm font-bold text-foreground">Ask PM</span>
           </Link>
 
           <div className="my-8 flex flex-1 items-center">
@@ -87,7 +84,7 @@ export function AuthShell({
                 <ToolLogoCell key={tool.label} tool={tool} />
               ))}
               <div className="absolute left-[50%] top-[46%] z-20 -translate-x-1/2 -translate-y-1/2">
-                <BotMessageSquare className="size-12 text-primary drop-shadow-[0_4px_12px_rgba(91,79,242,0.45)]" />
+                <PMAgentLogo className="size-14 object-contain drop-shadow-[0_4px_12px_rgba(91,79,242,0.35)]" />
               </div>
             </div>
           </div>
@@ -101,10 +98,8 @@ export function AuthShell({
           <div className="w-full max-w-sm">
             <div className="mb-8 lg:hidden">
               <Link href="/" className="flex w-fit items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-primary">
-                  <Zap className="size-5 text-primary-foreground" />
-                </span>
-                <span className="text-sm font-semibold text-foreground">PM Agent</span>
+                <PMAgentLogo className="size-10 object-contain" />
+                <span className="text-sm font-semibold text-foreground">Ask PM</span>
               </Link>
             </div>
 
