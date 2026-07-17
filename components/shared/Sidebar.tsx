@@ -262,7 +262,7 @@ function DesktopSidebar() {
               <Icon size={20} weight={isActive ? "fill" : "regular"} className="shrink-0" />
               <span className="flex-1 truncate">{label}</span>
               {badge > 0 && (
-                <span className="flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] text-[10px] font-bold text-white leading-none shadow-sm">
+                <span className="flex size-5 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#8E6CF3] text-[10px] font-bold text-white leading-none shadow-sm">
                   {badge}
                 </span>
               )}

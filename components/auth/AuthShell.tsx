@@ -70,9 +70,9 @@ export function AuthShell({
   ];
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-[oklch(0.96_0.02_280)] px-4 py-8">
+    <main className="min-h-screen bg-gradient-to-br from-background via-background to-[#f4f2fc] px-4 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border bg-white/80 backdrop-blur-xl shadow-lg lg:grid-cols-[1fr_460px]">
-        <section className="hidden border-r bg-gradient-to-br from-[oklch(0.96_0.03_280)] to-[oklch(0.94_0.02_310)] p-10 lg:flex lg:flex-col">
+        <section className="hidden border-r bg-gradient-to-br from-[#f4f2fc] to-[#eeeafd] p-10 lg:flex lg:flex-col">
           <Link href="/" className="flex w-fit items-center gap-3">
             <PMAgentLogo className="size-10 object-contain" />
             <span className="text-sm font-bold text-foreground">Ask PM</span>

@@ -120,7 +120,7 @@ export function PmChatView({ sessionId, ticketId }: Props) {
                 </h1>
               </>
             ) : (
-              <h1 className="text-[38px] font-extrabold tracking-[-0.045em] leading-none bg-gradient-to-r from-primary via-[oklch(0.55_0.22_300)] to-[oklch(0.50_0.20_320)] bg-clip-text text-transparent sm:text-[42px]">
+              <h1 className="text-[38px] font-extrabold tracking-[-0.045em] leading-none bg-gradient-to-r from-primary via-[#6D52DE] to-[#8E6CF3] bg-clip-text text-transparent sm:text-[42px]">
                 Ask PM
               </h1>
             )}
@@ -319,7 +319,7 @@ function Composer({
             "mb-0.5 flex shrink-0 items-center justify-center rounded-xl transition-all",
             large ? "size-11" : "size-9",
             canSend
-              ? "bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] text-white shadow-md hover:shadow-lg hover:scale-105"
+              ? "bg-gradient-to-br from-primary to-[#8E6CF3] text-white shadow-md hover:shadow-lg hover:scale-105"
               : "bg-muted/60 text-muted-foreground/40"
           )}
         >
@@ -411,7 +411,7 @@ function Bubble({
   if (msg.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-gradient-to-br from-primary to-[oklch(0.50_0.20_310)] px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
+        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-gradient-to-br from-primary to-[#8E6CF3] px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
           {msg.content}
         </div>
       </div>

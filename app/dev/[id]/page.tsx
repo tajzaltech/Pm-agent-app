@@ -73,7 +73,7 @@ export default function DevSpecPage({ params }: { params: Promise<{ id: string }
   const vscodeCmd = `code --goto ${spec.codeRefs[0]?.filePath ?? "."}`;
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(160deg, #ffffff 0%, #f8f7ff 100%)" }}>
+    <div className="min-h-screen" style={{ background: "linear-gradient(160deg, #FAFAFE 0%, #F4F2FC 100%)" }}>
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">

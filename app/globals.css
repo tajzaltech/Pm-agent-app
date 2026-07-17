@@ -49,48 +49,48 @@
 :root {
   --radius: 0.625rem;
 
-  --background: oklch(0.985 0.005 280);
-  --foreground: oklch(0.16 0.02 280);
+  --background: #fafafe;
+  --foreground: #25213a;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.02 280);
+  --card: #ffffff;
+  --card-foreground: #25213a;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.02 280);
+  --popover: #ffffff;
+  --popover-foreground: #25213a;
 
-  --primary: oklch(0.55 0.22 280);
-  --primary-foreground: oklch(0.99 0 0);
+  --primary: #5b43d6;
+  --primary-foreground: #ffffff;
 
-  --secondary: oklch(0.96 0.008 280);
-  --secondary-foreground: oklch(0.30 0.02 280);
+  --secondary: #f4f2fc;
+  --secondary-foreground: #2e1a78;
 
-  --muted: oklch(0.96 0.006 280);
-  --muted-foreground: oklch(0.50 0.015 280);
+  --muted: #f7f6fc;
+  --muted-foreground: #6b6680;
 
-  --accent: oklch(0.95 0.018 280);
-  --accent-foreground: oklch(0.40 0.12 280);
+  --accent: #eeeafd;
+  --accent-foreground: #2e1a78;
 
   --destructive: oklch(0.58 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.925 0.006 280);
-  --input: oklch(0.925 0.006 280);
-  --ring: oklch(0.55 0.22 280);
+  --border: #e7e3f3;
+  --input: #e7e3f3;
+  --ring: #8e6cf3;
 
-  --chart-1: oklch(0.55 0.22 280);
-  --chart-2: oklch(0.60 0.18 240);
+  --chart-1: #5b43d6;
+  --chart-2: #8e6cf3;
   --chart-3: oklch(0.65 0.15 170);
   --chart-4: oklch(0.72 0.16 75);
   --chart-5: oklch(0.62 0.20 15);
 
-  --sidebar: oklch(0.99 0.003 280);
-  --sidebar-foreground: oklch(0.35 0.015 280);
-  --sidebar-primary: oklch(0.55 0.22 280);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.955 0.015 280);
-  --sidebar-accent-foreground: oklch(0.40 0.12 280);
-  --sidebar-border: oklch(0.94 0.005 280);
-  --sidebar-ring: oklch(0.55 0.22 280);
+  --sidebar: #f7f6fc;
+  --sidebar-foreground: #25213a;
+  --sidebar-primary: #2e1a78;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eeeafd;
+  --sidebar-accent-foreground: #2e1a78;
+  --sidebar-border: #e7e3f3;
+  --sidebar-ring: #8e6cf3;
 }
 
 .dark {
@@ -156,7 +156,7 @@
 
 @layer utilities {
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[oklch(0.55_0.22_280)] to-[oklch(0.60_0.20_320)];
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#5B43D6] to-[#8E6CF3];
   }
   .glass-card {
     @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)];
