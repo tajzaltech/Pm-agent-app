@@ -1,32 +1,17 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <!-- Clipboard body -->
-  <rect x="136" y="144" width="240" height="288" rx="24" fill="white" fill-opacity="0.95"/>
-  <!-- Clipboard clip -->
-  <rect x="200" y="116" width="112" height="48" rx="14" fill="white"/>
-  <rect x="220" y="128" width="72" height="24" rx="8" fill="#6C5CE7" fill-opacity="0.35"/>
-  <!-- Check lines (task list) -->
-  <!-- Check 1 -->
-  <path d="M180 220l10 10 20-20" stroke="#6C5CE7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="228" y="212" width="112" height="14" rx="7" fill="#6C5CE7" fill-opacity="0.25"/>
-  <!-- Check 2 -->
-  <path d="M180 280l10 10 20-20" stroke="#6C5CE7" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="228" y="272" width="96" height="14" rx="7" fill="#6C5CE7" fill-opacity="0.25"/>
-  <!-- Pending line 3 -->
-  <circle cx="195" cy="340" r="12" stroke="#6C5CE7" stroke-opacity="0.4" stroke-width="8" fill="none"/>
-  <rect x="228" y="332" width="80" height="14" rx="7" fill="#6C5CE7" fill-opacity="0.15"/>
-  <!-- AI sparkle accent (bottom-right) -->
-  <g transform="translate(340, 340)">
-    <circle cx="40" cy="40" r="52" fill="#A29BFE" fill-opacity="0.2"/>
-    <circle cx="40" cy="40" r="36" fill="white" fill-opacity="0.95"/>
-    <!-- Star/sparkle -->
-    <path d="M40 16 L44 32 L60 36 L44 40 L40 56 L36 40 L20 36 L36 32 Z" fill="#6C5CE7"/>
-    <path d="M54 20 L56 26 L62 28 L56 30 L54 36 L52 30 L46 28 L52 26 Z" fill="#A29BFE"/>
-  </g>
+  <rect width="512" height="512" rx="120" fill="url(#background)"/>
+  <circle cx="390" cy="128" r="116" fill="#B9A7FF" opacity="0.22"/>
+  <circle cx="104" cy="414" r="136" fill="#3D2E9D" opacity="0.32"/>
+  <path d="M112 151C112 119.52 137.52 94 169 94H343C374.48 94 400 119.52 400 151V298C400 329.48 374.48 355 343 355H258L174 422C160.84 432.38 141 423.01 141 406.25V355H169C137.52 355 112 329.48 112 298V151Z" fill="white"/>
+  <rect x="167" y="190" width="110" height="30" rx="15" fill="#5B43D6"/>
+  <rect x="167" y="252" width="178" height="30" rx="15" fill="#8B72F4"/>
+  <circle cx="353" cy="183" r="46" fill="#6C52E7"/>
+  <path d="M353 153L360.2 175.8L383 183L360.2 190.2L353 213L345.8 190.2L323 183L345.8 175.8L353 153Z" fill="white"/>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6C5CE7"/>
-      <stop offset="1" stop-color="#4834D4"/>
+    <linearGradient id="background" x1="64" y1="42" x2="454" y2="474" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E1A78"/>
+      <stop offset="0.52" stop-color="#5B43D6"/>
+      <stop offset="1" stop-color="#8E6CF3"/>
     </linearGradient>
   </defs>
 </svg>
