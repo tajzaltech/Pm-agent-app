@@ -234,7 +234,7 @@ function DesktopSidebar() {
 
   return (
     <aside className="hidden lg:flex h-screen w-[260px] shrink-0 flex-col border-r border-sidebar-border bg-gradient-to-b from-sidebar to-sidebar/80">
-      <div className="flex items-center px-3 h-[56px] shrink-0 border-b border-sidebar-border">
+      <div className="flex h-[48px] shrink-0 items-center border-b border-sidebar-border px-3">
         <WorkspaceSwitcher />
       </div>
 

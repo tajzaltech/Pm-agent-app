@@ -2,13 +2,23 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { MagnifyingGlass, Tray, Clock, CheckCircle, XCircle, ArrowRight } from "@phosphor-icons/react";
+import {
+  MagnifyingGlass,
+  Tray,
+  Clock,
+  CheckCircle,
+  XCircle,
+  ArrowRight,
+  ListBullets,
+  SquaresFour,
+} from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { useTicketStore } from "@/lib/store/tickets";
 import type { Ticket, TicketStatus } from "@/lib/types";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
 type Tab = "pending" | "accepted" | "rejected" | "all";
+type ViewMode = "list" | "cards";
 const TABS: { value: Tab; label: string; icon: typeof Tray }[] = [
   { value: "pending", label: "Pending", icon: Tray },
   { value: "accepted", label: "Done", icon: CheckCircle },
@@ -27,6 +37,7 @@ export default function PipelinePage() {
   const tickets = useTicketStore((s) => s.tickets);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<Tab>("pending");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const filtered = useMemo(() => {
     let list = tab === "all" ? tickets : tickets.filter((t) => t.status === tab);
@@ -67,28 +78,67 @@ export default function PipelinePage() {
             />
           </div>
         </div>
-        <div className="flex gap-0.5 -mb-px">
-          {TABS.map(({ value, label, icon: Icon }) => (
+        <div className="flex items-end justify-between gap-3 -mb-px">
+          <div className="flex min-w-0 gap-0.5 overflow-x-auto">
+            {TABS.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setTab(value)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-[12px] font-medium transition-colors",
+                  tab === value
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon size={12} />
+                {label}
+                <span className={cn(
+                  "rounded-full px-1.5 text-[10px] tabular-nums",
+                  tab === value ? "bg-primary/8 text-primary" : "bg-transparent"
+                )}>
+                  {counts[value]}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div
+            className="mb-1 flex shrink-0 items-center rounded-lg border border-border/70 bg-background p-0.5 shadow-sm"
+            aria-label="Ticket view"
+          >
             <button
-              key={value}
-              onClick={() => setTab(value)}
+              type="button"
+              title="List view"
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
+              onClick={() => setViewMode("list")}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium border-b-2 transition-colors",
-                tab === value
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                "flex size-7 items-center justify-center rounded-md transition-colors",
+                viewMode === "list"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <Icon size={12} />
-              {label}
-              <span className={cn(
-                "text-[10px] tabular-nums px-1.5 rounded-full",
-                tab === value ? "bg-primary/8 text-primary" : "bg-transparent"
-              )}>
-                {counts[value]}
-              </span>
+              <ListBullets size={15} weight={viewMode === "list" ? "bold" : "regular"} />
             </button>
-          ))}
+            <button
+              type="button"
+              title="Card view"
+              aria-label="Card view"
+              aria-pressed={viewMode === "cards"}
+              onClick={() => setViewMode("cards")}
+              className={cn(
+                "flex size-7 items-center justify-center rounded-md transition-colors",
+                viewMode === "cards"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <SquaresFour size={15} weight={viewMode === "cards" ? "fill" : "regular"} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -101,15 +151,56 @@ export default function PipelinePage() {
               {search ? "No matches" : "No tickets"}
             </p>
           </div>
-        ) : (
+        ) : viewMode === "list" ? (
           <div className="divide-y">
             {filtered.map((t) => (
               <Row key={t.id} ticket={t} />
             ))}
           </div>
+        ) : (
+          <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 md:p-6">
+            {filtered.map((t) => (
+              <TicketCard key={t.id} ticket={t} />
+            ))}
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+function TicketCard({ ticket }: { ticket: Ticket }) {
+  const classColor = CLASS_COLORS[ticket.classification] ?? "bg-muted text-muted-foreground";
+
+  return (
+    <Link
+      href={`/chat/ticket/${ticket.id}`}
+      className="group flex min-h-40 flex-col rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <StatusDot status={ticket.status} />
+        <span className={cn("inline-flex rounded-md border px-2 py-0.5 text-[10px] font-medium", classColor)}>
+          {ticket.classification.replace("_", " ")}
+        </span>
+      </div>
+
+      <p className="mt-3 line-clamp-2 text-[13px] font-semibold leading-snug transition-colors group-hover:text-primary">
+        {ticket.draftTitle}
+      </p>
+      <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <span className="font-mono">#{ticket.originalTicketId}</span>
+        <span>·</span>
+        <span className="truncate">{ticket.customer.name}</span>
+      </div>
+
+      <div className="mt-auto flex items-center justify-between border-t pt-3 text-[11px]">
+        <span className="text-muted-foreground/70">{formatRelativeTime(ticket.createdAt)}</span>
+        <span className="flex items-center gap-1 font-medium text-primary">
+          Ask PM
+          <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </div>
+    </Link>
   );
 }
 

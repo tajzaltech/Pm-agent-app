@@ -4,7 +4,6 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   MagnifyingGlass,
-  CaretDown,
   User,
   SignOut,
   GearSix,
@@ -42,12 +41,19 @@ export function TopNav() {
         setProfileOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setProfileOpen(false);
+    }
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   return (
-    <header className="hidden lg:flex h-[48px] shrink-0 items-center border-b border-border/40 bg-white/60 backdrop-blur-xl px-5 gap-4">
+    <header className="relative z-30 hidden h-[48px] shrink-0 items-center gap-4 overflow-visible border-b border-border/40 bg-white/60 px-5 backdrop-blur-xl lg:flex">
       <h1 className="text-[14px] font-bold tracking-tight text-foreground">
         {title}
       </h1>
@@ -82,6 +88,7 @@ export function TopNav() {
       {/* Notifications */}
       <button
         type="button"
+        aria-label="Notifications"
         className="relative flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
       >
         <Bell size={17} />
@@ -92,33 +99,32 @@ export function TopNav() {
       <div ref={profileRef} className="relative">
         <button
           type="button"
-          onClick={() => setProfileOpen(!profileOpen)}
-          className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-muted/60"
+          aria-expanded={profileOpen}
+          aria-haspopup="menu"
+          aria-controls="profile-menu"
+          aria-label="Open profile menu"
+          onClick={() => setProfileOpen((open) => !open)}
+          className="flex size-8 items-center justify-center rounded-full transition-colors hover:bg-muted/60"
         >
           <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary">
             <User size={14} weight="fill" />
           </div>
-          <div className="hidden xl:flex flex-col items-start">
-            <span className="text-[12px] font-medium leading-none">Demo User</span>
-            <span className="text-[10px] text-muted-foreground leading-none mt-0.5">demo@pmagent.io</span>
-          </div>
-          <CaretDown
-            size={10}
-            className={cn(
-              "hidden xl:block text-muted-foreground/50 transition-transform",
-              profileOpen && "rotate-180"
-            )}
-          />
         </button>
 
         {profileOpen && (
-          <div className="absolute right-0 top-[calc(100%+4px)] z-50 w-48 rounded-xl border bg-card p-1 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150">
+          <div
+            id="profile-menu"
+            role="menu"
+            aria-label="Profile menu"
+            className="absolute right-0 top-[calc(100%+4px)] z-50 w-48 rounded-xl border bg-card p-1 shadow-lg animate-in fade-in slide-in-from-top-1 duration-150"
+          >
             <div className="px-3 py-2 border-b mb-1">
               <p className="text-[12px] font-medium">Demo User</p>
               <p className="text-[11px] text-muted-foreground">demo@pmagent.io</p>
             </div>
             <Link
               href="/settings"
+              role="menuitem"
               onClick={() => setProfileOpen(false)}
               className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
@@ -127,6 +133,7 @@ export function TopNav() {
             </Link>
             <button
               type="button"
+              role="menuitem"
               onClick={() => { setProfileOpen(false); signOut(); }}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
             >
