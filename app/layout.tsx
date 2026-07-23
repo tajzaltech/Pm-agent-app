@@ -6,19 +6,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LightModeOnly } from "@/components/shared/LightModeOnly";
 
 const urbanist = Urbanist({
-  variable: "--font-sans",
+  variable: "--font-urbanist",
   subsets: ["latin"],
   display: "swap",
 });
 
 const jetbrains = JetBrains_Mono({
-  variable: "--font-mono",
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",
 });
 
 const cinzel = Cinzel({
-  variable: "--font-display",
+  variable: "--font-cinzel",
   subsets: ["latin"],
   display: "swap",
 });

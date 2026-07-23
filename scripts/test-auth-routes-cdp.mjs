@@ -133,10 +133,10 @@ await waitFor("Sign-in page", (state) => state.text.includes("Sign in to PM Agen
 await evaluate("localStorage.clear()")
 
 await navigate("/")
-let state = await waitFor("Fresh root redirect", (current) =>
-  current.href.endsWith("/signin") && current.text.includes("Sign in to PM Agent"),
+let state = await waitFor("Fresh root shows landing page", (current) =>
+  current.href.endsWith("/") && current.text.includes("Get started free"),
 )
-record("fresh root opens Sign In", state)
+record("fresh root shows the marketing landing page", state)
 
 await navigate("/chat")
 state = await waitFor("Protected route redirect", (current) =>

@@ -38,7 +38,7 @@ const NAV = [
 function BrandMark() {
   return (
     <span className="flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-foreground">
-      <Image src="/ask-pm-logo-v2.png" alt="Ask PM" width={24} height={24} className="size-6 object-contain" />
+      <Image src="/ask-pm-logo-v3.png" alt="Ask PM" width={512} height={512} className="size-6 object-contain" />
       Ask <span className="gradient-text">PM</span>
     </span>
   );
@@ -164,7 +164,6 @@ function TaskList({ onNavigate }: { onNavigate?: () => void }) {
 
   const handleSelect = (sessionId: string) => {
     selectSession(sessionId);
-    onNavigate?.();
     router.push("/chat");
   };
 

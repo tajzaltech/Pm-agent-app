@@ -104,10 +104,10 @@ export function GitHubIssuesLogo({ className }: LogoProps) {
 export function PMAgentLogo({ className }: LogoProps) {
   return (
     <Image
-      src="/ask-pm-logo-v2.png"
+      src="/ask-pm-logo-v3.png"
       alt="Ask PM"
-      width={54}
-      height={54}
+      width={512}
+      height={512}
       className={className}
     />
   );

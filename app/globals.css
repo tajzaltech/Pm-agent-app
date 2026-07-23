@@ -158,10 +158,25 @@
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-[#5B43D6] to-[#8E6CF3];
   }
-  .glass-card {
-    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.04)];
+  .animate-marquee {
+    animation: marquee 34s linear infinite;
   }
-  .glow-sm {
-    box-shadow: 0 0 20px -5px color-mix(in oklab, var(--primary) 15%, transparent);
+  .pause-on-hover:hover .animate-marquee {
+    animation-play-state: paused;
+  }
+  .bg-grid-dark {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
   }
 }
