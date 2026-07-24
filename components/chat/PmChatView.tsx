@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   ArrowUp,
@@ -12,7 +14,6 @@ import {
   MagnifyingGlass,
   Code,
   ShieldCheck,
-  ChatCircleDots,
   Bug,
   Question,
   Lightbulb,
@@ -67,7 +68,11 @@ export function PmChatView({ sessionId, ticketId }: Props) {
   useEffect(() => {
     if (wasTypingRef.current && !isTyping) {
       const last = [...visible].reverse().find((m) => m.role === "pm");
-      if (last) setStreamId(last.id);
+      if (last) {
+        const raf = requestAnimationFrame(() => setStreamId(last.id));
+        wasTypingRef.current = isTyping;
+        return () => cancelAnimationFrame(raf);
+      }
     }
     wasTypingRef.current = isTyping;
   }, [isTyping, visible]);
@@ -104,13 +109,30 @@ export function PmChatView({ sessionId, ticketId }: Props) {
         ];
 
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-5 py-10 sm:px-8">
-        <div className="w-full max-w-[840px] -translate-y-6 space-y-8 sm:space-y-9">
+      <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-5 py-10 sm:px-8">
+        {/* ambient backdrop */}
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute left-1/2 top-[28%] h-[28rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(91,67,214,0.09),transparent)] blur-2xl" />
+          <div
+            className="absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_55%_45%_at_50%_32%,black,transparent)]"
+            style={{
+              backgroundImage: "radial-gradient(rgba(91,67,214,0.14) 1px, transparent 1px)",
+              backgroundSize: "26px 26px",
+            }}
+          />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full max-w-[840px] -translate-y-4 space-y-8 sm:space-y-9"
+        >
           {/* Hero heading */}
-          <div className="text-center space-y-2">
+          <div className="flex flex-col items-center space-y-3 text-center">
             {ticket ? (
               <>
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-[12px] font-semibold text-primary mb-2">
+                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-[12px] font-semibold text-primary">
                   <span className="size-1.5 rounded-full bg-primary animate-pulse" />
                   {ticket.source} · #{ticket.originalTicketId}
                 </div>
@@ -119,32 +141,57 @@ export function PmChatView({ sessionId, ticketId }: Props) {
                 </h1>
               </>
             ) : (
-              <h1 className="text-[38px] font-extrabold tracking-[-0.045em] leading-none bg-gradient-to-r from-primary via-[#6D52DE] to-[#8E6CF3] bg-clip-text text-transparent sm:text-[42px]">
-                Ask PM
-              </h1>
+              <>
+                <Image
+                  src="/ask-pm-logo-v3.png"
+                  alt="Ask PM"
+                  width={512}
+                  height={512}
+                  className="size-14 object-contain"
+                />
+                <h1 className="text-[38px] font-extrabold tracking-[-0.045em] leading-none bg-gradient-to-r from-primary via-[#6D52DE] to-[#8E6CF3] bg-clip-text text-transparent sm:text-[42px]">
+                  Ask PM
+                </h1>
+                <p className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground/65">
+                  <span className="relative flex size-1.5">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                  </span>
+                  Your AI product manager — ready to help
+                </p>
+              </>
             )}
           </div>
 
           {/* Composer */}
-          <Composer
-            input={input}
-            setInput={setInput}
-            textareaRef={textareaRef}
-            disabled={isTyping || !!streamId}
-            onSend={send}
-            large
-            placeholder={ticket ? `Ask about #${ticket.originalTicketId}…` : "Ask anything…"}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Composer
+              input={input}
+              setInput={setInput}
+              textareaRef={textareaRef}
+              disabled={isTyping || !!streamId}
+              onSend={send}
+              large
+              placeholder={ticket ? `Ask about #${ticket.originalTicketId}…` : "Ask anything…"}
+            />
+          </motion.div>
 
           {/* Prompt suggestions */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {prompts.map(({ icon: PromptIcon, text, sub }) => (
-              <button
+            {prompts.map(({ icon: PromptIcon, text, sub }, i) => (
+              <motion.button
                 key={text}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.18 + i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 onClick={() => send(text)}
-                className="group flex min-h-[82px] items-center gap-3.5 rounded-2xl border border-border/55 bg-card px-5 py-4 text-left shadow-[0_1px_2px_rgba(35,24,67,0.02)] transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_10px_24px_rgba(84,50,180,0.08)] active:translate-y-0"
+                className="group flex min-h-[82px] items-center gap-3.5 rounded-2xl border border-border/55 bg-card px-5 py-4 text-left shadow-[0_1px_2px_rgba(35,24,67,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_16px_36px_-10px_rgba(91,67,214,0.22)] active:translate-y-0"
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/12 to-primary/5 text-primary transition-colors group-hover:from-primary/18 group-hover:to-primary/10">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/12 to-primary/5 text-primary transition-all duration-200 group-hover:from-primary/22 group-hover:to-primary/8 group-hover:shadow-[0_0_0_5px_rgba(91,67,214,0.08)]">
                   <PromptIcon size={17} weight="duotone" />
                 </div>
                 <div className="min-w-0">
@@ -155,10 +202,10 @@ export function PmChatView({ sessionId, ticketId }: Props) {
                     {sub}
                   </p>
                 </div>
-              </button>
+              </motion.button>
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -248,60 +295,62 @@ function Composer({
         </div>
       )}
       <div className={cn(
-        "flex items-center gap-1.5 rounded-full border border-border/80 bg-card p-1.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all focus-within:border-primary/45 focus-within:shadow-[0_8px_28px_rgba(98,65,196,0.10)]",
-        large && "min-h-[68px] border-primary/35 px-2 py-2",
+        "flex flex-col gap-1.5 rounded-[26px] border border-border/70 bg-card p-2.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all duration-200 focus-within:border-primary/40 focus-within:shadow-[0_10px_32px_-6px_rgba(98,65,196,0.22)]",
+        large && "rounded-[28px] border-black/[0.07] p-3 shadow-[0_10px_32px_-10px_rgba(46,26,120,0.16)] focus-within:border-primary/35",
       )}>
         <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.xlsx" onChange={handleFileChange} />
-
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={disabled}
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted disabled:opacity-50",
-            large ? "size-11" : "size-9"
-          )}
-          title="Add attachment"
-        >
-          <Plus size={large ? 22 : 18} weight="regular" />
-        </button>
 
         <textarea
           ref={textareaRef}
           value={input}
           onChange={(e) => {
             setInput(e.target.value);
-            e.target.style.height = large ? "48px" : "40px";
-            e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+            e.target.style.height = large ? "28px" : "24px";
+            e.target.style.height = `${Math.min(e.target.scrollHeight, 160)}px`;
           }}
           placeholder={placeholder ?? (large ? "Describe the issue…" : "Ask a follow-up…")}
           rows={1}
-          style={{ height: large ? 48 : 40 }}
+          style={{ height: large ? 28 : 24 }}
           disabled={disabled}
           autoFocus={large}
-          className="flex-1 resize-none bg-transparent px-1 py-2.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
+          className="max-h-[160px] w-full resize-none overflow-y-auto bg-transparent px-2 py-0.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/55 disabled:opacity-50 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
           }}
         />
 
-        <button
-          type="button"
-          disabled={!canSend}
-          onClick={() => {
-            onSend();
-            setAttachedFile(null);
-          }}
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45",
-            large ? "size-11" : "size-9",
-            canSend
-              ? "bg-gradient-to-br from-primary to-[#8E6CF3] hover:shadow-lg"
-              : "bg-muted text-muted-foreground"
-          )}
-        >
-          <ArrowUp size={18} weight="bold" />
-        </button>
+        <div className="flex items-center justify-between px-0.5">
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={disabled}
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50",
+              large ? "size-9" : "size-8"
+            )}
+            title="Add attachment"
+          >
+            <Plus size={large ? 19 : 17} weight="regular" />
+          </button>
+
+          <button
+            type="button"
+            disabled={!canSend}
+            onClick={() => {
+              onSend();
+              setAttachedFile(null);
+            }}
+            className={cn(
+              "flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45",
+              large ? "size-9" : "size-8",
+              canSend
+                ? "bg-gradient-to-br from-primary to-[#8E6CF3] hover:shadow-lg"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            <ArrowUp size={17} weight="bold" />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -325,16 +374,18 @@ function InvestigatingIndicator({ ticket }: { ticket?: Ticket }) {
   const steps = ticket ? TICKET_STEPS : GENERIC_STEPS;
 
   useEffect(() => {
-    setStep(0);
     const intervals: ReturnType<typeof setTimeout>[] = [];
-    for (let i = 1; i < steps.length; i++) {
-      intervals.push(setTimeout(() => setStep(i), i * (ticket ? 900 : 600)));
-    }
-    return () => intervals.forEach(clearTimeout);
+    const raf = requestAnimationFrame(() => {
+      setStep(0);
+      for (let i = 1; i < steps.length; i++) {
+        intervals.push(setTimeout(() => setStep(i), i * (ticket ? 900 : 600)));
+      }
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      intervals.forEach(clearTimeout);
+    };
   }, [steps.length, ticket]);
-
-  const current = steps[Math.min(step, steps.length - 1)];
-  const Icon = current.icon;
 
   return (
     <div className="flex gap-3">
@@ -581,34 +632,44 @@ function StreamText({ text, stream, onTick, onDone }: {
   useEffect(() => { tickRef.current = onTick; doneRef.current = onDone; });
 
   useEffect(() => {
-    if (!stream) { setVis(text); setActive(false); return; }
-    setVis(""); setActive(true);
-
-    const lines = text.split("\n");
-    let li = 0, ci = 0, cancelled = false;
+    let cancelled = false;
     let t: ReturnType<typeof setTimeout>;
 
-    const finish = () => { if (!cancelled) { setVis(text); setActive(false); doneRef.current?.(); } };
-    const step = () => {
+    const raf = requestAnimationFrame(() => {
       if (cancelled) return;
-      if (li >= lines.length) { finish(); return; }
-      const line = lines[li] ?? "";
-      if (ci < line.length) {
-        ci++;
-        const pre = lines.slice(0, li).join("\n");
-        setVis(li === 0 ? line.slice(0, ci) : `${pre}\n${line.slice(0, ci)}`);
+      if (!stream) { setVis(text); setActive(false); return; }
+      setVis(""); setActive(true);
+
+      const lines = text.split("\n");
+      let li = 0, ci = 0;
+
+      const finish = () => { if (!cancelled) { setVis(text); setActive(false); doneRef.current?.(); } };
+      const step = () => {
+        if (cancelled) return;
+        if (li >= lines.length) { finish(); return; }
+        const line = lines[li] ?? "";
+        if (ci < line.length) {
+          ci++;
+          const pre = lines.slice(0, li).join("\n");
+          setVis(li === 0 ? line.slice(0, ci) : `${pre}\n${line.slice(0, ci)}`);
+          tickRef.current?.();
+          t = setTimeout(step, 8 + Math.random() * 6);
+          return;
+        }
+        li++; ci = 0;
+        if (li >= lines.length) { finish(); return; }
+        setVis(lines.slice(0, li).join("\n"));
         tickRef.current?.();
-        t = setTimeout(step, 8 + Math.random() * 6);
-        return;
-      }
-      li++; ci = 0;
-      if (li >= lines.length) { finish(); return; }
-      setVis(lines.slice(0, li).join("\n"));
-      tickRef.current?.();
-      t = setTimeout(step, 150);
+        t = setTimeout(step, 150);
+      };
+      t = setTimeout(step, 80);
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
     };
-    t = setTimeout(step, 80);
-    return () => { cancelled = true; clearTimeout(t); };
   }, [text, stream]);
 
   return (
