@@ -17,6 +17,8 @@ interface PmChatStore {
   typingBySession: Record<string, boolean>;
   openChat: (opts?: { ticketId?: string }) => string;
   ensureGlobalSession: () => string;
+  /** Puts the user on a blank conversation, reusing an empty one if there is one. */
+  startFreshSession: () => string;
   createGlobalSession: () => string;
   selectSession: (sessionId: string) => void;
   renameSession: (sessionId: string, title: string) => void;
@@ -130,6 +132,18 @@ export const usePmChatStore = create<PmChatStore>()(
           ticketContextId: null,
         });
         return fresh;
+      },
+
+      startFreshSession: () => {
+        const { sessions, messagesBySession } = get();
+        const hasUserMessages = (id: string) =>
+          (messagesBySession[id] ?? []).some((m) => m.role === "user");
+        const reusable = sessions.find((s) => !s.ticketId && !hasUserMessages(s.id));
+        if (reusable) {
+          set({ activeSessionId: reusable.id, ticketContextId: null });
+          return reusable.id;
+        }
+        return get().createGlobalSession();
       },
 
       ensureGlobalSession: () => {

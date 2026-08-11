@@ -11,7 +11,7 @@ import { signOut } from "@/lib/auth/sign-out";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
-export function TopNav() {
+export function TopNav({ left }: { left?: React.ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -41,7 +41,8 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="relative z-30 hidden h-[48px] shrink-0 items-center justify-end gap-2 overflow-visible bg-background px-5 lg:flex">
+    <header className="relative z-30 hidden h-[48px] shrink-0 items-center gap-2 overflow-visible bg-background px-5 lg:flex">
+      <div className="min-w-0 flex-1">{left}</div>
 
       {/* Notifications */}
       <div ref={notificationsRef} className="pointer-events-auto relative">

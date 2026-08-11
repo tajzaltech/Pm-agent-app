@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUp, Check, FileCode2, Plus, User, X } from "lucide-react";
-import { NotePencil } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils";
 import { INK, INK_FAINT, INK_MUTED, LINE, mono } from "@/components/marketing/theme";
@@ -22,10 +21,10 @@ const PROMPTS = [
 ];
 
 const CHATS = [
-  { title: "Payment charged twice", time: "2m", active: true },
-  { title: "500 errors after deploy", time: "1h", active: false },
-  { title: "Bulk member import", time: "3h", active: false },
-  { title: "SSO configuration docs", time: "1d", active: false },
+  { title: "Payment charged twice", time: "2m" },
+  { title: "500 errors after deploy", time: "1h" },
+  { title: "Bulk member import", time: "3h" },
+  { title: "SSO configuration docs", time: "1d" },
 ];
 
 const INVESTIGATION = [
@@ -121,25 +120,13 @@ export function HeroSection() {
           <div className="flex min-h-[36rem]">
             {/* conversation rail */}
             <div className="hidden w-[210px] shrink-0 flex-col border-r border-black/[0.05] bg-[#fcfcfe] md:flex">
-              <div className="flex h-12 items-center justify-between border-b border-black/[0.05] pl-4 pr-2.5">
+              <div className="flex h-12 items-center border-b border-black/[0.05] px-4">
                 <PMAgentLogo className="size-5 object-contain" />
-                <NotePencil size={15} className="text-[#b2b4c0]" />
               </div>
               <div className="space-y-0.5 p-2">
                 {CHATS.map((c) => (
-                  <div
-                    key={c.title}
-                    className={cn(
-                      "rounded-lg px-2.5 py-2",
-                      c.active ? "bg-[#5b43d6]/[0.07]" : ""
-                    )}
-                  >
-                    <p
-                      className={cn(
-                        "truncate text-[11.5px] leading-tight",
-                        c.active ? "font-semibold text-[#5b43d6]" : "font-medium text-[#4e5162]"
-                      )}
-                    >
+                  <div key={c.title} className="rounded-lg px-2.5 py-2">
+                    <p className="truncate text-[11.5px] font-medium leading-tight text-[#4e5162]">
                       {c.title}
                     </p>
                     <p className={cn("mt-0.5 text-[10px] leading-tight", INK_FAINT)}>{c.time} ago</p>
@@ -261,12 +248,20 @@ export function HeroSection() {
                     onClick={() => setAuthOpen(true)}
                     aria-label="Sign in to ask your own question"
                     className={cn(
-                      "group flex w-full items-center gap-2.5 rounded-xl border bg-white px-3.5 py-2.5 text-left transition-all duration-200",
-                      LINE,
-                      "shadow-[0_1px_2px_rgba(16,17,24,0.04)] hover:border-[#c9bcff] hover:shadow-[0_0_0_4px_rgba(91,67,214,0.09)]"
+                      // matches the app composer: same radius, padding, border and shadow
+                      "group flex w-full items-center gap-2 rounded-[26px] border border-[#e5e3ef] bg-white p-2.5 text-left",
+                      "shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all duration-200",
+                      "hover:border-[#5b43d6]/40 hover:shadow-[0_10px_32px_-6px_rgba(98,65,196,0.22)]"
                     )}
                   >
-                    <Plus className={cn("size-4 shrink-0", INK_FAINT)} />
+                    <span
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-full transition-colors",
+                        "text-[#8b8e9e] group-hover:bg-[#f4f4f8] group-hover:text-[#101018]"
+                      )}
+                    >
+                      <Plus className="size-[17px]" />
+                    </span>
                     <span className="flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden">
                       <AnimatePresence mode="wait">
                         <motion.span
@@ -275,7 +270,7 @@ export function HeroSection() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={reduce ? undefined : { opacity: 0, y: -8 }}
                           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-                          className={cn("truncate text-[12.5px]", INK_MUTED)}
+                          className={cn("truncate px-1 text-sm leading-relaxed", INK_MUTED)}
                         >
                           {PROMPTS[promptIndex]}
                         </motion.span>
@@ -288,8 +283,8 @@ export function HeroSection() {
                         transition={{ duration: 1.05, repeat: Infinity, times: [0, 0.5, 0.5, 1], ease: "linear" }}
                       />
                     </span>
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#f3f0fe] transition-colors duration-200 group-hover:bg-[#5b43d6]">
-                      <ArrowUp className="size-3 text-[#5b43d6] transition-colors duration-200 group-hover:text-white" />
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5b43d6] to-[#8E6CF3] text-white shadow-md transition-transform duration-200 group-hover:scale-105">
+                      <ArrowUp className="size-[17px]" strokeWidth={2.5} />
                     </span>
                   </button>
                 </div>

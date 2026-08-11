@@ -11,7 +11,6 @@ import {
   EnvelopeSimple,
   X as XIcon,
   Check,
-  Robot,
   MagnifyingGlass,
   Code,
   ShieldCheck,
@@ -26,6 +25,7 @@ import {
 import { usePmChatStore } from "@/lib/store/pm-chat";
 import { useTicketStore } from "@/lib/store/tickets";
 import type { PmChatMessage, Ticket } from "@/lib/types";
+import { PMAgentLogo } from "@/components/shared/BrandLogos";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -386,9 +386,7 @@ function InvestigatingIndicator({ ticket }: { ticket?: Ticket }) {
 
   return (
     <div className="flex gap-3">
-      <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
-        <Robot size={14} weight="duotone" />
-      </div>
+      <PMAgentLogo className="size-5 shrink-0 object-contain" />
       <div className="space-y-2 pt-0.5">
         {steps.map((s, i) => {
           const StepIcon = s.icon;
@@ -445,9 +443,7 @@ function Bubble({
 
   return (
     <div className="flex gap-3 animate-in fade-in duration-200">
-      <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary mt-0.5">
-        <Robot size={14} weight="duotone" />
-      </div>
+      <PMAgentLogo className="mt-0.5 size-5 shrink-0 object-contain" />
       <div className="min-w-0 flex-1 space-y-3">
         <div className="text-sm leading-[1.7] text-foreground/90">
           <StreamText text={msg.content} stream={!!stream} onTick={onStreamTick} onDone={onStreamDone} />

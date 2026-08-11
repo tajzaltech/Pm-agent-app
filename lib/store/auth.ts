@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { usePmChatStore } from "@/lib/store/pm-chat";
+
 export interface AuthUser {
   name: string;
   email: string;
@@ -25,11 +27,14 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       isAuthenticated: false,
       user: null,
-      signIn: (user) =>
+      signIn: (user) => {
         set({
           isAuthenticated: true,
           user: { ...DEMO_USER, ...user },
-        }),
+        });
+        // Land on a blank chat rather than whatever was open last session.
+        usePmChatStore.getState().startFreshSession();
+      },
       signOut: () => set({ isAuthenticated: false, user: null }),
     }),
     {
