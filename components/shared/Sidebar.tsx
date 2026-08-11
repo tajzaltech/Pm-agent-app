@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { cn, formatRelativeTime } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useTicketStore } from "@/lib/store/tickets";
 import { usePmChatStore } from "@/lib/store/pm-chat";
 import {
@@ -15,16 +15,13 @@ import {
   X,
   GearSix,
   SignOut,
-  Plus,
-  Ticket,
-  ChatText,
   ChartBar,
 } from "@phosphor-icons/react";
 import { signOut } from "@/lib/auth/sign-out";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWorkspaceStore } from "@/lib/store/workspace";
-import { CaretUpDown, Check } from "@phosphor-icons/react";
+import { CaretDoubleLeft, CaretDoubleRight, CaretUpDown, Check } from "@phosphor-icons/react";
 import { WorkspaceLogo } from "@/components/shared/WorkspaceLogo";
 
 const NAV = [
@@ -37,20 +34,20 @@ const NAV = [
 
 function BrandMark() {
   return (
-    <span className="flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-foreground">
+    <span className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.015em] text-foreground">
       <Image
         src="/ask-pm-logo-v3.png"
         alt="Ask PM"
         width={512}
         height={512}
-        className="size-6 rounded-md object-contain shadow-[0_2px_8px_-2px_rgba(91,67,214,0.4)]"
+        className="size-7 object-contain"
       />
-      Ask <span className="gradient-text">PM</span>
+      Ask PM
     </span>
   );
 }
 
-function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
+function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const workspaces = useWorkspaceStore((s) => s.workspaces);
@@ -80,27 +77,24 @@ function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         className={cn(
-          "group flex w-full items-center gap-2.5 rounded-xl transition-colors duration-200 hover:bg-muted/70",
-          compact ? "px-2 py-1.5" : "px-2.5 py-2"
+          "group flex w-full items-center gap-2 rounded-lg border px-2 py-[7px] text-left transition-colors duration-200",
+          open
+            ? "border-primary/25 bg-primary/[0.04]"
+            : "border-black/[0.07] bg-white hover:border-black/[0.12] hover:bg-muted/40"
         )}
       >
-        <WorkspaceLogo
-          workspace={active}
-          size={30}
-          className="shrink-0 rounded-lg shadow-[0_1px_2px_rgba(20,10,50,0.08)] ring-1 ring-black/[0.05]"
-        />
-        <div className="min-w-0 flex-1 text-left">
-          <p className="truncate text-[13px] font-bold leading-tight text-foreground">{active.name}</p>
-          {!compact && (
-            <p className="truncate text-[10.5px] leading-tight text-muted-foreground/70">{active.description}</p>
-          )}
-        </div>
+        <WorkspaceLogo workspace={active} size={22} className="shrink-0" />
+        <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium leading-none text-foreground">
+          {active.name}
+        </span>
         <CaretUpDown
-          size={13}
+          size={12}
           className={cn(
-            "shrink-0 text-muted-foreground/40 transition-transform duration-200",
-            open && "rotate-180 text-primary/70"
+            "shrink-0 transition-colors duration-200",
+            open ? "text-primary" : "text-muted-foreground/45 group-hover:text-muted-foreground/75"
           )}
         />
       </button>
@@ -112,9 +106,9 @@ function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-2 right-2 top-[calc(100%+6px)] z-50 rounded-2xl border border-black/[0.06] bg-white p-1.5 shadow-[0_24px_60px_-24px_rgba(46,26,120,0.35)]"
+            className="absolute inset-x-0 top-[calc(100%+6px)] z-50 rounded-xl border border-black/[0.06] bg-white p-1.5 shadow-[0_24px_60px_-24px_rgba(46,26,120,0.35)]"
           >
-            <p className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/50">
+            <p className="px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
               Workspaces
             </p>
             {workspaces.map((w) => (
@@ -163,6 +157,7 @@ function NavItem({
   badge,
   onClick,
   compact,
+  collapsed,
 }: {
   href: string;
   label: string;
@@ -171,14 +166,16 @@ function NavItem({
   badge: number;
   onClick?: (e: React.MouseEvent) => void;
   compact?: boolean;
+  collapsed?: boolean;
 }) {
   return (
     <Link
       href={href}
       onClick={onClick}
+      title={collapsed ? label : undefined}
       className={cn(
         "group relative flex items-center gap-2.5 rounded-xl transition-all duration-200",
-        compact ? "px-2.5 py-2 text-[13px]" : "px-2.5 py-2.5 text-[13.5px]",
+        collapsed ? "justify-center px-0 py-2.5" : compact ? "px-2.5 py-2 text-[13px]" : "px-2.5 py-2.5 text-[13.5px]",
         isActive
           ? "font-semibold text-primary"
           : "font-medium text-muted-foreground/85 hover:bg-muted/50 hover:text-foreground"
@@ -188,126 +185,29 @@ function NavItem({
         <motion.span
           layoutId={compact ? "mobile-nav-active" : "nav-active"}
           transition={{ type: "spring", stiffness: 420, damping: 34 }}
-          className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/[0.1] to-primary/[0.02] shadow-[inset_0_0_0_1px_rgba(91,67,214,0.14)]"
+          className="absolute inset-0 rounded-lg bg-primary/[0.06]"
         />
-      )}
-      {isActive && (
-        <span className="absolute left-0 top-1/2 z-10 h-4 w-[3px] -translate-y-1/2 rounded-full bg-gradient-to-b from-primary to-[#8E6CF3]" />
       )}
       <span
         className={cn(
           "relative z-10 flex shrink-0 items-center justify-center rounded-lg transition-colors duration-200",
           compact ? "size-6" : "size-7",
-          isActive ? "bg-primary/15 text-primary" : "text-muted-foreground/50 group-hover:text-foreground/70"
+          isActive ? "text-primary" : "text-muted-foreground/50 group-hover:text-foreground/70"
         )}
       >
         <Icon size={compact ? 16 : 17} weight={isActive ? "fill" : "regular"} />
+        {/* In the rail there is no room for a count, so it becomes a marker. */}
+        {collapsed && badge > 0 && (
+          <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-primary ring-2 ring-[#fbfaff]" />
+        )}
       </span>
-      <span className="relative z-10 flex-1 truncate">{label}</span>
-      {badge > 0 && (
-        <span className="relative z-10 flex size-5 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-[#8E6CF3] text-[10px] font-bold leading-none text-white shadow-[0_2px_6px_-1px_rgba(91,67,214,0.6)]">
+      {!collapsed && <span className="relative z-10 flex-1 truncate">{label}</span>}
+      {!collapsed && badge > 0 && (
+        <span className="relative z-10 flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-primary px-1 text-[10.5px] font-semibold leading-none text-white">
           {badge}
         </span>
       )}
     </Link>
-  );
-}
-
-/* ─────────────────── Task list (shared) ─────────────────── */
-
-function TaskList({ onNavigate, compact }: { onNavigate?: () => void; compact?: boolean }) {
-  const router = useRouter();
-  const sessions = usePmChatStore((s) => s.sessions);
-  const activeSessionId = usePmChatStore((s) => s.activeSessionId);
-  const messagesBySession = usePmChatStore((s) => s.messagesBySession);
-  const selectSession = usePmChatStore((s) => s.selectSession);
-  const createGlobalSession = usePmChatStore((s) => s.createGlobalSession);
-  const pathname = usePathname();
-
-  const tasks = useMemo(() => {
-    return sessions
-      .filter((s) => {
-        const msgs = messagesBySession[s.id] ?? [];
-        return msgs.some((m) => m.role === "user");
-      })
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-      .slice(0, 20);
-  }, [sessions, messagesBySession]);
-
-  const handleNew = () => {
-    createGlobalSession();
-    onNavigate?.();
-    router.push("/chat");
-  };
-
-  const handleSelect = (sessionId: string) => {
-    selectSession(sessionId);
-    router.push("/chat");
-  };
-
-  const isOnChat = pathname === "/chat" || pathname.startsWith("/chat/");
-
-  return (
-    <div className="flex min-h-0 flex-col">
-      <div className="flex items-center justify-between px-4 py-2">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/45">
-          Tasks
-        </span>
-        <button
-          type="button"
-          onClick={handleNew}
-          className="flex size-6 items-center justify-center rounded-lg text-muted-foreground/50 transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:shadow-[0_0_0_3px_rgba(91,67,214,0.08)]"
-          title="New task"
-        >
-          <Plus size={14} weight="bold" />
-        </button>
-      </div>
-
-      <div className={cn("min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2", compact && "pb-2")}>
-        {tasks.length === 0 && (
-          <p className="px-3 py-4 text-center text-[12px] text-muted-foreground/40">
-            No tasks yet
-          </p>
-        )}
-        {tasks.map((task) => {
-          const isActive = isOnChat && task.id === activeSessionId;
-          const isTicketTask = !!task.ticketId;
-          return (
-            <button
-              key={task.id}
-              type="button"
-              onClick={() => handleSelect(task.id)}
-              className={cn(
-                "group relative flex w-full items-start gap-2.5 rounded-xl px-3 py-2 text-left transition-all duration-200",
-                isActive
-                  ? "bg-gradient-to-r from-primary/[0.08] to-primary/[0.02] text-foreground shadow-[inset_0_0_0_1px_rgba(91,67,214,0.1)]"
-                  : "text-muted-foreground hover:bg-muted/45 hover:text-foreground"
-              )}
-            >
-              {isActive && (
-                <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-gradient-to-b from-primary to-[#8E6CF3]" />
-              )}
-              <span
-                className={cn(
-                  "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg transition-colors",
-                  isActive ? "bg-primary/12 text-primary" : "text-muted-foreground/40 group-hover:text-muted-foreground/70"
-                )}
-              >
-                {isTicketTask ? <Ticket size={13} weight="duotone" /> : <ChatText size={13} />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium leading-snug">
-                  {task.title}
-                </p>
-                <p className="mt-0.5 truncate text-[11px] leading-tight opacity-45">
-                  {formatRelativeTime(task.updatedAt)}
-                </p>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
@@ -319,13 +219,73 @@ function DesktopSidebar() {
   const pendingCount = useTicketStore((s) => s.getPending().length);
   const ensureGlobalSession = usePmChatStore((s) => s.ensureGlobalSession);
 
+  // Ask PM gets the width for its own conversation rail, so the app nav collapses
+  // to icons there. The override is keyed by route, so it resets on navigation
+  // without needing an effect.
+  const [override, setOverride] = useState<{ path: string; expanded: boolean } | null>(null);
+  const autoCollapsed = pathname === "/chat" || pathname.startsWith("/chat/");
+  const collapsed = override?.path === pathname ? !override.expanded : autoCollapsed;
+  const toggle = () => setOverride({ path: pathname, expanded: collapsed });
+
   return (
-    <aside className="hidden h-screen w-[264px] shrink-0 flex-col border-r border-black/[0.06] bg-gradient-to-b from-[#fbfaff] to-white shadow-[8px_0_28px_-24px_rgba(46,26,120,0.35)] lg:flex">
-      <div className="flex h-[52px] shrink-0 items-center border-b border-black/[0.05] px-3">
-        <WorkspaceSwitcher />
+    <aside
+      className={cn(
+        "hidden h-screen shrink-0 flex-col border-r border-black/[0.06] bg-gradient-to-b from-[#fbfaff] to-white shadow-[8px_0_28px_-24px_rgba(46,26,120,0.35)] lg:flex",
+        "transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        collapsed ? "w-[58px]" : "w-[240px]"
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-[48px] shrink-0 items-center border-b border-black/[0.05]",
+          collapsed ? "justify-center px-0" : "px-4"
+        )}
+      >
+        {collapsed ? (
+          // Hovering the mark swaps it for the expand control.
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label="Expand navigation"
+            title="Expand navigation"
+            className="group relative flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-primary/[0.07]"
+          >
+            <Image
+              src="/ask-pm-logo-v3.png"
+              alt="Ask PM"
+              width={512}
+              height={512}
+              className="size-6 object-contain transition-opacity duration-150 group-hover:opacity-0"
+            />
+            <CaretDoubleRight
+              size={16}
+              weight="bold"
+              className="absolute text-primary opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+            />
+          </button>
+        ) : (
+          <>
+            <BrandMark />
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label="Collapse navigation"
+              title="Collapse navigation"
+              className="ml-auto flex size-7 items-center justify-center rounded-lg text-muted-foreground/45 transition-colors hover:bg-muted/70 hover:text-foreground"
+            >
+              <CaretDoubleLeft size={14} weight="bold" />
+            </button>
+          </>
+        )}
       </div>
 
-      <nav className="shrink-0 space-y-1 px-3 pt-4">
+      {!collapsed && (
+        <div className="shrink-0 px-3 pt-3">
+          <WorkspaceSwitcher />
+        </div>
+      )}
+
+      <nav className={cn("shrink-0 space-y-1 pt-3", collapsed ? "px-2" : "px-3")}>
         {NAV.map(({ href, label, Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           const badge = href === "/pipeline" && pendingCount > 0 ? pendingCount : 0;
@@ -338,6 +298,7 @@ function DesktopSidebar() {
               Icon={Icon}
               isActive={isActive}
               badge={badge}
+              collapsed={collapsed}
               onClick={
                 href === "/chat"
                   ? (e) => {
@@ -352,9 +313,6 @@ function DesktopSidebar() {
         })}
       </nav>
 
-      <div className="mt-3 flex min-h-0 flex-1 flex-col border-t border-black/[0.05] pt-2">
-        <TaskList />
-      </div>
     </aside>
   );
 }
@@ -426,10 +384,6 @@ function MobileBar() {
                 );
               })}
             </nav>
-
-            <div className="mt-3 flex min-h-0 flex-1 flex-col border-t border-black/[0.05] pt-2">
-              <TaskList onNavigate={() => setOpen(false)} compact />
-            </div>
 
             <div className="border-t border-black/[0.05] px-2.5 py-2 space-y-0.5 shrink-0">
               <Link href="/settings" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[12.5px] text-muted-foreground transition-colors hover:bg-muted/60">

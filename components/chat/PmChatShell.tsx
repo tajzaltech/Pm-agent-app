@@ -25,28 +25,30 @@ export function PmChatShell({ sessionId, ticketId }: PmChatShellProps) {
   const classColor = ticket ? (CLASS_COLORS[ticket.classification] ?? "") : "";
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      {ticket && (
-        <div className="shrink-0 border-b px-4 h-10 flex items-center gap-3 bg-muted/20">
-          <Link
-            href="/pipeline"
-            className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft size={12} />
-            Pipeline
-          </Link>
-          <span className="w-px h-3.5 bg-border" />
-          <span className="text-[12px] font-mono text-muted-foreground">#{ticket.originalTicketId}</span>
-          <span className="text-[12px] font-medium truncate">{ticket.customer.name}</span>
-          <span className={cn("hidden sm:inline-flex shrink-0 rounded border px-1.5 py-px text-[9px] font-medium", classColor)}>
-            {ticket.classification.replace("_", " ")}
-          </span>
-          <span className="hidden md:inline text-[10px] text-muted-foreground/60 shrink-0">
-            {SCOPE_LABELS[ticket.scope] ?? ticket.scope} scope
-          </span>
-        </div>
-      )}
-      <PmChatView sessionId={sessionId} ticketId={ticketId} />
+    <div className="flex h-full min-h-0 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {ticket && (
+          <div className="shrink-0 border-b px-4 h-10 flex items-center gap-3 bg-muted/20">
+            <Link
+              href="/pipeline"
+              className="flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft size={12} />
+              Pipeline
+            </Link>
+            <span className="w-px h-3.5 bg-border" />
+            <span className="text-[12px] font-mono text-muted-foreground">#{ticket.originalTicketId}</span>
+            <span className="text-[12px] font-medium truncate">{ticket.customer.name}</span>
+            <span className={cn("hidden sm:inline-flex shrink-0 rounded border px-1.5 py-px text-[9px] font-medium", classColor)}>
+              {ticket.classification.replace("_", " ")}
+            </span>
+            <span className="hidden md:inline text-[10px] text-muted-foreground/60 shrink-0">
+              {SCOPE_LABELS[ticket.scope] ?? ticket.scope} scope
+            </span>
+          </div>
+        )}
+        <PmChatView sessionId={sessionId} ticketId={ticketId} />
+      </div>
     </div>
   );
 }

@@ -84,7 +84,8 @@ function PipelineContent() {
   if (ticketParam) redirect(`/chat/ticket/${encodeURIComponent(ticketParam)}`);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 overflow-y-auto bg-background p-4 md:p-6">
+      <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl border bg-card shadow-sm">
       {/* Header */}
       <div className="shrink-0 border-b bg-card/80 backdrop-blur-sm px-4 md:px-6">
         <div className="flex items-center h-10 gap-4">
@@ -184,6 +185,7 @@ function PipelineContent() {
             ))}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

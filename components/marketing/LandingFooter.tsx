@@ -3,15 +3,16 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { mono } from "@/components/marketing/theme";
+import { cn } from "@/lib/utils";
+import { INK, INK_FAINT, INK_MUTED, LINE, mono } from "@/components/marketing/theme";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "Product", href: "#top" },
-      { label: "How It Works", href: "#pipeline" },
-      { label: "Integrations", href: "#ecosystem" },
+      { label: "How it works", href: "#how" },
+      { label: "Capabilities", href: "#features" },
+      { label: "Integrations", href: "#integrations" },
       { label: "Security", href: "#security" },
       { label: "Pricing", href: "#cta" },
     ],
@@ -22,13 +23,13 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Documentation", href: "#" },
       { label: "API", href: "#" },
       { label: "Changelog", href: "#" },
-      { label: "System Status", href: "#" },
+      { label: "System status", href: "#" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "Company", href: "#" },
+      { label: "About", href: "#" },
       { label: "Contact", href: "#" },
       { label: "Privacy", href: "#" },
       { label: "Terms", href: "#" },
@@ -38,29 +39,26 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
 
 export function LandingFooter() {
   return (
-    <footer className="relative overflow-hidden border-t border-white/[0.06] bg-[#050507] pt-16 pb-10">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#5b43d6]/40 to-transparent" />
-      <div className="mx-auto grid max-w-6xl gap-12 px-6 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+    <footer className={cn("border-t bg-white pt-16 pb-10", LINE)}>
+      <div className="mx-auto grid max-w-6xl gap-12 px-6 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div className="max-w-xs">
           <Link href="#top" className="flex items-center gap-2.5">
-            <Image src="/apple-icon.png" alt="Ask PM" width={180} height={180} className="size-11 rounded-xl object-contain" />
-            <span className="text-[16px] font-semibold text-white">Ask PM</span>
+            <Image src="/ask-pm-logo-v3.png" alt="Ask PM" width={512} height={512} className="size-10 object-contain" />
+            <span className={cn("text-[16px] font-semibold tracking-[-0.01em]", INK)}>Ask PM</span>
           </Link>
-          <p className="mt-4 text-[13.5px] leading-relaxed text-white/45">
-            The AI product manager between support, product, and engineering — turning tickets into development-ready work for human approval.
-          </p>
-          <p className={`mt-5 text-[11px] uppercase tracking-wider text-white/30 ${mono}`}>
-            SOC 2-aligned · Human approval required
+          <p className={cn("mt-4 text-[13.5px] leading-relaxed", INK_MUTED)}>
+            The product manager between support, product, and engineering — turning tickets into
+            development-ready work for human approval.
           </p>
         </div>
 
         {COLUMNS.map((col) => (
           <div key={col.title}>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">{col.title}</p>
+            <p className={cn("text-[11px] font-semibold uppercase tracking-[0.14em]", mono, INK_FAINT)}>{col.title}</p>
             <ul className="mt-4 space-y-2.5">
               {col.links.map((l) => (
                 <li key={l.label}>
-                  <a href={l.href} className="text-[13.5px] text-white/55 transition-colors hover:text-white">
+                  <a href={l.href} className={cn("text-[13.5px] transition-colors hover:text-[#101018]", INK_MUTED)}>
                     {l.label}
                   </a>
                 </li>
@@ -70,15 +68,9 @@ export function LandingFooter() {
         ))}
       </div>
 
-      <div className="mx-auto mt-14 flex max-w-6xl flex-col items-center justify-between gap-4 border-t border-white/[0.06] px-6 pt-6 sm:flex-row">
-        <p className={`text-[12px] text-white/35 ${mono}`}>© 2027 Ask PM — Support intelligence for product teams.</p>
-        <div className="flex items-center gap-2 text-[12px] text-white/40">
-          <span className="relative flex size-1.5">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70" />
-            <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
-          </span>
-          All systems operational
-        </div>
+      <div className={cn("mx-auto mt-14 flex max-w-6xl flex-col items-center justify-between gap-4 border-t px-6 pt-6 sm:flex-row", LINE)}>
+        <p className={cn("text-[12px]", INK_FAINT)}>© 2027 Ask PM — Support intelligence for product teams.</p>
+        <p className={cn("text-[12px]", INK_FAINT)}>All systems operational</p>
       </div>
     </footer>
   );

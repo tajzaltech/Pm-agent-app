@@ -9,9 +9,10 @@ import {
   Circle,
   Code2,
   Inbox,
-  Pencil,
+  Plug,
   Plus,
   RefreshCw,
+  Search,
   Send,
   Trash2,
   X,
@@ -19,12 +20,17 @@ import {
 
 import {
   ClickUpLogo,
+  EmailLogo,
   FreshdeskLogo,
   GitHubIssuesLogo,
   GitHubLogo,
+  GoogleSheetsLogo,
   JiraLogo,
   LinearLogo,
   MondayLogo,
+  SalesforceLogo,
+  SlackLogo,
+  WebhookLogo,
   ZendeskLogo,
 } from "@/components/shared/BrandLogos";
 import { Button } from "@/components/ui/button";
@@ -46,18 +52,37 @@ const FLOW_STEPS = [
   { label: "Outputs", sub: "Work shipped", icon: Send, tone: "text-indigo-600 bg-indigo-50 border-indigo-100" },
 ];
 
+/**
+ * Every provider maps to its own mark. Unknown ids fall back to a neutral glyph —
+ * never to another vendor's logo.
+ */
+const SOURCE_LOGOS: Record<string, React.ComponentType<{ className?: string }>> = {
+  freshdesk: FreshdeskLogo,
+  zendesk: ZendeskLogo,
+  email: EmailLogo,
+  jira_sm: JiraLogo,
+  salesforce: SalesforceLogo,
+  sheets: GoogleSheetsLogo,
+  webhook: WebhookLogo,
+};
+
+const OUTPUT_LOGOS: Record<string, React.ComponentType<{ className?: string }>> = {
+  slack: SlackLogo,
+  linear: LinearLogo,
+  jira: JiraLogo,
+  monday: MondayLogo,
+  clickup: ClickUpLogo,
+  github_issues: GitHubIssuesLogo,
+};
+
 function sourceLogo(provider: string) {
-  if (provider === "zendesk") return <ZendeskLogo className="size-7" />;
-  if (provider === "jira_sm") return <JiraLogo className="size-7" />;
-  return <FreshdeskLogo className="size-7" />;
+  const Logo = SOURCE_LOGOS[provider];
+  return Logo ? <Logo className="size-7" /> : <Plug className="size-6 text-muted-foreground" />;
 }
 
 function outputLogo(provider: string) {
-  if (provider === "jira") return <JiraLogo className="size-7" />;
-  if (provider === "monday") return <MondayLogo className="size-7" />;
-  if (provider === "clickup") return <ClickUpLogo className="size-7" />;
-  if (provider === "github_issues") return <GitHubIssuesLogo className="size-7" />;
-  return <LinearLogo className="size-7" />;
+  const Logo = OUTPUT_LOGOS[provider];
+  return Logo ? <Logo className="size-7" /> : <Plug className="size-6 text-muted-foreground" />;
 }
 
 function statusMeta(status: string) {
@@ -73,8 +98,6 @@ function statusMeta(status: string) {
 export default function SourcesPage({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter();
   const [panel, setPanel] = useState<PanelType>(null);
-  const editMode = useConnectionsStore((s) => s.editMode);
-  const setEditMode = useConnectionsStore((s) => s.setEditMode);
   const sources = useConnectionsStore((s) => s.sources);
   const outputs = useConnectionsStore((s) => s.outputs);
   const repos = useConnectionsStore((s) => s.repos);
@@ -150,14 +173,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant={editMode ? "default" : "outline"}
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => setEditMode(!editMode)}
-            >
-              <Pencil className="size-3.5" /> {editMode ? "Done" : "Edit"}
-            </Button>
-            <Button
               variant="outline"
               size="sm"
               className="h-8 gap-1.5 text-xs"
@@ -170,13 +185,7 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
       )}
 
       <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 md:p-6", embedded && "pt-4")}>
-        <div className="mx-auto max-w-6xl space-y-6">
-          {editMode && (
-            <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-              Edit mode — add or remove connections. Options match what you can pick during signup.
-            </div>
-          )}
-
+        <div className="mx-auto max-w-6xl space-y-3">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatPill label="Sources live" value={stats.sources} accent="text-teal-600" />
             <StatPill label="Repos indexed" value={`${stats.repos}/${repos.length}`} accent="text-violet-600" />
@@ -184,7 +193,7 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
             <StatPill label="Tickets / week" value={stats.weeklyTickets.toLocaleString()} accent="text-primary" />
           </div>
 
-          <div className="hidden lg:flex items-center justify-center gap-2 py-1">
+          <div className="hidden lg:flex items-center justify-center gap-2">
             {FLOW_STEPS.map((step, i) => (
               <div key={step.label} className="flex items-center gap-2">
                 <div className={cn("flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium", step.tone)}>
@@ -218,7 +227,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
                     icon={sourceLogo(src.provider)}
                     metric={src.ticketCount ?? 0}
                     metricLabel="volume"
-                    editMode={editMode}
                     onRemove={() => {
                       removeSource(src.id);
                       toast.info(`${src.name} removed`);
@@ -241,7 +249,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
                   <RepoCard
                     key={repo.id}
                     repo={repo}
-                    editMode={editMode}
                     onRemove={() => {
                       removeRepo(repo.id);
                       toast.info(`${repo.name} removed from index`);
@@ -270,7 +277,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
                       icon={outputLogo(out.provider)}
                       metric={out.ticketCount ?? 0}
                       metricLabel="pushed"
-                      editMode={editMode}
                       onRemove={() => {
                         removeOutput(out.id);
                         toast.info(`${out.name} removed`);
@@ -289,7 +295,6 @@ export default function SourcesPage({ embedded = false }: { embedded?: boolean }
                       }
                       metric={12}
                       metricLabel="runs"
-                      editMode={editMode}
                       onRemove={() => {
                         setDevAgentEnabled(false);
                         toast.info("Dev Agent disabled");
@@ -335,6 +340,7 @@ function AddConnectionPanel({
   onAdd: (type: PanelType, id: string) => void;
   onClose: () => void;
 }) {
+  const [query, setQuery] = useState("");
   const title =
     type === "source" ? "Add ticket source" : type === "repo" ? "Add repository" : "Add output or agent";
 
@@ -354,38 +360,42 @@ function AddConnectionPanel({
               : []),
           ];
 
+  const filteredItems = items.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()));
+
   return (
-    <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/[0.04] to-white p-5 shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-md">
-            Same options available during signup onboarding.
-          </p>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 p-4 pt-24 backdrop-blur-[1px]" onMouseDown={onClose}>
+      <div className="w-full max-w-md rounded-2xl border bg-white p-4 shadow-xl animate-in fade-in zoom-in-95 duration-150" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">{title}</p>
+            <p className="text-xs text-muted-foreground">Search and select a connection to add.</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted" aria-label="Close add connection dialog">
+            <X className="size-4" />
+          </button>
         </div>
-        <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
-          <X className="size-4" />
-        </button>
-      </div>
-      {items.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">All available connections are already added.</p>
-      ) : (
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onAdd(type, item.id)}
-              className="flex items-center gap-3 rounded-xl border bg-white p-3 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
-            >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/30">
-                {item.icon}
-              </span>
+        <label className="relative mt-4 block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            autoFocus
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search connections…"
+            className="h-10 w-full rounded-xl border bg-muted/20 pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+          />
+        </label>
+        <div className="mt-3 max-h-64 space-y-1 overflow-y-auto">
+          {filteredItems.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">No matching connections available.</p>
+          ) : filteredItems.map((item) => (
+            <button key={item.id} type="button" onClick={() => onAdd(type, item.id)} className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-primary/5">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/30">{item.icon}</span>
               <span className="text-sm font-medium">{item.label}</span>
+              <Plus className="ml-auto size-4 text-primary" />
             </button>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -443,7 +453,6 @@ function ConnectionCard({
   icon,
   metric,
   metricLabel,
-  editMode,
   onRemove,
 }: {
   name: string;
@@ -452,7 +461,6 @@ function ConnectionCard({
   icon: React.ReactNode;
   metric: number;
   metricLabel: string;
-  editMode?: boolean;
   onRemove?: () => void;
 }) {
   const meta = statusMeta(status);
@@ -460,7 +468,7 @@ function ConnectionCard({
 
   return (
     <div className={cn("group relative rounded-xl border p-3 transition-all hover:shadow-md hover:border-primary/20", meta.ring)}>
-      {editMode && onRemove && (
+      {onRemove && (
         <button
           type="button"
           onClick={onRemove}
@@ -505,18 +513,16 @@ function ConnectionCard({
 
 function RepoCard({
   repo,
-  editMode,
   onRemove,
 }: {
   repo: Repo;
-  editMode?: boolean;
   onRemove?: () => void;
 }) {
   const meta = statusMeta(repo.status === "indexed" ? "indexed" : repo.status === "needs_reindex" ? "connecting" : "error");
 
   return (
     <div className={cn("group relative rounded-xl border p-3 transition-all hover:shadow-md hover:border-primary/20", meta.ring)}>
-      {editMode && onRemove && (
+      {onRemove && (
         <button
           type="button"
           onClick={onRemove}

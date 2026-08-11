@@ -1,9 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import {
-  Bell,
-  MagnifyingGlass,
+  BellRinging,
   User,
   SignOut,
   GearSix,
@@ -12,40 +10,27 @@ import {
 import { signOut } from "@/lib/auth/sign-out";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-
-const PAGE_TITLES: Record<string, string> = {
-  "/chat": "Ask PM",
-  "/pipeline": "Pipeline",
-  "/insights": "Insights",
-  "/connections": "Connections",
-  "/automation": "Automation",
-  "/team": "Team",
-  "/settings": "Settings",
-};
-
-function getPageTitle(pathname: string) {
-  for (const [path, title] of Object.entries(PAGE_TITLES)) {
-    if (pathname === path || pathname.startsWith(path + "/")) return title;
-  }
-  return "PM Agent";
-}
 
 export function TopNav() {
-  const pathname = usePathname();
-  const title = getPageTitle(pathname);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
         setProfileOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false);
+      }
     }
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setProfileOpen(false);
+      if (e.key === "Escape") {
+        setProfileOpen(false);
+        setNotificationsOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     document.addEventListener("keydown", handleKeyDown);
@@ -56,50 +41,24 @@ export function TopNav() {
   }, []);
 
   return (
-    <header className="relative z-30 hidden h-[48px] shrink-0 items-center gap-4 overflow-visible border-b border-border/40 bg-white/60 px-5 backdrop-blur-xl lg:flex">
-      <h1 className="text-[14px] font-bold tracking-tight text-foreground">
-        {title}
-      </h1>
+    <header className="relative z-30 hidden h-[48px] shrink-0 items-center justify-end gap-2 overflow-visible bg-background px-5 lg:flex">
 
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Search */}
-      <div
-        className={cn(
-          "flex items-center gap-2 rounded-lg border px-3 py-1.5 transition-all",
-          searchFocused
-            ? "w-64 border-primary/30 shadow-sm bg-card"
-            : "w-48 border-transparent bg-muted/40 hover:bg-muted/60"
-        )}
-      >
-        <MagnifyingGlass size={14} className="shrink-0 text-muted-foreground/60" />
-        <input
-          type="text"
-          placeholder="Search…"
-          className="flex-1 bg-transparent text-[12px] outline-none placeholder:text-muted-foreground/50"
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-        />
-        {!searchFocused && (
-          <kbd className="hidden xl:inline-flex items-center rounded border bg-muted/60 px-1 py-0.5 text-[9px] font-mono text-muted-foreground/50 leading-none">
-            ⌘K
-          </kbd>
+      {/* Notifications */}
+      <div ref={notificationsRef} className="pointer-events-auto relative">
+        <button type="button" aria-label="Notifications" aria-expanded={notificationsOpen} onClick={() => { setNotificationsOpen((open) => !open); setProfileOpen(false); }} className="relative flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground">
+          <BellRinging size={18} weight={notificationsOpen ? "fill" : "regular"} />
+          <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-primary" />
+        </button>
+        {notificationsOpen && (
+          <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-80 rounded-2xl border border-border/70 bg-card p-2 shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
+            <div className="flex items-center justify-between px-3 py-2"><p className="text-sm font-semibold">Notifications</p><button type="button" onClick={() => setNotificationsOpen(false)} className="text-[11px] text-primary hover:underline">Mark all read</button></div>
+            <div className="space-y-1"><div className="rounded-xl bg-primary/[0.06] px-3 py-2.5"><p className="text-[12px] font-medium">6 tickets are waiting in Pipeline</p><p className="mt-0.5 text-[11px] text-muted-foreground">Review the latest customer reports.</p></div><div className="rounded-xl px-3 py-2.5 hover:bg-muted/50"><p className="text-[12px] font-medium">Dev Agent completed a run</p><p className="mt-0.5 text-[11px] text-muted-foreground">Stripe webhook investigation is ready.</p></div></div>
+          </div>
         )}
       </div>
 
-      {/* Notifications */}
-      <button
-        type="button"
-        aria-label="Notifications"
-        className="relative flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-      >
-        <Bell size={17} />
-        <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
-      </button>
-
       {/* Profile dropdown */}
-      <div ref={profileRef} className="relative">
+      <div ref={profileRef} className="pointer-events-auto relative">
         <button
           type="button"
           aria-expanded={profileOpen}

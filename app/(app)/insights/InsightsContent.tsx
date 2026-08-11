@@ -2,10 +2,13 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { motion, useReducedMotion } from "framer-motion";
 import {
-  Bar,
-  BarChart,
+  Area,
+  AreaChart,
+  CartesianGrid,
   Cell,
   Line,
   LineChart,
@@ -16,7 +19,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Download, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowRight, Download, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,8 +27,15 @@ import { MOCK_ANALYTICS, MOCK_CLASSIFICATION_DIST, MOCK_CODE_AREAS } from "@/lib
 import { useTicketStore } from "@/lib/store/tickets";
 import { usePipelineStore } from "@/lib/store/pipeline";
 import { filterTicketsByClassification } from "@/lib/utils/workspace";
-import { computeAcceptanceBreakdown, computeProcessingStats, getProcessingTicketLists, PROCESSING_CATEGORY_LABELS, type ProcessingCategory } from "@/lib/utils/insights-stats";
+import {
+  computeAcceptanceBreakdown,
+  computeProcessingStats,
+  getProcessingTicketLists,
+  PROCESSING_CATEGORY_LABELS,
+  type ProcessingCategory,
+} from "@/lib/utils/insights-stats";
 import { ProcessingTicketList } from "@/components/insights/ProcessingTicketList";
+import { CountUp, Panel, Sparkline, VIZ, VizTooltip } from "@/components/insights/InsightsPrimitives";
 import type { Classification } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -43,31 +53,84 @@ const CLASSIFICATION_MAP: Record<string, Classification> = {
   "Churn Signal": "churn_signal",
 };
 
+/** Validated categorical slots, in fixed order — see VIZ in InsightsPrimitives. */
+const CLASS_FILL: Record<string, string> = {
+  Bug: VIZ.bug,
+  "Feature Request": VIZ.feature,
+  Question: VIZ.question,
+  "Churn Signal": VIZ.churn,
+};
+
 export default function InsightsContent() {
+  const router = useRouter();
   const { tickets } = useTicketStore();
   const pipelineCards = usePipelineStore((s) => s.cards);
   const [dateRange, setDateRange] = useState("30d");
   const [activeCategory, setActiveCategory] = useState<ProcessingCategory | null>(null);
-  const compare = "last_month";
+  const reduce = useReducedMotion();
+  const compare = "last month";
 
-  const stats = useMemo(
-    () => computeProcessingStats(tickets, pipelineCards),
-    [tickets, pipelineCards]
-  );
-  const ticketLists = useMemo(
-    () => getProcessingTicketLists(tickets, pipelineCards),
-    [tickets, pipelineCards]
-  );
+  const stats = useMemo(() => computeProcessingStats(tickets, pipelineCards), [tickets, pipelineCards]);
+  const ticketLists = useMemo(() => getProcessingTicketLists(tickets, pipelineCards), [tickets, pipelineCards]);
   const acceptance = useMemo(() => computeAcceptanceBreakdown(tickets), [tickets]);
   const chatAcceptRate =
     stats.chatOriginated > 0 ? Math.round((stats.chatAccepted / stats.chatOriginated) * 100) : 0;
 
-  const handlePieClick = (name: string) => {
+  const series = MOCK_ANALYTICS.slice(-10);
+  const dist = MOCK_CLASSIFICATION_DIST.map((d) => ({ ...d, fill: CLASS_FILL[d.name] ?? VIZ.brand }));
+  const distTotal = dist.reduce((sum, d) => sum + d.value, 0);
+  const areaMax = Math.max(...MOCK_CODE_AREAS.map((a) => a.count));
+
+  const KPIS = [
+    {
+      key: "processed" as const,
+      label: "Processed",
+      value: stats.processed,
+      hint: "Accepted, rejected, or ignored",
+      trend: series.map((d) => d.processed),
+      delta: 12,
+    },
+    {
+      key: "in_process" as const,
+      label: "In process",
+      value: stats.inProcess,
+      hint: `${stats.pending} in triage · ${stats.inPipeline} in pipeline`,
+      trend: series.map((d) => d.accepted),
+      delta: 5,
+    },
+    {
+      key: "sent_to_developer" as const,
+      label: "Sent to developer",
+      value: stats.sentToDeveloper,
+      hint: `${stats.inDevAgent} active in Dev Agent`,
+      trend: series.map((d) => d.accepted),
+      delta: 8,
+    },
+    {
+      key: "responded_back" as const,
+      label: "Responded back",
+      value: stats.respondedBack,
+      hint: "Non-technical replies sent",
+      trend: series.map((d) => d.rejected),
+      delta: -3,
+    },
+  ];
+
+  // Funnel stages read as one magnitude progression, so they use the sequential ramp.
+  const FUNNEL = [
+    { label: "Intake", value: tickets.length },
+    { label: "In Triage", value: stats.pending },
+    { label: "In Dev Agent", value: stats.inDevAgent },
+    { label: "Shipped", value: stats.shippedThisWeek },
+  ];
+  const funnelMax = Math.max(...FUNNEL.map((f) => f.value), 1);
+
+  const handleSliceClick = (name: string) => {
     const classification = CLASSIFICATION_MAP[name];
     if (!classification) return;
     const count = filterTicketsByClassification(tickets, classification).length;
     toast.info(`${count} ${name} tickets — opening Triage filtered view`);
-    window.location.href = `/triage?classification=${classification}`;
+    router.push(`/triage?classification=${classification}`);
   };
 
   const exportData = (format: "csv" | "pdf") => {
@@ -75,15 +138,19 @@ export default function InsightsContent() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="sticky top-0 z-10 border-b bg-card/90 backdrop-blur-sm px-4 md:px-6 h-14 flex items-center justify-between shrink-0">
+    <div className="flex h-full flex-col">
+      <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b border-border/50 bg-background/85 px-4 backdrop-blur-xl md:px-6">
         <div>
-          <h1 className="text-sm font-medium tracking-tight">Insights</h1>
-          <p className="text-xs text-muted-foreground hidden sm:block">Click ticket processing stats to see ticket lists</p>
+          <h1 className="text-[15px] font-semibold tracking-[-0.015em]">Insights</h1>
+          <p className="hidden text-[11.5px] text-muted-foreground sm:block">
+            Live view of how tickets move from support to shipped
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={dateRange} onValueChange={(v) => v && setDateRange(v)}>
-            <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 w-28 text-xs">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="7d">7 days</SelectItem>
               <SelectItem value="30d">30 days</SelectItem>
@@ -97,280 +164,346 @@ export default function InsightsContent() {
             <Download className="size-3.5" /> PDF
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 w-full">
-        {/* Live ticket processing */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="border-b bg-muted/30 px-4 py-3 flex items-center justify-between gap-2">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Ticket processing — live
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Updates as you triage, respond, and send work to dev
-              </p>
-            </div>
-            <Link href="/triage" className="text-xs text-primary font-medium hover:underline shrink-0">
-              Open Triage →
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border">
-            {(
-              [
-                {
-                  key: "processed" as const,
-                  label: "Processed",
-                  value: stats.processed,
-                  hint: "Accepted, rejected, or ignored",
-                  accent: "text-foreground",
-                },
-                {
-                  key: "in_process" as const,
-                  label: "In process",
-                  value: stats.inProcess,
-                  hint: `${stats.pending} in triage · ${stats.inPipeline} in pipeline`,
-                  accent: "text-amber-600",
-                },
-                {
-                  key: "sent_to_developer" as const,
-                  label: "Sent to developer",
-                  value: stats.sentToDeveloper,
-                  hint: `${stats.inDevAgent} active in Dev Agent`,
-                  accent: "text-violet-600",
-                },
-                {
-                  key: "responded_back" as const,
-                  label: "Responded back",
-                  value: stats.respondedBack,
-                  hint: "Non-technical customer replies sent",
-                  accent: "text-emerald-600",
-                },
-              ] as const
-            ).map((s) => {
-              const isActive = activeCategory === s.key;
-              return (
-                <button
-                  key={s.key}
-                  type="button"
-                  onClick={() => setActiveCategory(isActive ? null : s.key)}
-                  className={cn(
-                    "flex flex-col items-center justify-center px-4 py-5 text-center transition-colors",
-                    isActive ? "bg-primary/5 ring-2 ring-inset ring-primary/25" : "hover:bg-muted/20"
-                  )}
-                >
-                  <p className={cn("text-2xl font-bold tabular-nums leading-none", s.accent)}>{s.value}</p>
-                  <p className="text-xs font-semibold mt-2">{s.label}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1 max-w-[9rem]">{s.hint}</p>
-                  <p className="text-[10px] text-primary mt-1.5 font-medium">
-                    {isActive ? "Hide list ↑" : "View tickets ↓"}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-          {activeCategory && (
+      <div className="w-full flex-1 space-y-4 overflow-y-auto bg-[#fbfaff] p-4 md:p-6">
+        {/* ── KPI row ─────────────────────────────────────── */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {KPIS.map((k, i) => {
+            const isActive = activeCategory === k.key;
+            const up = k.delta >= 0;
+            return (
+              <motion.button
+                key={k.key}
+                type="button"
+                onClick={() => setActiveCategory(isActive ? null : k.key)}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={reduce ? undefined : { y: -2 }}
+                className={cn(
+                  "group rounded-2xl border bg-white p-4 text-left transition-colors",
+                  "shadow-[0_1px_2px_rgba(16,17,24,0.04),0_12px_32px_-20px_rgba(46,26,120,0.18)]",
+                  isActive ? "border-primary/40 ring-2 ring-primary/10" : "border-black/[0.06] hover:border-primary/25"
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[12px] font-medium text-muted-foreground">{k.label}</p>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold",
+                      up ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                    )}
+                  >
+                    {up ? <TrendingUp className="size-2.5" /> : <TrendingDown className="size-2.5" />}
+                    {Math.abs(k.delta)}%
+                  </span>
+                </div>
+                <div className="mt-2 flex items-end justify-between gap-3">
+                  <CountUp value={k.value} className="text-[30px] font-semibold leading-none tracking-[-0.03em]" />
+                  <Sparkline data={k.trend} />
+                </div>
+                <p className="mt-2.5 truncate text-[11px] text-muted-foreground/80">{k.hint}</p>
+                <p className="mt-1.5 text-[11px] font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                  {isActive ? "Hide tickets ↑" : "View tickets ↓"}
+                </p>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {activeCategory && (
+          <Panel className="p-0">
             <ProcessingTicketList
               category={activeCategory}
               label={PROCESSING_CATEGORY_LABELS[activeCategory]}
               items={ticketLists[activeCategory]}
               onClose={() => setActiveCategory(null)}
             />
-          )}
+          </Panel>
+        )}
+
+        {/* ── Funnel ──────────────────────────────────────── */}
+        <Panel
+          title="Delivery funnel"
+          subtitle="Where every ticket currently sits"
+          action={
+            <Link
+              href="/triage"
+              className="inline-flex shrink-0 items-center gap-1 text-[12px] font-medium text-primary hover:underline"
+            >
+              Open Triage <ArrowRight className="size-3" />
+            </Link>
+          }
+        >
+          <ul className="space-y-3">
+            {FUNNEL.map((f, i) => (
+              <li key={f.label} className="flex items-center gap-3">
+                <span className="w-24 shrink-0 text-[12.5px] font-medium text-muted-foreground">{f.label}</span>
+                <div className="h-7 flex-1 overflow-hidden rounded-lg bg-[#f4f2fc]">
+                  <motion.div
+                    className="h-full rounded-lg"
+                    style={{ background: VIZ.ramp[i + 1] }}
+                    initial={{ width: 0 }}
+                    whileInView={{ width: `${Math.max((f.value / funnelMax) * 100, f.value > 0 ? 6 : 0)}%` }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: 0.1 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                  />
+                </div>
+                <CountUp value={f.value} className="w-8 shrink-0 text-right text-[14px] font-semibold" />
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 flex flex-col gap-1 border-t pt-3 text-[12px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-medium text-foreground">Ask PM accuracy</span>
+            <span>
+              {acceptance.total > 0
+                ? `${acceptance.acceptedPct}% accepted · ${acceptance.rejectedPct}% rejected · ${acceptance.ignoredPct}% ignored`
+                : "No reviewed tickets yet — accept or reject in Triage to track accuracy"}
+            </span>
+          </p>
+        </Panel>
+
+        {/* ── Classification + volume ─────────────────────── */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel title="Classification breakdown" subtitle="Click a slice to filter Triage" delay={0.05}>
+            <div className="flex items-center gap-4">
+              <div className="relative h-52 w-40 shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dist}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={52}
+                      outerRadius={76}
+                      paddingAngle={3}
+                      stroke="#ffffff"
+                      strokeWidth={2}
+                      className="cursor-pointer"
+                      isAnimationActive={!reduce}
+                      animationDuration={900}
+                      onClick={(_, index) => handleSliceClick(dist[index].name)}
+                    >
+                      {dist.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<VizTooltip unit="%" />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <CountUp value={distTotal} className="text-[22px] font-semibold leading-none" />
+                  <span className="mt-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">total</span>
+                </div>
+              </div>
+              {/* Direct labels: identity is never carried by color alone. */}
+              <ul className="min-w-0 flex-1 space-y-1">
+                {dist.map((d) => (
+                  <li key={d.name}>
+                    <button
+                      type="button"
+                      onClick={() => handleSliceClick(d.name)}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted/50"
+                    >
+                      <span className="size-2.5 shrink-0 rounded-[3px]" style={{ background: d.fill }} />
+                      <span className="min-w-0 flex-1 truncate text-[12.5px]">{d.name}</span>
+                      <span className="shrink-0 text-[12.5px] font-semibold tabular-nums">{d.value}%</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Panel>
+
+          <Panel title="Tickets processed over time" subtitle="Last 10 days" delay={0.1}>
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series} margin={{ top: 4, right: 6, bottom: 0, left: 0 }}>
+                  <defs>
+                    <linearGradient id="volumeFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={VIZ.brand} stopOpacity={0.28} />
+                      <stop offset="100%" stopColor={VIZ.brand} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke={VIZ.grid} vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: VIZ.axis }}
+                    tickLine={false}
+                    axisLine={{ stroke: VIZ.grid }}
+                  />
+                  <YAxis tick={{ fontSize: 10, fill: VIZ.axis }} tickLine={false} axisLine={false} width={30} />
+                  <Tooltip content={<VizTooltip />} cursor={{ stroke: VIZ.brand, strokeOpacity: 0.25 }} />
+                  <Area
+                    type="monotone"
+                    dataKey="processed"
+                    name="Processed"
+                    stroke={VIZ.brand}
+                    strokeWidth={2}
+                    fill="url(#volumeFill)"
+                    isAnimationActive={!reduce}
+                    animationDuration={900}
+                    activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff" }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Panel>
         </div>
 
-        {/* Recommendation cards */}
-        <div className="grid gap-3 md:grid-cols-2">
+        {/* ── AI performance + code areas ─────────────────── */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel
+            title="Ask PM performance"
+            subtitle="Lower override rate means more trust in automation"
+            delay={0.05}
+          >
+            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1">
+              {[
+                ["Acceptance", VIZ.feature],
+                ["Edit rate", VIZ.question],
+                ["Override", VIZ.bug],
+              ].map(([label, color]) => (
+                <span key={label} className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                  <span className="size-2 rounded-full" style={{ background: color }} />
+                  {label}
+                </span>
+              ))}
+            </div>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={AI_PERFORMANCE} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                  <CartesianGrid stroke={VIZ.grid} vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: VIZ.axis }}
+                    tickLine={false}
+                    axisLine={{ stroke: VIZ.grid }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: VIZ.axis }}
+                    tickLine={false}
+                    axisLine={false}
+                    unit="%"
+                    width={38}
+                  />
+                  <Tooltip content={<VizTooltip unit="%" />} />
+                  <Line
+                    type="monotone"
+                    dataKey="acceptanceRate"
+                    name="Acceptance"
+                    stroke={VIZ.feature}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={!reduce}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="editRate"
+                    name="Edit rate"
+                    stroke={VIZ.question}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={!reduce}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="overrideRate"
+                    name="Override"
+                    stroke={VIZ.bug}
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={!reduce}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Panel>
+
+          <Panel title="Top affected code areas" subtitle="Ticket volume by directory" delay={0.1}>
+            <ul className="space-y-2">
+              {MOCK_CODE_AREAS.map((area, i) => (
+                <li key={area.area}>
+                  <Link
+                    href={`/triage?search=${encodeURIComponent(area.area)}`}
+                    className="group flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50"
+                  >
+                    <span className="w-32 shrink-0 truncate font-mono text-[11.5px] text-foreground/80">
+                      {area.area}
+                    </span>
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-[#f4f2fc]">
+                      <motion.span
+                        className="block h-full rounded-full"
+                        style={{ background: VIZ.ramp[3] }}
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${(area.count / areaMax) * 100}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.7, delay: 0.05 * i, ease: [0.22, 1, 0.36, 1] }}
+                      />
+                    </span>
+                    <span className="w-6 shrink-0 text-right text-[12.5px] font-semibold tabular-nums">
+                      {area.count}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+
+        {/* ── Next actions ────────────────────────────────── */}
+        <div className="grid gap-4 md:grid-cols-2">
           {[
             stats.pending > 0
               ? {
                   title: `${stats.pending} ticket${stats.pending === 1 ? "" : "s"} waiting in Triage`,
-                  body: `${stats.inProcess - stats.pending} already in the dev pipeline. Review pending drafts next.`,
+                  body: `${Math.max(0, stats.inProcess - stats.pending)} already in the dev pipeline.`,
                   href: "/triage",
                 }
               : {
                   title: "Triage queue is clear",
-                  body: "New tickets from integrations or PM Agent Chat will appear here for review.",
+                  body: "New tickets will appear here for review.",
                   href: "/triage",
                 },
             stats.chatOriginated > 0
               ? {
                   title: `Chat-originated tickets: ${chatAcceptRate}% accepted`,
-                  body: `${stats.chatOriginated} from PM Agent Chat — ${stats.chatOriginated - stats.chatAccepted} still pending confirmation.`,
+                  body: `${stats.chatOriginated - stats.chatAccepted} still pending confirmation.`,
                   href: "/triage",
                 }
               : {
-                  title: "PM Agent Chat escalations",
-                  body: "Generate tickets from chat — they land in Triage for your review.",
+                  title: "Ask PM escalations",
+                  body: "Generate tickets from chat — they land in Triage for review.",
                   href: "/chat",
                 },
-          ].map((card) => (
-            <Link
+          ].map((card, i) => (
+            <motion.div
               key={card.title}
-              href={card.href}
-              className="rounded-xl border bg-card p-4 hover:border-primary/30 hover:shadow-md transition-all"
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.5, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
             >
-              <p className="text-sm font-semibold leading-snug">{card.title}</p>
-              <p className="text-xs text-muted-foreground mt-1.5">{card.body}</p>
-              <span className="text-xs text-primary mt-2 inline-block">View tickets →</span>
-            </Link>
+              <Link
+                href={card.href}
+                className="group flex h-full items-center gap-3 rounded-2xl border border-black/[0.06] bg-white p-4 shadow-[0_1px_2px_rgba(16,17,24,0.04)] transition-colors hover:border-primary/25"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13.5px] font-semibold leading-snug">{card.title}</p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">{card.body}</p>
+                </div>
+                <ArrowRight className="size-4 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-primary" />
+              </Link>
+            </motion.div>
           ))}
         </div>
 
-        {/* Delivery health + chat accuracy */}
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="border-b bg-muted/30 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Delivery health</p>
-          </div>
-          <div className="grid grid-cols-3 divide-x divide-border">
-            {[
-              { label: "In Triage", value: String(stats.pending), accent: "text-foreground" },
-              { label: "In Dev Agent", value: String(stats.inDevAgent), accent: "text-violet-600" },
-              { label: "Shipped (pipeline)", value: String(stats.shippedThisWeek), accent: "text-emerald-600" },
-            ].map((s) => (
-              <div key={s.label} className="flex flex-col items-center justify-center px-3 py-4 text-center">
-                <p className={cn("text-xl font-bold tabular-nums leading-none", s.accent)}>{s.value}</p>
-                <p className="text-[11px] text-muted-foreground mt-1.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="border-t bg-muted/20 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-            <p className="text-sm font-semibold text-foreground">PM Agent Chat accuracy</p>
-            <p className="text-xs text-muted-foreground">
-              {acceptance.total > 0
-                ? `${acceptance.acceptedPct}% accepted · ${acceptance.rejectedPct}% rejected · ${acceptance.ignoredPct}% ignored`
-                : "No reviewed tickets yet — accept or reject in Triage to track accuracy"}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid sm:grid-cols-3 gap-3">
-          {[
-            {
-              label: "Acceptance rate",
-              current: acceptance.total > 0 ? `${acceptance.acceptedPct}%` : "—",
-              prior: "70%",
-              up: acceptance.acceptedPct >= 70,
-            },
-            {
-              label: "Sent to dev",
-              current: String(stats.sentToDeveloper),
-              prior: String(Math.max(0, stats.sentToDeveloper - 2)),
-              up: stats.sentToDeveloper >= 2,
-            },
-            {
-              label: "Ticket volume",
-              current: String(tickets.length),
-              prior: String(Math.max(0, tickets.length - 5)),
-              up: tickets.length >= 5,
-            },
-          ].map((m) => (
-            <div key={m.label} className="rounded-xl border bg-card p-4 shadow-sm">
-              <p className="text-xs text-muted-foreground">{m.label}</p>
-              <div className="flex items-end gap-2 mt-1">
-                <p className="text-2xl font-bold">{m.current}</p>
-                <span className={cn("text-xs font-semibold flex items-center gap-0.5", m.up ? "text-emerald-600" : "text-amber-600")}>
-                  {m.up ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
-                  vs {compare} ({m.prior})
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="text-sm font-semibold mb-1">Classification breakdown</h2>
-            <p className="text-xs text-muted-foreground mb-4">Click a slice to view matching tickets in Triage</p>
-            <div className="h-56 flex items-center">
-              <ResponsiveContainer width="50%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={MOCK_CLASSIFICATION_DIST}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={75}
-                    paddingAngle={2}
-                    className="cursor-pointer"
-                    onClick={(_, index) => handlePieClick(MOCK_CLASSIFICATION_DIST[index].name)}
-                  >
-                    {MOCK_CLASSIFICATION_DIST.map((entry) => (
-                      <Cell key={entry.name} fill={entry.fill} className="hover:opacity-80" />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex-1 space-y-2">
-                {MOCK_CLASSIFICATION_DIST.map((d) => (
-                  <button
-                    key={d.name}
-                    type="button"
-                    onClick={() => handlePieClick(d.name)}
-                    className="flex items-center gap-2 w-full text-left text-sm hover:bg-muted/40 rounded-lg px-2 py-1 transition-colors"
-                  >
-                    <span className="size-2.5 rounded-full shrink-0" style={{ background: d.fill }} />
-                    <span className="flex-1">{d.name}</span>
-                    <span className="font-semibold">{d.value}%</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="text-sm font-semibold mb-4">Tickets over time</h2>
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={MOCK_ANALYTICS.slice(-7)}>
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Bar dataKey="accepted" fill="#10b981" radius={[4, 4, 0, 0]} className="cursor-pointer" onClick={() => { window.location.href = "/triage"; }} />
-                  <Bar dataKey="rejected" fill="#f87171" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="text-sm font-semibold">AI Performance — override & edit rates</h2>
-            <p className="text-xs text-muted-foreground mt-1 mb-4">Lower override rate = more trust in automation over time</p>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={AI_PERFORMANCE}>
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} unit="%" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="overrideRate" stroke="#ef4444" strokeWidth={2} name="Override rate" dot={false} />
-                  <Line type="monotone" dataKey="editRate" stroke="#f59e0b" strokeWidth={2} name="Edit rate" dot={false} />
-                  <Line type="monotone" dataKey="acceptanceRate" stroke="#10b981" strokeWidth={2} name="Acceptance rate" dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="text-sm font-semibold mb-4">Top affected code areas</h2>
-            <div className="space-y-2">
-              {MOCK_CODE_AREAS.map((area) => (
-                <Link
-                  key={area.area}
-                  href={`/triage?search=${encodeURIComponent(area.area)}`}
-                  className="flex items-center gap-3 rounded-lg border px-3 py-2 hover:bg-muted/30 transition-colors"
-                >
-                  <span className="font-mono text-xs flex-1 truncate">{area.area}</span>
-                  <span className="text-sm font-semibold shrink-0">{area.count} tickets</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
+        <p className="pb-2 text-center text-[11px] text-muted-foreground/60">
+          Compared against {compare}
+        </p>
       </div>
     </div>
   );

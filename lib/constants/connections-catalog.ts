@@ -18,6 +18,7 @@ export const REPO_CATALOG = [
 ] as const;
 
 export const OUTPUT_CATALOG = [
+  { id: "slack", name: "Slack", defaultProject: "#support" },
   { id: "linear", name: "Linear", defaultProject: "Backend — Q3" },
   { id: "jira", name: "Jira", defaultProject: "BACK" },
   { id: "monday", name: "Monday.com", defaultProject: "Development Board" },

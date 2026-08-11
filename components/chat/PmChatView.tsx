@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -46,10 +47,11 @@ export function PmChatView({ sessionId, ticketId }: Props) {
   const messages = usePmChatStore((s) => s.messagesBySession[sessionId] ?? EMPTY);
   const isTyping = usePmChatStore((s) => s.typingBySession[sessionId] ?? false);
   const sendUserMessage = usePmChatStore((s) => s.sendUserMessage);
-  const confirmProposal = usePmChatStore((s) => s.confirmProposal);
+  const draftProposalReply = usePmChatStore((s) => s.draftProposalReply);
   const sendProposalToDev = usePmChatStore((s) => s.sendProposalToDev);
   const rejectProposal = usePmChatStore((s) => s.rejectProposal);
   const sendCustomerReply = usePmChatStore((s) => s.sendCustomerReply);
+  const router = useRouter();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -126,7 +128,7 @@ export function PmChatView({ sessionId, ticketId }: Props) {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-[840px] -translate-y-4 space-y-8 sm:space-y-9"
+          className="w-full max-w-[820px] -translate-y-4 space-y-8 sm:space-y-9"
         >
           {/* Hero heading */}
           <div className="flex flex-col items-center space-y-3 text-center">
@@ -152,13 +154,6 @@ export function PmChatView({ sessionId, ticketId }: Props) {
                 <h1 className="text-[38px] font-extrabold tracking-[-0.045em] leading-none bg-gradient-to-r from-primary via-[#6D52DE] to-[#8E6CF3] bg-clip-text text-transparent sm:text-[42px]">
                   Ask PM
                 </h1>
-                <p className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground/65">
-                  <span className="relative flex size-1.5">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
-                  </span>
-                  Your AI product manager — ready to help
-                </p>
               </>
             )}
           </div>
@@ -189,9 +184,9 @@ export function PmChatView({ sessionId, ticketId }: Props) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.18 + i * 0.06, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                 onClick={() => send(text)}
-                className="group flex min-h-[82px] items-center gap-3.5 rounded-2xl border border-border/55 bg-card px-5 py-4 text-left shadow-[0_1px_2px_rgba(35,24,67,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_16px_36px_-10px_rgba(91,67,214,0.22)] active:translate-y-0"
+                className="group flex min-h-[68px] items-center gap-3.5 rounded-2xl border border-border/55 bg-card px-6 py-3 text-left shadow-[0_1px_2px_rgba(35,24,67,0.02)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_12px_28px_-10px_rgba(91,67,214,0.18)] active:translate-y-0"
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/12 to-primary/5 text-primary transition-all duration-200 group-hover:from-primary/22 group-hover:to-primary/8 group-hover:shadow-[0_0_0_5px_rgba(91,67,214,0.08)]">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl text-primary transition-all duration-200 group-hover:text-primary/70">
                   <PromptIcon size={17} weight="duotone" />
                 </div>
                 <div className="min-w-0">
@@ -223,16 +218,15 @@ export function PmChatView({ sessionId, ticketId }: Props) {
               onStreamTick={() => scrollBottom(true)}
               onStreamDone={() => setStreamId(null)}
               onConfirm={() => {
-                const id = confirmProposal(sessionId, msg.id);
-                if (id) toast.success("Ticket created");
+                draftProposalReply(sessionId, msg.id);
               }}
               onSendToDev={() => {
                 const id = sendProposalToDev(sessionId, msg.id);
-                if (id) toast.success("Sent to dev team");
+                if (id) router.push("/pipeline");
               }}
               onReject={() => rejectProposal(sessionId, msg.id)}
               onCustomerReply={() => {
-                if (sendCustomerReply(sessionId, msg.id)) toast.success("Reply sent");
+                if (sendCustomerReply(sessionId, msg.id)) toast.success("Message sent");
               }}
             />
           ))}
@@ -295,7 +289,7 @@ function Composer({
         </div>
       )}
       <div className={cn(
-        "flex flex-col gap-1.5 rounded-[26px] border border-border/70 bg-card p-2.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all duration-200 focus-within:border-primary/40 focus-within:shadow-[0_10px_32px_-6px_rgba(98,65,196,0.22)]",
+        "flex items-center gap-2 rounded-[26px] border border-border/70 bg-card p-2.5 shadow-[0_3px_16px_rgba(38,24,78,0.06)] transition-all duration-200 focus-within:border-primary/40 focus-within:shadow-[0_10px_32px_-6px_rgba(98,65,196,0.22)]",
         large && "rounded-[28px] border-black/[0.07] p-3 shadow-[0_10px_32px_-10px_rgba(46,26,120,0.16)] focus-within:border-primary/35",
       )}>
         <input ref={fileRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.txt,.csv,.png,.jpg,.jpeg,.xlsx" onChange={handleFileChange} />
@@ -313,19 +307,22 @@ function Composer({
           style={{ height: large ? 28 : 24 }}
           disabled={disabled}
           autoFocus={large}
-          className="max-h-[160px] w-full resize-none overflow-y-auto bg-transparent px-2 py-0.5 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/55 disabled:opacity-50 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className={cn(
+            "h-8 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-2 py-1 text-sm leading-relaxed outline-none placeholder:text-muted-foreground/55 disabled:opacity-50 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+            large && "text-[15px] font-medium placeholder:text-primary/45"
+          )}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); }
           }}
         />
 
-        <div className="flex items-center justify-between px-0.5">
+        <div className="contents">
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={disabled}
             className={cn(
-              "flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50",
+              "order-first flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50",
               large ? "size-9" : "size-8"
             )}
             title="Add attachment"
@@ -341,7 +338,7 @@ function Composer({
               setAttachedFile(null);
             }}
             className={cn(
-              "flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45",
+              "order-last flex shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45",
               large ? "size-9" : "size-8",
               canSend
                 ? "bg-gradient-to-br from-primary to-[#8E6CF3] hover:shadow-lg"
@@ -460,7 +457,7 @@ function Bubble({
           <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
             <div className="flex items-center gap-2">
               <EnvelopeSimple size={14} weight="duotone" className="text-primary" />
-              <p className="text-[12px] font-semibold">Draft reply to {msg.customerReply.customerName}</p>
+              <p className="text-[12px] font-semibold">Draft message for {msg.customerReply.customerName}</p>
             </div>
             <div className="rounded-lg border bg-card px-3.5 py-3 space-y-1.5">
               <p className="text-[11px] font-mono text-muted-foreground">Subject: {msg.customerReply.subject}</p>
@@ -484,12 +481,6 @@ function Bubble({
           />
         )}
 
-        {!stream && msg.createdTicketId && (
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200/60 px-3 py-2">
-            <Check size={14} weight="bold" className="text-emerald-600" />
-            <p className="text-[13px] font-medium text-emerald-700">Ticket created successfully</p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -535,7 +526,7 @@ function ProposalCard({ proposal, onSendToDev, onDraftReply, onDismiss }: {
 
       <div className="flex flex-wrap gap-2 pt-1">
         <ActionBtn icon={PaperPlaneTilt} label="Create ticket for dev" onClick={onSendToDev} variant="emerald" />
-        <ActionBtn icon={EnvelopeSimple} label="Draft customer reply" onClick={onDraftReply} variant="primary" />
+        <ActionBtn icon={EnvelopeSimple} label="Draft Slack message" onClick={onDraftReply} variant="primary" />
         <ActionBtn icon={XIcon} label="Not now" onClick={onDismiss} />
       </div>
     </div>

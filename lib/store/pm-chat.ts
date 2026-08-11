@@ -19,9 +19,12 @@ interface PmChatStore {
   ensureGlobalSession: () => string;
   createGlobalSession: () => string;
   selectSession: (sessionId: string) => void;
+  renameSession: (sessionId: string, title: string) => void;
+  /** Removes a conversation and returns the session that is active afterwards. */
+  deleteSession: (sessionId: string) => string;
   getMessages: (sessionId: string) => PmChatMessage[];
   sendUserMessage: (sessionId: string, content: string, ticket?: Ticket | null) => void;
-  confirmProposal: (sessionId: string, messageId: string) => string | null;
+  draftProposalReply: (sessionId: string, messageId: string) => boolean;
   sendProposalToDev: (sessionId: string, messageId: string) => string | null;
   rejectProposal: (sessionId: string, messageId: string) => void;
   startNonTechnicalReply: (ticketId: string) => void;
@@ -81,6 +84,52 @@ export const usePmChatStore = create<PmChatStore>()(
           activeSessionId: sessionId,
           ticketContextId: ticketIdFromSession(sessionId) ?? null,
         });
+      },
+
+      renameSession: (sessionId, title) => {
+        const trimmed = title.trim();
+        if (!trimmed) return;
+        set((s) => ({
+          sessions: s.sessions.map((x) => (x.id === sessionId ? { ...x, title: trimmed } : x)),
+        }));
+      },
+
+      deleteSession: (sessionId) => {
+        const { sessions, messagesBySession, typingBySession, activeSessionId } = get();
+        const remaining = sessions.filter((s) => s.id !== sessionId);
+        const nextMessages = { ...messagesBySession };
+        delete nextMessages[sessionId];
+        const nextTyping = { ...typingBySession };
+        delete nextTyping[sessionId];
+
+        // Deleting a background conversation leaves the current one alone.
+        if (activeSessionId !== sessionId) {
+          set({ sessions: remaining, messagesBySession: nextMessages, typingBySession: nextTyping });
+          return activeSessionId;
+        }
+
+        const nextActive = remaining.find((s) => !s.ticketId) ?? remaining[0];
+        if (nextActive) {
+          set({
+            sessions: remaining,
+            messagesBySession: nextMessages,
+            typingBySession: nextTyping,
+            activeSessionId: nextActive.id,
+            ticketContextId: ticketIdFromSession(nextActive.id) ?? null,
+          });
+          return nextActive.id;
+        }
+
+        // That was the last conversation — open a fresh one so the view is never empty.
+        const fresh = `global_${Date.now()}`;
+        set({
+          sessions: [sessionMeta(fresh, null, "No messages yet")],
+          messagesBySession: { [fresh]: emptySessionMessages() },
+          typingBySession: {},
+          activeSessionId: fresh,
+          ticketContextId: null,
+        });
+        return fresh;
       },
 
       ensureGlobalSession: () => {
@@ -229,17 +278,17 @@ export const usePmChatStore = create<PmChatStore>()(
         }, delay);
       },
 
-      confirmProposal: (sessionId, messageId) => {
+      draftProposalReply: (sessionId, messageId) => {
         const msgs = get().messagesBySession[sessionId] ?? [];
         const msg = msgs.find((m) => m.id === messageId);
-        if (!msg?.proposal) return null;
-        const id = useTicketStore.getState().createFromChat({
-          title: msg.proposal.title,
-          classification: msg.proposal.classification,
-          scope: msg.proposal.scope,
-          description: msg.proposal.summary,
-          chatSessionId: sessionId,
-        });
+        if (!msg?.proposal) return false;
+        const proposal = msg.proposal;
+        const draft = {
+          subject: `Customer update: ${proposal.title}`,
+          body: `Hi team,\n\nThanks for flagging this. We've reviewed ${proposal.title.toLowerCase()} and are looking into the next steps.\n\n${proposal.summary}\n\nWe'll share another update as soon as we have one.\n\n— Support Team`,
+          channel: "Slack",
+          customerName: "your team",
+        };
         set((s) => ({
           messagesBySession: {
             ...s.messagesBySession,
@@ -247,20 +296,15 @@ export const usePmChatStore = create<PmChatStore>()(
               m.id === messageId
                 ? {
                     ...m,
-                    createdTicketId: id,
-                    content: `${m.content}\n\n✓ **Ticket ${id}** created — now in Triage (via PM Agent Chat).`,
+                    content: `${m.content}\n\nHere's a message you can review and share with your team.`,
                     proposal: undefined,
+                    customerReply: draft,
                   }
                 : m
             ),
           },
         }));
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("pm-agent:ticket-created", { detail: { ticketId: id, title: msg.proposal.title } })
-          );
-        }
-        return id;
+        return true;
       },
 
       sendProposalToDev: (sessionId, messageId) => {
@@ -354,12 +398,13 @@ export const usePmChatStore = create<PmChatStore>()(
       sendCustomerReply: (sessionId, messageId) => {
         const msgs = get().messagesBySession[sessionId] ?? [];
         const msg = msgs.find((m) => m.id === messageId);
-        if (!msg?.customerReply || !msg.ticketId) return false;
+        if (!msg?.customerReply) return false;
 
-        const ticket = useTicketStore.getState().getById(msg.ticketId);
-        if (!ticket) return false;
-
-        useTicketStore.getState().acceptNonTechnical(msg.ticketId);
+        if (msg.ticketId) {
+          const ticket = useTicketStore.getState().getById(msg.ticketId);
+          if (!ticket) return false;
+          useTicketStore.getState().acceptNonTechnical(msg.ticketId);
+        }
 
         set((s) => ({
           messagesBySession: {
@@ -369,7 +414,7 @@ export const usePmChatStore = create<PmChatStore>()(
                 ? {
                     ...m,
                     customerReply: undefined,
-                    content: `${m.content}\n\n✓ **Sent via ${msg.customerReply!.channel}** — reply delivered to ${msg.customerReply!.customerName}.`,
+                    content: `${m.content}\n\n✓ **Sent via ${msg.customerReply!.channel}** — message shared with ${msg.customerReply!.customerName}.`,
                   }
                 : m
             ),

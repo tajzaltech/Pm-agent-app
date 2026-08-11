@@ -1,403 +1,314 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import {
-  AnimatePresence,
-  motion,
-  useMotionValue,
-  useReducedMotion,
-  useSpring,
-  useTransform,
-} from "framer-motion";
-import {
-  Check,
-  ChevronDown,
-  CircleDot,
-  FileCode2,
-  Gauge,
-  Inbox,
-  Loader2,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Check, FileCode2, Inbox, Loader2, ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { mono } from "@/components/marketing/theme";
-import { GlowChip, PanelChrome } from "@/components/marketing/PanelChrome";
+import { INK, INK_FAINT, INK_MUTED, LIFT, LINE, mono } from "@/components/marketing/theme";
+import { PMAgentLogo } from "@/components/shared/BrandLogos";
 
-const REASONING = [
-  "Reading complaint",
-  "Detecting duplicate payment issue",
-  "Classifying as Bug",
-  "Searching related complaints",
-  "Finding affected accounts",
-  "Investigating repository",
-  "Tracing payment webhook",
+const STEPS = [
+  "Classifying the report",
+  "Grouping similar complaints",
+  "Reading the payments service",
+  "Tracing the Stripe webhook",
   "Checking idempotency logic",
   "Estimating engineering scope",
   "Writing acceptance criteria",
 ];
 
-const CODE_REFS = [
-  "payments/webhooks/stripe-handler.ts",
-  "services/payment-processor.ts",
-  "utils/idempotency.ts",
-];
+const ROTATING_WORDS = ["tickets", "feedback", "requests", "reports", "issues"];
+
+const CODE_REFS = ["payments/webhooks/stripe-handler.ts", "services/payment-processor.ts", "utils/idempotency.ts"];
 
 const ACCEPTANCE = [
-  "Duplicate webhook events do not create duplicate charges",
-  "Retry events return the original transaction result",
-  "Regression tests cover repeated Stripe webhook events",
+  "Duplicate webhook events do not create a second charge",
+  "Retried events return the original transaction result",
+  "Regression tests cover repeated Stripe webhooks",
 ];
-
-const PLATFORMS = ["Zendesk", "Freshdesk", "Intercom", "Help Scout", "GitHub", "Jira", "Linear"];
-
-// deterministic particle field (avoids hydration mismatch)
-const PARTICLES = Array.from({ length: 26 }, (_, i) => ({
-  left: (i * 37.7) % 100,
-  top: (i * 53.3) % 100,
-  size: (i % 3) + 1,
-  delay: (i % 7) * 0.4,
-  dur: 5 + (i % 5),
-}));
 
 export function HeroSection() {
   const reduce = useReducedMotion();
-  const [done, setDone] = useState(0);
-  const sectionRef = useRef<HTMLElement>(null);
+  const [ticked, setTicked] = useState(0);
+  const [wordIndex, setWordIndex] = useState(0);
 
-  // live reasoning ticker → also drives the right-hand ticket assembly
   useEffect(() => {
+    if (reduce) return;
     let d = 0;
     let timer: ReturnType<typeof setTimeout>;
     const run = () => {
-      const delay = d >= REASONING.length ? 2600 : 620;
-      timer = setTimeout(() => {
-        d = d >= REASONING.length ? 0 : d + 1;
-        setDone(d);
-        run();
-      }, delay);
+      timer = setTimeout(
+        () => {
+          d = d >= STEPS.length ? 0 : d + 1;
+          setTicked(d);
+          run();
+        },
+        d >= STEPS.length ? 3200 : 700
+      );
     };
     run();
     return () => clearTimeout(timer);
-  }, []);
+  }, [reduce]);
 
-  // cursor-reactive parallax
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const sx = useSpring(mx, { stiffness: 120, damping: 20 });
-  const sy = useSpring(my, { stiffness: 120, damping: 20 });
-  const leftX = useTransform(sx, [-1, 1], [16, -16]);
-  const leftY = useTransform(sy, [-1, 1], [10, -10]);
-  const rightX = useTransform(sx, [-1, 1], [-16, 16]);
-  const rightY = useTransform(sy, [-1, 1], [-10, 10]);
-  const centerY = useTransform(sy, [-1, 1], [6, -6]);
-
-  const onMove = (e: React.MouseEvent) => {
+  useEffect(() => {
     if (reduce) return;
-    const r = sectionRef.current?.getBoundingClientRect();
-    if (!r) return;
-    mx.set(((e.clientX - r.left) / r.width - 0.5) * 2);
-    my.set(((e.clientY - r.top) / r.height - 0.5) * 2);
-  };
+    const timer = setInterval(() => {
+      setWordIndex((index) => (index + 1) % ROTATING_WORDS.length);
+    }, 2200);
+    return () => clearInterval(timer);
+  }, [reduce]);
 
-  const progress = done / REASONING.length;
-  const confidence = Math.round(progress * 87);
-  const complete = done >= REASONING.length;
+  // With reduced motion the panel renders its finished state instead of animating.
+  const done = reduce ? STEPS.length : ticked;
+  const progress = done / STEPS.length;
+  const complete = done >= STEPS.length;
 
   return (
-    <section
-      ref={sectionRef}
-      id="top"
-      onMouseMove={onMove}
-      className="relative flex min-h-screen items-center overflow-hidden pt-40 pb-16 sm:pt-48"
-    >
-      {/* backdrop */}
+    <section id="top" className="relative overflow-hidden pt-32 pb-20 sm:pt-40">
+      {/* backdrop — one soft brand wash, nothing more */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-grid-dark [mask-image:radial-gradient(ellipse_70%_55%_at_50%_35%,black,transparent)]" />
-        <div className="absolute left-1/2 top-1/3 h-[38rem] w-[52rem] -translate-x-1/2 -translate-y-1/3 rounded-[50%] bg-[radial-gradient(closest-side,rgba(91,67,214,0.28),transparent)] blur-[40px]" />
-        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#050507] to-transparent" />
-        {!reduce &&
-          PARTICLES.map((p, i) => (
-            <motion.span
-              key={i}
-              className="absolute rounded-full bg-[#a48bf0]/40"
-              style={{ left: `${p.left}%`, top: `${p.top}%`, width: p.size, height: p.size }}
-              animate={{ y: [0, -18, 0], opacity: [0.15, 0.6, 0.15] }}
-              transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: "easeInOut" }}
-            />
-          ))}
+        <div className="absolute left-1/2 top-[-14rem] h-[34rem] w-[62rem] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(closest-side,rgba(91,67,214,0.10),transparent)]" />
       </div>
 
       <div className="mx-auto w-full max-w-6xl px-6">
-        {/* headline */}
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="text-[2.5rem] font-semibold leading-[1.04] tracking-[-0.03em] text-white sm:text-6xl">
-            <MaskLine delay={0.05}>Support tickets in.</MaskLine>
-            <MaskLine delay={0.18}>
-              <span className="bg-gradient-to-r from-white via-[#c9bcff] to-[#8b6ff5] bg-clip-text text-transparent">
-                Engineering-ready work out.
-              </span>
-            </MaskLine>
-          </h1>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.45, duration: 0.6 }}
-            className="mt-8"
+          <motion.h1
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              "text-[38px] font-semibold leading-[1.06] tracking-[-0.035em] sm:text-[58px]",
+              INK
+            )}
           >
-            <p className={`text-[11px] uppercase tracking-wider text-white/30 ${mono}`}>
-              Reads from support · investigates code · ships to your tracker
-            </p>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
-              {PLATFORMS.map((p) => (
-                <span key={p} className={`text-[13px] font-medium text-white/35 ${mono}`}>
-                  {p}
-                </span>
-              ))}
-            </div>
-          </motion.div>
+            Turn support{" "}
+            <motion.span
+              key={ROTATING_WORDS[wordIndex]}
+              initial={reduce ? false : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="inline-block bg-gradient-to-r from-[#5b43d6] via-[#7a5cf0] to-[#a48bf0] bg-clip-text text-transparent"
+            >
+              {ROTATING_WORDS[wordIndex]}
+            </motion.span>{" "}into
+            <br className="hidden sm:block" />{" "}
+            engineering-ready work.
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+            className={cn("mx-auto mt-6 max-w-xl text-[16.5px] leading-relaxed", INK_MUTED)}
+          >
+            Reads from support. Investigates code. Ships to your tracker.
+          </motion.p>
         </div>
 
-        {/* 3-panel product preview */}
+        {/* product frame */}
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-16 grid items-stretch gap-4 lg:grid-cols-[1fr_1.1fr_1fr]"
+          transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className={cn("mx-auto mt-16 max-w-5xl overflow-hidden rounded-[20px] border bg-white", LINE, LIFT)}
         >
-          {/* flow lanes (desktop) */}
-          <div className="pointer-events-none absolute inset-0 hidden lg:block">
-            <FlowLane className="left-[33%] w-[6%]" active={done > 0} />
-            <FlowLane className="left-[61%] w-[6%]" active={complete} />
+          {/* toolbar */}
+          <div className={cn("flex h-11 items-center gap-3 border-b bg-[#fcfcfd] px-4", LINE)}>
+            <span className={cn("truncate text-[11.5px]", mono, INK_FAINT)}>
+              ask-pm / ticket #48213 / Acme Logistics
+            </span>
+            <span className={cn("ml-auto hidden shrink-0 whitespace-nowrap text-[11px] font-medium sm:inline", INK_FAINT)}>
+              {complete ? "Ready for review" : "Analyzing"}
+            </span>
           </div>
 
-          {/* LEFT — incoming ticket */}
-          <motion.div style={reduce ? undefined : { x: leftX, y: leftY }}>
-            <PanelChrome label="Incoming · Zendesk" icon={Inbox}>
+          <div className="grid divide-y divide-[#f0f0f5] lg:grid-cols-[0.95fr_1.05fr_1fr] lg:divide-x lg:divide-y-0">
+            {/* incoming */}
+            <Column icon={Inbox} label="Incoming from Zendesk">
               <div className="flex items-center gap-2.5">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-[11px] font-bold text-white shadow-[0_4px_14px_-2px_rgba(56,132,255,0.6)]">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#eef4fd] text-[11px] font-bold text-[#2f6fb5]">
                   AL
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-[12.5px] font-semibold text-white/90">Acme Logistics</p>
-                  <p className="text-[10.5px] text-white/40">Enterprise · $148k / yr</p>
+                  <p className={cn("truncate text-[13px] font-semibold", INK)}>Acme Logistics</p>
+                  <p className={cn("text-[11px]", INK_FAINT)}>Enterprise, $148k / yr</p>
                 </div>
               </div>
-              <p className="mt-3.5 text-[13.5px] font-medium leading-snug text-white/90">
+              <p className={cn("mt-4 text-[13.5px] font-medium leading-snug", INK)}>
                 &ldquo;Payment was charged twice after checkout.&rdquo;
               </p>
-              <div className="mt-3.5 grid grid-cols-2 gap-2">
-                <MetaTile k="Priority" v="High" tone="text-red-300" />
-                <MetaTile k="Sentiment" v="Frustrated" tone="text-amber-300" />
-                <MetaTile k="Ticket age" v="14 min" />
-                <MetaTile k="Source" v="Zendesk" />
-              </div>
-              <div className="mt-auto pt-3.5">
-                <div className="flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.02] px-2.5 py-2 text-[11px] text-white/50">
-                  <CircleDot className="size-3 shrink-0 text-white/30" /> Awaiting triage
-                </div>
-              </div>
-            </PanelChrome>
-          </motion.div>
+              <dl className="mt-4 grid grid-cols-2 gap-2">
+                <Meta k="Priority" v="High" tone="text-[#c0392f]" />
+                <Meta k="Sentiment" v="Frustrated" tone="text-[#a6690a]" />
+                <Meta k="Ticket age" v="14 min" />
+                <Meta k="Product area" v="Payments" />
+              </dl>
+            </Column>
 
-          {/* CENTER — Ask PM reasoning */}
-          <motion.div style={reduce ? undefined : { y: centerY }}>
-            <PanelChrome label="Ask PM · analyzing" icon={Sparkles} tone="brand" glow>
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-[12px] font-semibold text-white">Reasoning</span>
-                <span className={`rounded-full bg-white/[0.06] px-2 py-0.5 text-[10.5px] text-white/50 ${mono}`}>
-                  {Math.min(done, REASONING.length)}/{REASONING.length}
-                </span>
-              </div>
-              <ul className="h-[196px] space-y-1 overflow-hidden">
-                {REASONING.map((r, i) => {
+            {/* investigating */}
+            <Column icon={PMAgentLogo} label="Ask PM investigating" brand>
+              <ul className="space-y-1">
+                {STEPS.map((s, i) => {
                   const isDone = i < done;
                   const isActive = i === done && !complete;
                   return (
                     <li
-                      key={r}
+                      key={s}
                       className={cn(
-                        "flex items-center gap-2 rounded-lg px-2 py-[5px] text-[12px] transition-all duration-300",
-                        isActive && "bg-[#5b43d6]/12 text-white ring-1 ring-inset ring-[#5b43d6]/25",
-                        isDone && !isActive && "text-white/40",
-                        !isDone && !isActive && "text-white/18"
+                        "flex items-center gap-2 rounded-lg px-2 py-[5px] text-[12.5px] transition-colors duration-300",
+                        isActive && "bg-[#f3f0fe] font-medium text-[#101018]",
+                        isDone && !isActive && "text-[#5b5e70]",
+                        !isDone && !isActive && "text-[#b9bbc7]"
                       )}
                     >
                       {isDone ? (
-                        <Check className="size-3.5 shrink-0 text-emerald-400" />
+                        <Check className="size-3.5 shrink-0 text-emerald-600" />
                       ) : isActive ? (
-                        <Loader2 className="size-3.5 shrink-0 animate-spin text-[#a48bf0]" />
+                        <Loader2 className="size-3.5 shrink-0 animate-spin text-[#5b43d6]" />
                       ) : (
-                        <span className="size-3.5 shrink-0 rounded-full border border-white/15" />
+                        <span className="size-3.5 shrink-0 rounded-full border border-[#e2e2ea]" />
                       )}
-                      <span className="truncate">{r}</span>
+                      <span className="truncate">{s}</span>
                     </li>
                   );
                 })}
               </ul>
-              <div className="mt-3 flex items-center gap-2">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="mt-4 flex items-center gap-2.5">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#f0f0f5]">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-[#5b43d6] to-[#a48bf0] shadow-[0_0_10px_1px_rgba(164,139,240,0.6)]"
+                    className="h-full rounded-full bg-[#5b43d6]"
                     animate={{ width: `${progress * 100}%` }}
                     transition={{ ease: "easeOut" }}
                   />
                 </div>
-                <span className={`text-[10.5px] text-white/40 ${mono}`}>{Math.round(progress * 100)}%</span>
+                <span className={cn("text-[11px] tabular-nums", mono, INK_FAINT)}>
+                  {Math.min(done, STEPS.length)}/{STEPS.length}
+                </span>
               </div>
-            </PanelChrome>
-          </motion.div>
+            </Column>
 
-          {/* RIGHT — engineering-ready ticket */}
-          <motion.div style={reduce ? undefined : { x: rightX, y: rightY }}>
-            <PanelChrome label="Engineering-ready" icon={FileCode2}>
-              <AnimatePresence mode="wait">
-                {progress < 0.35 ? (
-                  <motion.div
-                    key="skeleton"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="space-y-2"
-                  >
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="h-3 animate-pulse rounded bg-white/[0.06]"
-                        style={{ width: `${90 - i * 12}%`, animationDelay: `${i * 0.15}s` }}
-                      />
-                    ))}
-                    <p className="flex items-center gap-1.5 pt-2 text-[11px] text-white/30">
-                      <Loader2 className="size-3 animate-spin" /> Assembling ticket…
-                    </p>
-                  </motion.div>
-                ) : (
-                  <motion.div key="ticket" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                    <p className="text-[13px] font-semibold leading-snug text-white">
-                      Prevent duplicate payment processing in checkout webhook
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <GlowChip dot="bg-red-400 text-red-400" className="border-red-500/25 bg-red-500/10 text-red-300">
-                        Bug
-                      </GlowChip>
-                      <GlowChip dot="bg-amber-400 text-amber-400" className="border-amber-500/25 bg-amber-500/10 text-amber-300">
-                        Sev: High
-                      </GlowChip>
-                      <GlowChip className="border-white/10 bg-white/5 text-white/60">Scope: M</GlowChip>
-                      <span className="ml-auto flex items-center gap-1">
-                        <Gauge className="size-3 text-emerald-400" />
-                        <span className="text-[11px] font-bold text-emerald-300">{confidence}%</span>
-                      </span>
-                    </div>
-                    <RevealRows show={progress > 0.55}>
-                      <p className={`text-[10.5px] uppercase tracking-wider text-white/30 ${mono}`}>Code references</p>
+            {/* engineering-ready */}
+            <Column icon={FileCode2} label="Engineering-ready">
+              {progress < 0.3 ? (
+                <div className="space-y-2.5">
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="h-3 animate-pulse rounded bg-[#f2f2f6]"
+                      style={{ width: `${92 - i * 13}%`, animationDelay: `${i * 0.15}s` }}
+                    />
+                  ))}
+                  <p className={cn("flex items-center gap-1.5 pt-1 text-[11.5px]", INK_FAINT)}>
+                    <Loader2 className="size-3 animate-spin" /> Assembling ticket…
+                  </p>
+                </div>
+              ) : (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                  <p className={cn("text-[13.5px] font-semibold leading-snug", INK)}>
+                    Prevent duplicate payment processing in the checkout webhook
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Chip className="border-[#f3d4d0] bg-[#fdf2f1] text-[#c0392f]">Bug</Chip>
+                    <Chip className="border-[#f2e0bd] bg-[#fdf7ea] text-[#a6690a]">Sev: High</Chip>
+                    <Chip className="border-[#e8e8ef] bg-[#fafafc] text-[#5b5e70]">Scope: M</Chip>
+                    <Chip className="border-[#c9e9db] bg-[#f0faf6] text-[#0f7f5b]">87% confidence</Chip>
+                  </div>
+
+                  {progress > 0.5 && (
+                    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-1.5">
+                      <p className={cn("text-[10.5px] uppercase tracking-[0.14em]", mono, INK_FAINT)}>Code references</p>
                       {CODE_REFS.map((f) => (
                         <div
                           key={f}
-                          className={`flex items-center gap-2 truncate rounded-lg border border-white/[0.06] bg-black/30 px-2.5 py-1.5 text-[11px] text-white/60 ${mono}`}
+                          className={cn(
+                            "flex items-center gap-2 truncate rounded-lg border bg-[#fbfbfd] px-2.5 py-1.5 text-[11px] text-[#5b5e70]",
+                            LINE,
+                            mono
+                          )}
                         >
-                          <FileCode2 className="size-3 shrink-0 text-[#8b6ff5]" /> {f}
+                          <FileCode2 className="size-3 shrink-0 text-[#5b43d6]" />
+                          <span className="truncate">{f}</span>
                         </div>
                       ))}
-                    </RevealRows>
-                    <RevealRows show={progress > 0.85}>
-                      <p className={`pt-1 text-[10.5px] uppercase tracking-wider text-white/30 ${mono}`}>Acceptance</p>
+                    </motion.div>
+                  )}
+
+                  {progress > 0.8 && (
+                    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
+                      <p className={cn("pt-1 text-[10.5px] uppercase tracking-[0.14em]", mono, INK_FAINT)}>Acceptance</p>
                       {ACCEPTANCE.map((a) => (
-                        <div key={a} className="flex items-start gap-1.5 text-[11px] text-white/55">
-                          <Check className="mt-0.5 size-3 shrink-0 text-emerald-400" /> {a}
+                        <div key={a} className="flex items-start gap-1.5 text-[11.5px] leading-snug text-[#5b5e70]">
+                          <Check className="mt-0.5 size-3 shrink-0 text-emerald-600" /> {a}
                         </div>
                       ))}
-                    </RevealRows>
-                    {complete && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-[#6d54e6] to-[#5b43d6] px-3 py-2 text-[11.5px] font-semibold text-white shadow-[0_10px_24px_-8px_rgba(91,67,214,0.7)]"
-                      >
-                        <ShieldCheck className="size-3.5" /> Ready for PM approval
-                      </motion.div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </PanelChrome>
-          </motion.div>
+                    </motion.div>
+                  )}
+
+                  {complete && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-1.5 rounded-lg bg-[#f3f0fe] px-3 py-2 text-[11.5px] font-semibold text-[#5b43d6]"
+                    >
+                      <ShieldCheck className="size-3.5" /> Waiting for PM approval
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </Column>
+          </div>
         </motion.div>
       </div>
-
-      {/* scroll indicator */}
-      <motion.a
-        href="#pipeline"
-        aria-label="Scroll to how it works"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2 }}
-        className="absolute bottom-6 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-1.5 text-white/30 sm:flex"
-      >
-        <span className={`text-[10px] uppercase tracking-widest ${mono}`}>Scroll</span>
-        <motion.span animate={{ y: [0, 5, 0] }} transition={{ duration: 1.6, repeat: Infinity }}>
-          <ChevronDown className="size-4" />
-        </motion.span>
-      </motion.a>
     </section>
   );
 }
 
 /* ── building blocks ─────────────────────────────────────── */
 
-function MaskLine({ children, delay }: { children: React.ReactNode; delay: number }) {
+function Column({
+  icon: Icon,
+  label,
+  brand,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  brand?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="block overflow-hidden pb-[0.08em]">
-      <motion.span
-        initial={{ y: "110%" }}
-        animate={{ y: 0 }}
-        transition={{ delay, duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-        className="block"
-      >
-        {children}
-      </motion.span>
-    </span>
-  );
-}
-
-function MetaTile({ k, v, tone }: { k: string; v: string; tone?: string }) {
-  return (
-    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5">
-      <p className={`text-[9.5px] uppercase tracking-wide text-white/30 ${mono}`}>{k}</p>
-      <p className={cn("mt-0.5 text-[11.5px] font-semibold text-white/80", tone)}>{v}</p>
-    </div>
-  );
-}
-
-function RevealRows({ show, children }: { show: boolean; children: React.ReactNode }) {
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="space-y-1 overflow-hidden"
+    <div className={cn("flex min-h-[19rem] flex-col p-5", brand && "bg-[#fcfbff]")}>
+      <div className="mb-4 flex items-center gap-2">
+        <Icon className={cn("size-4 shrink-0", brand ? "text-[#5b43d6]" : "text-[#8b8e9e]")} />
+        <span
+          className={cn(
+            "text-[10.5px] font-semibold uppercase tracking-[0.14em]",
+            mono,
+            brand ? "text-[#5b43d6]" : "text-[#8b8e9e]"
+          )}
         >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
+          {label}
+        </span>
+      </div>
+      {children}
+    </div>
   );
 }
 
-function FlowLane({ className, active }: { className: string; active: boolean }) {
+function Meta({ k, v, tone }: { k: string; v: string; tone?: string }) {
   return (
-    <div className={cn("absolute top-[46%] h-px", className)}>
-      <div className="h-full w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      {active && (
-        <motion.span
-          className="absolute top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-[#5b43d6] shadow-[0_0_8px_2px_rgba(91,67,214,0.7)]"
-          animate={{ left: ["0%", "100%"], opacity: [0, 1, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-        />
-      )}
+    <div className={cn("rounded-lg border bg-[#fbfbfd] px-2.5 py-1.5", LINE)}>
+      <dt className={cn("text-[9.5px] uppercase tracking-[0.12em]", mono, INK_FAINT)}>{k}</dt>
+      <dd className={cn("mt-0.5 text-[11.5px] font-semibold", tone ?? "text-[#101018]")}>{v}</dd>
     </div>
+  );
+}
+
+function Chip({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-semibold", className)}>
+      {children}
+    </span>
   );
 }

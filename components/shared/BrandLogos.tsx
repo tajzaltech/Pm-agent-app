@@ -52,13 +52,24 @@ export function JiraLogo({ className }: LogoProps) {
 }
 
 export function SalesforceLogo({ className }: LogoProps) {
+  // Official Salesforce cloud mark (single path, brand blue).
   return (
-    <svg viewBox="0 0 96 64" className={className} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Salesforce logo">
+    <svg viewBox="0 0 24 24" className={className} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Salesforce logo">
       <path
-        d="M40.4 13.7c3.1-3.2 7.5-5.2 12.4-5.2 6.5 0 12.2 3.6 15.1 8.9 2.5-1.1 5.2-1.7 8.1-1.7 10.9 0 19.7 8.6 19.7 19.2S86.9 54.1 76 54.1c-1.3 0-2.6-.1-3.8-.4-2.4 4.3-7.1 7.3-12.5 7.3-5.5 0-10.3-3-12.7-7.5-2.1.5-4.2.8-6.5.8-10.2 0-18.9-5.8-22.9-14.2-1.7.4-3.4.7-5.2.7C5.6 40.8 0 35.4 0 28.7s5.6-12.1 12.4-12.1c1.7 0 3.4.3 4.9 1 2.8-6.2 9.1-10.6 16.5-10.6 2.4 0 4.6.5 6.6 1.3Z"
+        d="M10.006 5.415a4.195 4.195 0 013.045-1.306c1.56 0 2.954.9 3.69 2.205.63-.3 1.35-.45 2.1-.45 2.85 0 5.159 2.34 5.159 5.22s-2.31 5.22-5.176 5.22c-.345 0-.69-.044-1.02-.104a3.75 3.75 0 01-3.3 1.95c-.6 0-1.155-.15-1.65-.375A4.314 4.314 0 018.88 20.4a4.302 4.302 0 01-4.05-2.82c-.27.062-.54.076-.825.076-2.204 0-4.005-1.8-4.005-4.05 0-1.5.811-2.805 2.01-3.51-.255-.57-.39-1.2-.39-1.846 0-2.58 2.1-4.65 4.65-4.65 1.53 0 2.85.705 3.72 1.8"
         fill="#00A1E0"
       />
-      <path d="M21.2 34.8c2.8 2.7 6.8 4.3 11.4 4.3 5.2 0 8.4-2.8 8.4-6.5 0-4.2-3.8-5.6-7.3-6.7-2.4-.8-4.5-1.4-4.5-2.9 0-1.3 1.2-2.2 3.2-2.2 2.3 0 4.5.8 6.3 2.4l2.2-3.5c-2.2-1.9-5-3-8.4-3-5 0-8.1 2.8-8.1 6.4 0 4 3.7 5.2 7.1 6.3 2.5.8 4.7 1.5 4.7 3.2 0 1.4-1.2 2.4-3.6 2.4-2.8 0-5.4-1.2-7.1-2.9l-2.3 3.7Zm22.4 3.8h4.7V27.2c0-3.3 2.2-5.7 5.3-5.7 3.1 0 5 2.2 5 5.5v11.6h4.7V26.2c0-5.7-3.2-9.4-8.5-9.4-3.2 0-5.4 1.4-6.5 3V17.2h-4.7v21.4Z" fill="#fff" />
+    </svg>
+  );
+}
+
+export function EmailLogo({ className }: LogoProps) {
+  // "Email" is a generic source (forwarded inbox), so this is a neutral envelope
+  // rather than any one mail provider's brand mark.
+  return (
+    <svg viewBox="0 0 24 24" className={className} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Email icon">
+      <rect x="2" y="4.5" width="20" height="15" rx="2.5" fill="#5b43d6" />
+      <path d="M4.5 8l7.5 5 7.5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }

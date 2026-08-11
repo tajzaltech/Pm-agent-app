@@ -11,6 +11,10 @@ export default function SignInPage() {
       description="Continue reviewing draft tickets, code references, and delivery decisions from your workspace."
       footer={
         <>
+          <Link href="/" className="mb-3 inline-flex font-medium text-primary hover:underline">
+            ← Back to home
+          </Link>
+          <br />
           Do not have an account?{" "}
           <Link href="/signup" className="font-medium text-primary hover:underline">
             Create one

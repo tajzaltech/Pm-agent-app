@@ -11,6 +11,7 @@ import {
   JiraLogo,
   LinearLogo,
   MondayLogo,
+  SlackLogo,
 } from "@/components/shared/BrandLogos";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +19,7 @@ import { useOnboardingStore } from "@/lib/store/onboarding";
 import { cn } from "@/lib/utils";
 
 const OUTPUTS = [
+  { id: "slack", name: "Slack", Logo: SlackLogo, desc: "Share customer updates" },
   { id: "linear", name: "Linear", Logo: LinearLogo, desc: "Modern project tracking" },
   { id: "jira", name: "Jira", Logo: JiraLogo, desc: "Atlassian project management" },
   { id: "monday", name: "Monday.com", Logo: MondayLogo, desc: "Work OS and boards" },
@@ -26,6 +28,7 @@ const OUTPUTS = [
 ];
 
 const PROJECTS: Record<string, string[]> = {
+  slack: ["#support", "#customer-success", "#product"],
   linear: ["Backend - Q3", "Frontend - Q3", "Infrastructure", "Mobile"],
   jira: ["BACK", "FRONT", "OPS", "MOBILE"],
   monday: ["Development Board", "Sprint Board", "Bug Tracker"],
