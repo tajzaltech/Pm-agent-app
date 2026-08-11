@@ -1,0 +1,16 @@
+# Netlify build settings. Values here take precedence over the site UI, so the
+# deploy no longer depends on auto-detection guessing the right publish dir.
+#
+# This app cannot be a static export: the client calls its own route handlers
+# (/api/draft-tickets, /api/deliver, /api/dispatch, …), which need a server.
+# The Next.js runtime plugin turns those into Netlify Functions.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
