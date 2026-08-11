@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Boxes, Check, FileCode2, GitBranch, Inbox, Ruler, Tag, UserCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { BrandMark, type Brand } from "@/components/marketing/BrandTile";
-import { CARD, CARD_SHADOW, INK, INK_FAINT, INK_MUTED, LINE, mono } from "@/components/marketing/theme";
+import { CARD, CARD_SHADOW, INK, INK_FAINT, LINE, mono } from "@/components/marketing/theme";
 import { Reveal, SectionHead } from "@/components/marketing/ui";
 
 const SOURCES: Brand[] = [
@@ -22,14 +24,17 @@ const TRACKERS: Brand[] = [
 ];
 
 const STAGES = [
-  { icon: Inbox, label: "Intake" },
-  { icon: Tag, label: "Classify" },
-  { icon: Boxes, label: "Group" },
-  { icon: GitBranch, label: "Trace code" },
-  { icon: Ruler, label: "Scope" },
-  { icon: FileCode2, label: "Draft" },
-  { icon: UserCheck, label: "Approve" },
+  { icon: Inbox, label: "Intake", note: "The ticket arrives" },
+  { icon: Tag, label: "Classify", note: "Bug, or a feature?" },
+  { icon: Boxes, label: "Group", note: "24 say the same thing" },
+  { icon: GitBranch, label: "Trace code", note: "Finds the guilty file" },
+  { icon: Ruler, label: "Scope", note: "Sizes the work" },
+  { icon: FileCode2, label: "Draft", note: "Writes it up" },
+  { icon: UserCheck, label: "Approve", note: "You have the last word" },
 ];
+
+/** How long each stage holds before the rail advances. */
+const STAGE_MS = 1600;
 
 export function HowItWorksSection() {
   return (
@@ -131,27 +136,8 @@ export function HowItWorksSection() {
           </Step>
         </div>
 
-        {/* the full pipeline, as one visual rail */}
-        <Reveal delay={0.1}>
-          <div className={cn("mt-4 p-6", CARD, CARD_SHADOW)}>
-            <ol className="relative flex items-start justify-between gap-1">
-              <span className="absolute left-[6%] right-[6%] top-5 -z-0 h-px bg-[#e8e8ef]" aria-hidden />
-              {STAGES.map((s) => (
-                <li key={s.label} className="relative z-10 flex flex-1 flex-col items-center gap-2.5">
-                  <span
-                    className={cn(
-                      "flex size-10 items-center justify-center rounded-full border bg-white text-[#5b43d6]",
-                      LINE
-                    )}
-                  >
-                    <s.icon className="size-4" />
-                  </span>
-                  <span className={cn("text-center text-[11px] font-medium leading-tight", INK_MUTED)}>{s.label}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </Reveal>
+        {/* the full pipeline — no panel, it lights up a stage at a time */}
+        <StageRail />
       </div>
     </section>
   );
@@ -170,5 +156,73 @@ function Step({ index, title, children }: { index: number; title: string; childr
         {children}
       </div>
     </Reveal>
+  );
+}
+
+/** Walks the seven stages on a loop, growing whichever one is live. */
+function StageRail() {
+  const reduce = useReducedMotion();
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    if (reduce) return;
+    const timer = setInterval(() => {
+      setActive((i) => (i + 1) % STAGES.length);
+    }, STAGE_MS);
+    return () => clearInterval(timer);
+  }, [reduce]);
+
+  return (
+    <div className="mt-12">
+      <ol className="relative grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-4 md:flex md:items-start md:justify-between md:gap-1">
+        {/* the rail only reads as a rail once the stages sit in one row */}
+        <span className="absolute left-[7%] right-[7%] top-8 hidden h-px bg-[#eceaf4] md:block" aria-hidden />
+        <motion.span
+          className="absolute left-[7%] top-8 hidden h-px bg-gradient-to-r from-[#5b43d6] to-[#a48bf0] md:block"
+          animate={{ width: `${(active / (STAGES.length - 1)) * 86}%` }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          aria-hidden
+        />
+
+        {STAGES.map((s, i) => {
+          const live = reduce || i === active;
+          return (
+            <li key={s.label} className="relative z-10 flex flex-col items-center gap-3 md:flex-1">
+              <motion.span
+                animate={live ? { scale: 1.18 } : { scale: 1 }}
+                transition={{ type: "spring", stiffness: 320, damping: 22 }}
+                className={cn(
+                  "flex size-16 items-center justify-center rounded-full transition-colors duration-300",
+                  live
+                    ? "bg-gradient-to-br from-[#6d54e6] to-[#5b43d6] text-white shadow-[0_12px_28px_-10px_rgba(91,67,214,0.75)]"
+                    : "bg-[#f4f2fc] text-[#a9a2c8]"
+                )}
+              >
+                <s.icon className="size-7" />
+              </motion.span>
+
+              <span className="flex flex-col items-center gap-1 px-1 text-center">
+                <span
+                  className={cn(
+                    "text-[13px] font-semibold leading-tight transition-colors duration-300",
+                    live ? "text-[#5b43d6]" : INK
+                  )}
+                >
+                  {s.label}
+                </span>
+                <span
+                  className={cn(
+                    "text-[11.5px] leading-snug transition-colors duration-300",
+                    live ? "text-[#5b5e70]" : "text-[#a9abb8]"
+                  )}
+                >
+                  {s.note}
+                </span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
