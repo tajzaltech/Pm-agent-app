@@ -99,8 +99,10 @@ function PipelineContent() {
             />
           </div>
         </div>
-        <div className="flex items-end justify-between gap-3 -mb-px">
-          <div className="flex min-w-0 gap-0.5 overflow-x-auto">
+        {/* On a phone the toggle stole width from the tabs, clipping "Rejected" and
+            hiding "All"; below sm it moves onto its own line above them. */}
+        <div className="-mb-px flex flex-col-reverse gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+          <div className="flex min-w-0 gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {TABS.map(({ value, label, icon: Icon }) => (
               <button
                 key={value}
@@ -126,7 +128,7 @@ function PipelineContent() {
           </div>
 
           <div
-            className="mb-1 flex shrink-0 items-center rounded-lg border border-border/70 bg-background p-0.5 shadow-sm"
+            className="mb-1 flex shrink-0 items-center self-end rounded-lg border border-border/70 bg-background p-0.5 shadow-sm sm:self-auto"
             aria-label="Ticket view"
           >
             <button

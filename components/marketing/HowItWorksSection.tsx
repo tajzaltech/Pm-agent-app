@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Boxes, Check, FileCode2, GitBranch, Inbox, Ruler, Tag, UserCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -33,8 +31,6 @@ const STAGES = [
   { icon: UserCheck, label: "Approve", note: "You have the last word" },
 ];
 
-/** How long each stage holds before the rail advances. */
-const STAGE_MS = 1600;
 
 export function HowItWorksSection() {
   return (
@@ -159,70 +155,29 @@ function Step({ index, title, children }: { index: number; title: string; childr
   );
 }
 
-/** Walks the seven stages on a loop, growing whichever one is live. */
+/**
+ * The seven stages as a plain process rail: a hairline, a numbered column per
+ * stage, and nothing enclosing them. No panel, no filled nodes, no motion.
+ */
 function StageRail() {
-  const reduce = useReducedMotion();
-  const [active, setActive] = useState(0);
-
-  useEffect(() => {
-    if (reduce) return;
-    const timer = setInterval(() => {
-      setActive((i) => (i + 1) % STAGES.length);
-    }, STAGE_MS);
-    return () => clearInterval(timer);
-  }, [reduce]);
-
   return (
-    <div className="mt-12">
-      <ol className="relative grid grid-cols-2 gap-x-2 gap-y-8 sm:grid-cols-4 md:flex md:items-start md:justify-between md:gap-1">
-        {/* the rail only reads as a rail once the stages sit in one row */}
-        <span className="absolute left-[7%] right-[7%] top-8 hidden h-px bg-[#eceaf4] md:block" aria-hidden />
-        <motion.span
-          className="absolute left-[7%] top-8 hidden h-px bg-gradient-to-r from-[#5b43d6] to-[#a48bf0] md:block"
-          animate={{ width: `${(active / (STAGES.length - 1)) * 86}%` }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          aria-hidden
-        />
-
-        {STAGES.map((s, i) => {
-          const live = reduce || i === active;
-          return (
-            <li key={s.label} className="relative z-10 flex flex-col items-center gap-3 md:flex-1">
-              <motion.span
-                animate={live ? { scale: 1.18 } : { scale: 1 }}
-                transition={{ type: "spring", stiffness: 320, damping: 22 }}
-                className={cn(
-                  "flex size-16 items-center justify-center rounded-full transition-colors duration-300",
-                  live
-                    ? "bg-gradient-to-br from-[#6d54e6] to-[#5b43d6] text-white shadow-[0_12px_28px_-10px_rgba(91,67,214,0.75)]"
-                    : "bg-[#f4f2fc] text-[#a9a2c8]"
-                )}
-              >
-                <s.icon className="size-7" />
-              </motion.span>
-
-              <span className="flex flex-col items-center gap-1 px-1 text-center">
-                <span
-                  className={cn(
-                    "text-[13px] font-semibold leading-tight transition-colors duration-300",
-                    live ? "text-[#5b43d6]" : INK
-                  )}
-                >
-                  {s.label}
+    <div className="mt-14">
+      <div className={cn("border-t pt-8", LINE)}>
+        <ol className="grid grid-cols-2 gap-x-6 gap-y-9 sm:grid-cols-4 lg:grid-cols-7 lg:gap-x-4">
+          {STAGES.map((s, i) => (
+            <li key={s.label}>
+              <div className="flex items-center gap-2">
+                <span className={cn("text-[11px] font-medium tabular-nums", mono, INK_FAINT)}>
+                  {String(i + 1).padStart(2, "0")}
                 </span>
-                <span
-                  className={cn(
-                    "text-[11.5px] leading-snug transition-colors duration-300",
-                    live ? "text-[#5b5e70]" : "text-[#a9abb8]"
-                  )}
-                >
-                  {s.note}
-                </span>
-              </span>
+                <s.icon className="size-4 text-[#5b43d6]" strokeWidth={1.75} />
+              </div>
+              <p className={cn("mt-3 text-[13.5px] font-semibold tracking-[-0.01em]", INK)}>{s.label}</p>
+              <p className="mt-1 text-[12px] leading-snug text-[#6b6e80]">{s.note}</p>
             </li>
-          );
-        })}
-      </ol>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
