@@ -33,8 +33,11 @@ const STAGES = [
 
 export function HowItWorksSection() {
   return (
-    <section id="how" className={cn("scroll-mt-16 border-y bg-[#fbfbfd] py-24 sm:py-28", LINE)}>
-      <div className="mx-auto max-w-6xl px-6">
+    <section
+      id="how"
+      className="scroll-mt-16 bg-white py-24 shadow-[0_-24px_60px_-40px_rgba(46,26,120,0.34),0_24px_60px_-40px_rgba(46,26,120,0.34)] sm:py-28"
+    >
+      <div className="mx-auto max-w-5xl px-6">
         <Reveal>
           <SectionHead eyebrow="How it works" title="Three steps between a complaint and a commit." />
         </Reveal>
