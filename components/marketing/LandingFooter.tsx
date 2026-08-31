@@ -43,8 +43,7 @@ export function LandingFooter() {
       <div className="mx-auto grid max-w-6xl gap-12 px-6 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div className="max-w-xs">
           <Link href="#top" className="flex items-center gap-2.5">
-            <Image src="/ask-pm-logo-v3.png" alt="Ask PM" width={512} height={512} className="size-10 object-contain" />
-            <span className={cn("text-[16px] font-semibold tracking-[-0.01em]", INK)}>Ask PM</span>
+            <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" />
           </Link>
           <p className={cn("mt-4 text-[13.5px] leading-relaxed", INK_MUTED)}>
             The product manager between support, product, and engineering — turning tickets into

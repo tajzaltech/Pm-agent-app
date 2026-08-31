@@ -34,16 +34,7 @@ const NAV = [
 
 function BrandMark() {
   return (
-    <span className="flex items-center gap-2 text-[15px] font-semibold tracking-[-0.015em] text-foreground">
-      <Image
-        src="/ask-pm-logo-v3.png"
-        alt="Ask PM"
-        width={512}
-        height={512}
-        className="size-7 object-contain"
-      />
-      Ask PM
-    </span>
+    <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" />
   );
 }
 

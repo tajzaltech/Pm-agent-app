@@ -44,15 +44,7 @@ export function LandingNav() {
       >
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link href="#top" className="flex items-center gap-2.5">
-            <Image
-              src="/ask-pm-logo-v3.png"
-              alt="Ask PM"
-              width={512}
-              height={512}
-              className="size-9 object-contain"
-              priority
-            />
-            <span className="text-[15px] font-semibold tracking-[-0.01em] text-[#101018]">Ask PM</span>
+            <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" priority />
           </Link>
 
           <div className="hidden items-center gap-1 lg:flex">
@@ -101,8 +93,7 @@ export function LandingNav() {
           >
             <div className="flex h-16 items-center justify-between px-6">
               <span className="flex items-center gap-2.5">
-                <Image src="/ask-pm-logo-v3.png" alt="Ask PM" width={512} height={512} className="size-9 object-contain" />
-                <span className="text-[15px] font-semibold text-[#101018]">Ask PM</span>
+                <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" />
               </span>
               <button
                 type="button"
