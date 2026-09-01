@@ -15,24 +15,19 @@ import {
 import { WebhookEndpointPanel } from "@/components/shared/WebhookEndpointPanel";
 import { Button } from "@/components/ui/button";
 import { ISSUE_CATEGORY_OPTIONS } from "@/lib/constants/onboarding-sources";
+import { SOURCE_WEBHOOK_STEPS } from "@/lib/constants/source-connect";
+import type { SourceCredentials } from "@/lib/constants/source-connect";
 import { useOnboardingStore } from "@/lib/store/onboarding";
 import { cn } from "@/lib/utils";
 
 const SOURCES = [
   { id: "freshdesk", name: "Freshdesk", Logo: FreshdeskLogo, desc: "Ticket and helpdesk" },
   { id: "zendesk", name: "Zendesk", Logo: ZendeskLogo, desc: "Support platform" },
-  { id: "email", name: "Email", Logo: Mail, desc: "Forward shared support inbox" },
+  { id: "email", name: "Email", Logo: Mail, desc: "IMAP inbox (Gmail app password)" },
   { id: "jira_sm", name: "Jira Service Mgmt", Logo: JiraLogo, desc: "IT service desk" },
   { id: "salesforce", name: "Salesforce", Logo: SalesforceLogo, desc: "CRM and service cloud" },
   { id: "sheets", name: "Google Sheets", Logo: GoogleSheetsLogo, desc: "Spreadsheet import" },
   { id: "webhook", name: "Custom Webhook", Logo: WebhookLogo, desc: "Any HTTP source" },
-];
-
-const FRESHDESK_WEBHOOK_STEPS = [
-  "In Freshdesk, go to Admin → Workflows → Automations → Ticket creation.",
-  "Create a rule for new tickets and add a webhook action.",
-  "Paste the PM Agent webhook URL below and save the automation.",
-  "Create a test ticket to confirm drafts appear in your queue.",
 ];
 
 export function StepConnectSource() {
@@ -69,12 +64,15 @@ export function StepConnectSource() {
     setDialogProvider(id);
   };
 
-  const handleDialogConnected = async (accountLabel: string) => {
+  const handleDialogConnected = async (creds: SourceCredentials) => {
     if (!dialogProvider) return;
     setConnecting(dialogProvider);
-    await connectTicketSource(dialogProvider, accountLabel);
-    setActiveConfig(dialogProvider);
-    setConnecting(null);
+    try {
+      await connectTicketSource(dialogProvider, creds);
+      setActiveConfig(dialogProvider);
+    } finally {
+      setConnecting(null);
+    }
   };
 
   const dialogMeta = SOURCES.find((s) => s.id === dialogProvider);
@@ -85,7 +83,7 @@ export function StepConnectSource() {
         <div className="border-b px-8 pb-6 pt-8">
           <h1 className="text-2xl font-bold tracking-tight">Where do your customer tickets live?</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Connect one or more ticket sources — PM Agent will analyze new tickets automatically.
+            Connect a real source with an API key, inbox, or sheet. Ask PM will verify it and import recent tickets.
           </p>
         </div>
 
@@ -171,22 +169,23 @@ export function StepConnectSource() {
             })}
           </div>
 
-          {connected.some((s) => s.provider === "freshdesk") && (
-            <WebhookEndpointPanel
-              title="Configure Freshdesk webhook"
-              description="Add this webhook in Freshdesk so new tickets sync to PM Agent automatically."
-              steps={FRESHDESK_WEBHOOK_STEPS}
-              icon={<FreshdeskLogo className="size-5" />}
-            />
-          )}
-
-          {connected.some((s) => s.provider === "webhook") && (
-            <WebhookEndpointPanel
-              title="Your webhook endpoint"
-              description="Send ticket payloads to this URL from any system that supports outbound webhooks."
-              icon={<WebhookLogo className="size-5" />}
-            />
-          )}
+          {connected.map((source) => {
+            const meta = SOURCES.find((s) => s.id === source.provider);
+            return (
+              <WebhookEndpointPanel
+                key={source.provider}
+                provider={source.provider}
+                title={`${meta?.name ?? source.provider} ingest`}
+                description={
+                  typeof source.lastImported === "number"
+                    ? `Imported ${source.lastImported} ticket${source.lastImported === 1 ? "" : "s"} on connect.`
+                    : "Keep this URL for live updates, or sync to pull the latest tickets."
+                }
+                steps={SOURCE_WEBHOOK_STEPS[source.provider]}
+                icon={meta?.Logo ? <meta.Logo className="size-5" /> : undefined}
+              />
+            );
+          })}
 
           {connected.length > 0 && (
             <div className="mt-6 pt-6 border-t space-y-4">

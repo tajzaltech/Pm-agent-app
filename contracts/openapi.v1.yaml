@@ -1,0 +1,628 @@
+openapi: 3.0.3
+info:
+  title: PM Agent API
+  version: 1.0.0
+  description: |
+    Versioned contract between the Next.js frontend and FastAPI backend.
+    Breaking changes require /v2. Authenticated routes send `Authorization: Bearer <access_token>`
+    and optional `X-Workspace-Id`.
+servers:
+  - url: http://localhost:8000/v1
+tags:
+  - name: auth
+  - name: workspaces
+  - name: tickets
+  - name: workspace-ops
+  - name: product
+  - name: webhooks
+paths:
+  /auth/signup:
+    post:
+      tags: [auth]
+      summary: Create account, workspace, and default settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignUpRequest" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokenResponse" }
+  /auth/signin:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignInRequest" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokenResponse" }
+  /auth/google:
+    post:
+      tags: [auth]
+      summary: Sign in or create an account with a Google (Gmail) authorization code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GoogleAuthRequest" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokenResponse" }
+  /auth/refresh:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties: { refresh_token: { type: string } }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthTokenResponse" }
+  /auth/signout:
+    post:
+      tags: [auth]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Signed out } }
+  /auth/forgot-password:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties: { email: { type: string, format: email } }
+      responses: { "200": { description: Always ok } }
+  /auth/reset-password:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 8 }
+      responses: { "200": { description: Password updated } }
+  /auth/verify-email:
+    post:
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties: { token: { type: string } }
+      responses: { "200": { description: Verified } }
+  /auth/me:
+    get:
+      tags: [auth]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+  /workspaces:
+    get:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Workspace list } }
+    post:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+      responses: { "201": { description: Created } }
+  /team:
+    get:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Members } }
+  /team/invites:
+    post:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Invited } }
+  /team/{member_id}:
+    delete:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: member_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Removed } }
+  /onboarding:
+    get:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Onboarding state } }
+    patch:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Updated } }
+  /onboarding/connect-source:
+    post:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      summary: Verify source credentials, store them, and import recent tickets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ConnectSourceRequest" }
+      responses: { "200": { description: Source connected } }
+  /onboarding/sync-source:
+    post:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      summary: Pull new tickets from a connected source
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider]
+              properties: { provider: { type: string } }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceSyncResponse" }
+  /onboarding/connect-repo:
+    post:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Repo connected } }
+  /onboarding/connect-output:
+    post:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Output connected } }
+  /onboarding/complete:
+    post:
+      tags: [workspaces]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Setup done } }
+  /tickets:
+    get:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: status, in: query, schema: { type: string } }]
+      responses: { "200": { description: Tickets + activity } }
+    post:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Chat draft created } }
+  /tickets/ingest:
+    post:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Ticket ingested into the workspace queue } }
+  /tickets/{ticket_id}:
+    get:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: ticket_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Ticket } }
+    patch:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: ticket_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Updated } }
+  /tickets/{ticket_id}/review:
+    post:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: ticket_id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [accept, reject, ignore, accept_non_technical]
+      responses: { "200": { description: Reviewed } }
+  /activity:
+    get:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Activity } }
+  /clusters:
+    get:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Clusters } }
+  /clusters/rebuild:
+    post:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Rebuilt } }
+  /clusters/{cluster_id}:
+    get:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: cluster_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Cluster } }
+  /clusters/{cluster_id}/review:
+    post:
+      tags: [tickets]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: cluster_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Bulk review } }
+  /pipeline:
+    get:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Kanban cards } }
+  /pipeline/{card_id}:
+    patch:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: card_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Moved } }
+  /pipeline/{card_id}/advance:
+    post:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: card_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Advanced } }
+  /connections:
+    get:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Sources, repos, outputs } }
+  /connections/ingest:
+    get:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Per-workspace ingest URL and secret } }
+  /connections/sources:
+    post:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Source added } }
+  /connections/sources/{connection_id}:
+    delete:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: connection_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Removed } }
+  /connections/outputs:
+    post:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Output added } }
+  /connections/outputs/{connection_id}:
+    delete:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: connection_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Removed } }
+  /connections/repos:
+    post:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Repo added } }
+  /connections/repos/{repo_id}:
+    delete:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: repo_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Removed } }
+  /connections/repos/{repo_id}/reindex:
+    post:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: repo_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Reindexed } }
+  /connections/dev-agent:
+    patch:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Toggled } }
+  /product-docs:
+    get:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Docs } }
+    post:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Confirmed } }
+  /product-docs/presign:
+    post:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Presigned PUT URL } }
+  /product-docs/{doc_id}:
+    delete:
+      tags: [workspace-ops]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: doc_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+  /automation:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Automation settings } }
+    patch:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Updated } }
+  /automation/preset:
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Preset applied } }
+  /automation/rules:
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Rule added } }
+  /automation/rules/preview:
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Matching tickets } }
+  /automation/rules/{rule_id}:
+    delete:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: rule_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Removed } }
+  /automation/rules/{rule_id}/toggle:
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: rule_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Toggled } }
+  /delivery:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Delivery records } }
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Delivered } }
+  /delivery/config:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Config } }
+    patch:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Updated } }
+  /dispatch:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Dispatch records } }
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Dispatched } }
+  /dispatch/config:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Config } }
+    patch:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Updated } }
+  /chat/sessions:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Sessions } }
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "201": { description: Created } }
+  /chat/sessions/{session_id}:
+    patch:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: session_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Renamed } }
+    delete:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: session_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Deleted } }
+  /chat/sessions/{session_id}/messages:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: session_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Messages } }
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: session_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: User + PM messages } }
+  /chat/sessions/{session_id}/messages/{message_id}/send-to-dev:
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: session_id, in: path, required: true, schema: { type: string } }
+        - { name: message_id, in: path, required: true, schema: { type: string } }
+      responses: { "200": { description: Draft ticket created } }
+  /insights/overview:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: KPIs } }
+  /insights/series:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Time series } }
+  /insights/ai-performance:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Override/edit rates } }
+  /alerts:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { description: Alerts } }
+  /alerts/{alert_id}/dismiss:
+    post:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: alert_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Dismissed } }
+  /audit:
+    get:
+      tags: [product]
+      security: [{ bearerAuth: [] }]
+      parameters: [{ name: q, in: query, schema: { type: string } }]
+      responses: { "200": { description: Audit log } }
+  /webhooks/ingest/{workspace_id}:
+    post:
+      tags: [webhooks]
+      parameters: [{ name: workspace_id, in: path, required: true, schema: { type: string } }]
+      responses: { "201": { description: Ticket ingested } }
+  /webhooks/freshdesk/{workspace_id}:
+    post:
+      tags: [webhooks]
+      parameters: [{ name: workspace_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Freshdesk ingest } }
+  /webhooks/zendesk/{workspace_id}:
+    post:
+      tags: [webhooks]
+      parameters: [{ name: workspace_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Zendesk ingest } }
+  /webhooks/jira/{workspace_id}:
+    post:
+      tags: [webhooks]
+      parameters: [{ name: workspace_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Jira Service Management ingest } }
+  /webhooks/salesforce/{workspace_id}:
+    post:
+      tags: [webhooks]
+      parameters: [{ name: workspace_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Salesforce Case ingest } }
+  /webhooks/email/{workspace_id}:
+    post:
+      tags: [webhooks]
+      parameters: [{ name: workspace_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Inbound email ingest } }
+  /webhooks/pipeline/{workspace_id}:
+    post:
+      tags: [webhooks]
+      parameters: [{ name: workspace_id, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Pipeline stage update } }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    SignUpRequest:
+      type: object
+      required: [name, email, password, company]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        company: { type: string }
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    GoogleAuthRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, description: Google OAuth authorization code from the Gmail redirect callback }
+        company: { type: string, description: Optional workspace name used only when creating a new account }
+    ConnectSourceRequest:
+      type: object
+      required: [provider]
+      properties:
+        provider: { type: string }
+        account_label: { type: string }
+        domain: { type: string }
+        api_key: { type: string }
+        email: { type: string }
+        password: { type: string }
+        imap_host: { type: string }
+        spreadsheet_id: { type: string }
+        sheet_name: { type: string }
+        instance_url: { type: string }
+        client_id: { type: string }
+        client_secret: { type: string }
+        security_token: { type: string }
+    SourceSyncResponse:
+      type: object
+      properties:
+        provider: { type: string }
+        imported: { type: integer }
+        skipped: { type: integer }
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        email_verified: { type: boolean }
+        default_workspace_id: { type: string, nullable: true }
+    AuthTokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string }
+        user: { $ref: "#/components/schemas/UserResponse" }
+    Ticket:
+      type: object
+      description: Draft ticket returned by triage APIs (snake_case).
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [pending, accepted, rejected, ignored] }
+        classification: { type: string, enum: [bug, feature_request, question, churn_signal] }
+        scope: { type: string, enum: [S, M, L] }
+        draft_title: { type: string }
+        draft_description: { type: string }
+        source: { type: string }

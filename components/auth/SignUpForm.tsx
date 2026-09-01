@@ -2,35 +2,42 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { UserPlus } from "lucide-react";
+import { toast } from "sonner";
 
 import { AuthShell } from "@/components/auth/AuthShell";
 import { AuthRedirect } from "@/components/auth/AuthRedirect";
-import { GitHubLogo } from "@/components/shared/BrandLogos";
+import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { messageFromUnknown } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/store/auth";
-import { useOnboardingStore } from "@/lib/store/onboarding";
 
 export function SignUpForm() {
   const router = useRouter();
-  const signIn = useAuthStore((state) => state.signIn);
-  const beginSignup = useOnboardingStore((state) => state.beginSignup);
+  const register = useAuthStore((state) => state.register);
+  const [pending, setPending] = useState(false);
+  const [company, setCompany] = useState("");
 
-  const startOnboarding = (user?: { name?: string; email?: string }) => {
-    beginSignup();
-    signIn(user);
-    router.push("/onboarding");
-  };
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    startOnboarding({
-      name: String(data.get("name") || "Demo User"),
-      email: String(data.get("email") || "demo@pmagent.io"),
-    });
+    setPending(true);
+    try {
+      await register({
+        name: String(data.get("name") || "").trim(),
+        email: String(data.get("email") || "").trim(),
+        password: String(data.get("password") || ""),
+        company: String(data.get("company") || "").trim(),
+      });
+      router.push("/onboarding");
+    } catch (error) {
+      toast.error(messageFromUnknown(error, "Could not create account"));
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -49,14 +56,7 @@ export function SignUpForm() {
     >
       <AuthRedirect mode="signup" />
       <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => startOnboarding()}
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium transition-colors hover:bg-muted"
-        >
-          <GitHubLogo className="size-4" />
-          Sign up with GitHub
-        </button>
+        <GoogleAuthButton mode="signup" company={company} />
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />
@@ -72,7 +72,15 @@ export function SignUpForm() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="company">Company</Label>
-              <Input id="company" name="company" required placeholder="Acme Inc" className="h-10" />
+              <Input
+                id="company"
+                name="company"
+                required
+                placeholder="Acme Inc"
+                className="h-10"
+                value={company}
+                onChange={(event) => setCompany(event.target.value)}
+              />
             </div>
           </div>
           <div className="space-y-2">
@@ -89,10 +97,11 @@ export function SignUpForm() {
           </label>
           <button
             type="submit"
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            disabled={pending}
+            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             <UserPlus className="size-4" />
-            Create account
+            {pending ? "Creating account…" : "Create account"}
           </button>
         </form>
       </div>

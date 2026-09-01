@@ -57,7 +57,7 @@ export function HowItWorksSection() {
               <ArrowRight className="size-3.5 rotate-90 text-[#c5c7d1]" />
             </div>
             <div className={cn("flex items-center justify-center gap-2 rounded-xl border bg-white py-2.5", LINE)}>
-              <Image src="/ask-pm-logo-v3.png" alt="" width={512} height={512} className="size-6 object-contain" />
+              <Image src="/ask-pm-logo-v2.png" alt="" width={512} height={512} className="size-6 object-contain" />
               <span className={cn("text-[12.5px] font-semibold", INK)}>Ask PM</span>
             </div>
           </Step>

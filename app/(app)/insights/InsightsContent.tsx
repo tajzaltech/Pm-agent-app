@@ -23,7 +23,6 @@ import { ArrowRight, Download, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MOCK_ANALYTICS, MOCK_CLASSIFICATION_DIST, MOCK_CODE_AREAS } from "@/lib/mock/analytics";
 import { useTicketStore } from "@/lib/store/tickets";
 import { usePipelineStore } from "@/lib/store/pipeline";
 import { filterTicketsByClassification } from "@/lib/utils/workspace";
@@ -38,13 +37,6 @@ import { ProcessingTicketList } from "@/components/insights/ProcessingTicketList
 import { CountUp, Panel, Sparkline, VIZ, VizTooltip } from "@/components/insights/InsightsPrimitives";
 import type { Classification } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const AI_PERFORMANCE = [
-  { date: "Jun 10", overrideRate: 18, editRate: 24, acceptanceRate: 68 },
-  { date: "Jun 12", overrideRate: 15, editRate: 21, acceptanceRate: 71 },
-  { date: "Jun 14", overrideRate: 12, editRate: 19, acceptanceRate: 74 },
-  { date: "Jun 16", overrideRate: 9, editRate: 16, acceptanceRate: 76 },
-];
 
 const CLASSIFICATION_MAP: Record<string, Classification> = {
   Bug: "bug",
@@ -76,10 +68,61 @@ export default function InsightsContent() {
   const chatAcceptRate =
     stats.chatOriginated > 0 ? Math.round((stats.chatAccepted / stats.chatOriginated) * 100) : 0;
 
-  const series = MOCK_ANALYTICS.slice(-10);
-  const dist = MOCK_CLASSIFICATION_DIST.map((d) => ({ ...d, fill: CLASS_FILL[d.name] ?? VIZ.brand }));
+  const series = useMemo(() => {
+    const buckets = new Map<string, { date: string; processed: number; accepted: number; rejected: number }>();
+    for (const ticket of tickets) {
+      const date = (ticket.createdAt ?? "").slice(0, 10) || "unknown";
+      const row = buckets.get(date) ?? { date, processed: 0, accepted: 0, rejected: 0 };
+      row.processed += 1;
+      if (ticket.status === "accepted") row.accepted += 1;
+      if (ticket.status === "rejected") row.rejected += 1;
+      buckets.set(date, row);
+    }
+    return [...buckets.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-10);
+  }, [tickets]);
+
+  const dist = useMemo(() => {
+    const counts: Record<string, number> = { Bug: 0, "Feature Request": 0, Question: 0, "Churn Signal": 0 };
+    for (const ticket of tickets) {
+      if (ticket.classification === "bug") counts.Bug += 1;
+      if (ticket.classification === "feature_request") counts["Feature Request"] += 1;
+      if (ticket.classification === "question") counts.Question += 1;
+      if (ticket.classification === "churn_signal") counts["Churn Signal"] += 1;
+    }
+    return Object.entries(counts).map(([name, value]) => ({ name, value, fill: CLASS_FILL[name] ?? VIZ.brand }));
+  }, [tickets]);
+
+  const codeAreas = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ticket of tickets) {
+      for (const ref of ticket.codeRefs) {
+        const area = ref.filePath.split("/").slice(0, 2).join("/") || ref.filePath;
+        counts.set(area, (counts.get(area) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()]
+      .map(([area, count]) => ({ area, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }, [tickets]);
+
   const distTotal = dist.reduce((sum, d) => sum + d.value, 0);
-  const areaMax = Math.max(...MOCK_CODE_AREAS.map((a) => a.count));
+  const areaMax = Math.max(1, ...codeAreas.map((a) => a.count));
+
+  const aiPerformance = useMemo(() => {
+    const decided = tickets.filter((t) => t.status !== "pending");
+    const accepted = decided.filter((t) => t.status === "accepted").length;
+    const rejected = decided.filter((t) => t.status === "rejected" || t.status === "ignored").length;
+    const rate = decided.length ? Math.round((accepted / decided.length) * 100) : 0;
+    return [
+      {
+        date: "Now",
+        acceptanceRate: rate,
+        editRate: 0,
+        overrideRate: decided.length ? Math.round((rejected / decided.length) * 100) : 0,
+      },
+    ];
+  }, [tickets]);
 
   const KPIS = [
     {
@@ -375,7 +418,7 @@ export default function InsightsContent() {
             </div>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={AI_PERFORMANCE} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+                <LineChart data={aiPerformance} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
                   <CartesianGrid stroke={VIZ.grid} vertical={false} />
                   <XAxis
                     dataKey="date"
@@ -425,7 +468,7 @@ export default function InsightsContent() {
 
           <Panel title="Top affected code areas" subtitle="Ticket volume by directory" delay={0.1}>
             <ul className="space-y-2">
-              {MOCK_CODE_AREAS.map((area, i) => (
+              {codeAreas.map((area, i) => (
                 <li key={area.area}>
                   <Link
                     href={`/triage?search=${encodeURIComponent(area.area)}`}

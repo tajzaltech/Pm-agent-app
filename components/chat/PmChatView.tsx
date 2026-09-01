@@ -145,7 +145,7 @@ export function PmChatView({ sessionId, ticketId }: Props) {
             ) : (
               <>
                 <Image
-                  src="/ask-pm-logo-v3.png"
+                  src="/ask-pm-logo-v2.png"
                   alt="Ask PM"
                   width={512}
                   height={512}

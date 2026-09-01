@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTriageAlertsStore } from "@/lib/store/triage-alerts";
-import { MOCK_CLUSTERS } from "@/lib/mock/clusters";
+import { useClusterStore } from "@/lib/store/clusters";
 import { useTicketStore } from "@/lib/store/tickets";
 import type { Ticket } from "@/lib/types";
 import { buildTriageList, enrichTicket, type TriageListItem } from "@/lib/utils/workspace";
@@ -59,6 +59,7 @@ export function TriageWorkspace() {
   const searchParams = useSearchParams();
   const askPmAgent = useAskPmAgent();
   const { tickets, accept, reject, undo, getPending } = useTicketStore();
+  const clusters = useClusterStore((s) => s.clusters);
   const markSeen = useTriageAlertsStore((s) => s.markSeen);
   const alertsReadyRef = useRef(false);
   const prevPendingRef = useRef<string[]>([]);
@@ -70,7 +71,7 @@ export function TriageWorkspace() {
   const [focusIndex, setFocusIndex] = useState(0);
 
   const listItems = useMemo(() => {
-    let items = buildTriageList(tickets, MOCK_CLUSTERS);
+    let items = buildTriageList(tickets, clusters);
     if (search.trim()) {
       const q = search.toLowerCase();
       items = items.filter((item) => {
@@ -95,7 +96,7 @@ export function TriageWorkspace() {
       });
     }
     return items;
-  }, [search, sort, tickets]);
+  }, [search, sort, tickets, clusters]);
 
   const flatTickets = useMemo(() => {
     const out: Ticket[] = [];

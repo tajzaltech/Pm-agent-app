@@ -3,7 +3,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { PipelineCard, PipelineStage, Ticket } from "@/lib/types";
-import { MOCK_PIPELINE } from "@/lib/mock/pipeline";
 
 const STAGE_ORDER: PipelineStage[] = [
   "accepted",
@@ -34,7 +33,7 @@ export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
 export const usePipelineStore = create<PipelineStore>()(
   persist(
     (set, get) => ({
-      cards: MOCK_PIPELINE,
+      cards: [],
       addFromAcceptance: (ticket, opts) => {
         const codeArea = ticket.codeRefs[0]?.filePath.split("/").slice(0, 2).join("/") ?? "—";
         const card: PipelineCard = {
@@ -52,12 +51,14 @@ export const usePipelineStore = create<PipelineStore>()(
           cards: [card, ...s.cards.filter((c) => c.ticketId !== ticket.id)],
         }));
       },
-      moveCard: (id, stage) =>
+      moveCard: (id, stage) => {
         set((s) => ({
           cards: s.cards.map((c) =>
             c.id === id ? { ...c, stage, stageEnteredAt: new Date().toISOString() } : c
           ),
-        })),
+        }));
+        void import("@/lib/api-client").then(({ api }) => api.movePipeline(id, stage).catch(() => undefined));
+      },
       advanceCard: (id) => {
         const card = get().cards.find((c) => c.id === id);
         if (!card) return;
@@ -68,6 +69,6 @@ export const usePipelineStore = create<PipelineStore>()(
       },
       getByStage: (stage) => get().cards.filter((c) => c.stage === stage),
     }),
-    { name: "pm-agent-pipeline" }
+    { name: "pm-agent-pipeline-v2" }
   )
 );

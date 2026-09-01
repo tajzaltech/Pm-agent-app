@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { AskPmBrand } from "@/components/shared/BrandLogos";
 import { PrimaryCta } from "@/components/marketing/ui";
 
 const LINKS = [
@@ -44,7 +44,7 @@ export function LandingNav() {
       >
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link href="#top" className="flex items-center gap-2.5">
-            <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" priority />
+            <AskPmBrand priority />
           </Link>
 
           <div className="hidden items-center gap-1 lg:flex">
@@ -93,7 +93,7 @@ export function LandingNav() {
           >
             <div className="flex h-16 items-center justify-between px-6">
               <span className="flex items-center gap-2.5">
-                <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" />
+                <AskPmBrand />
               </span>
               <button
                 type="button"

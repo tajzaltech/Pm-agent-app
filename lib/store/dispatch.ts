@@ -59,18 +59,13 @@ export const useDispatchStore = create<DispatchStore>()(
         }));
 
         try {
-          const res = await fetch("/api/dispatch", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ticketId, branchName, agentType: config.agentType, webhookUrl: config.webhookUrl }),
+          const record = await (await import("@/lib/api-client")).api.dispatch(ticketId, {
+            branch_name: branchName,
+            agent_type: config.agentType,
+            webhook_url: config.webhookUrl,
           });
-
           set((state) => ({
-            records: state.records.map((r) =>
-              r.ticketId === ticketId
-                ? { ...r, status: res.ok ? "dispatched" : "failed", error: res.ok ? undefined : `HTTP ${res.status}` }
-                : r
-            ),
+            records: state.records.map((r) => (r.ticketId === ticketId ? record : r)),
           }));
         } catch (err) {
           set((state) => ({

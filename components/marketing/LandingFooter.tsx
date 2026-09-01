@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { INK, INK_FAINT, INK_MUTED, LINE, mono } from "@/components/marketing/theme";
+import { AskPmBrand } from "@/components/shared/BrandLogos";
 
 const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
@@ -43,7 +43,7 @@ export function LandingFooter() {
       <div className="mx-auto grid max-w-6xl gap-12 px-6 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
         <div className="max-w-xs">
           <Link href="#top" className="flex items-center gap-2.5">
-            <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" />
+            <AskPmBrand />
           </Link>
           <p className={cn("mt-4 text-[13.5px] leading-relaxed", INK_MUTED)}>
             The product manager between support, product, and engineering — turning tickets into

@@ -1,4 +1,3 @@
-import { MOCK_CLUSTERS } from "@/lib/mock/clusters";
 import type {
   Classification,
   Cluster,
@@ -69,16 +68,14 @@ export function buildReasoning(ticket: Ticket): ReasoningSignal[] {
 }
 
 export function enrichTicket(ticket: Ticket): Ticket {
-  const cluster = MOCK_CLUSTERS.find((c) => c.tickets.some((t) => t.ticketId === ticket.id));
   const { score, level } = computeConfidence(ticket);
-  const priorityScore = computePriorityScore(ticket, score);
+  const priorityScore = computePriorityScore(ticket, ticket.aiConfidence ?? score);
   return {
     ...ticket,
-    clusterId: cluster?.id,
-    aiConfidence: score,
-    aiConfidenceLevel: level,
-    aiReasoning: buildReasoning(ticket),
-    priorityScore,
+    aiConfidence: ticket.aiConfidence ?? score,
+    aiConfidenceLevel: ticket.aiConfidenceLevel ?? level,
+    aiReasoning: ticket.aiReasoning?.length ? ticket.aiReasoning : buildReasoning(ticket),
+    priorityScore: ticket.priorityScore ?? priorityScore,
   };
 }
 

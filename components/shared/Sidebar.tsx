@@ -22,6 +22,7 @@ import { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWorkspaceStore } from "@/lib/store/workspace";
 import { CaretDoubleLeft, CaretDoubleRight, CaretUpDown, Check } from "@phosphor-icons/react";
+import { AskPmBrand } from "@/components/shared/BrandLogos";
 import { WorkspaceLogo } from "@/components/shared/WorkspaceLogo";
 
 const NAV = [
@@ -33,9 +34,7 @@ const NAV = [
 ];
 
 function BrandMark() {
-  return (
-    <Image src="/regula8ai-logo.svg" alt="REGULA8AI" width={150} height={34} className="h-7 w-auto object-contain" />
-  );
+  return <AskPmBrand />;
 }
 
 function WorkspaceSwitcher() {
@@ -242,10 +241,10 @@ function DesktopSidebar() {
             className="group relative flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-primary/[0.07]"
           >
             <Image
-              src="/ask-pm-logo-v3.png"
+              src="/ask-pm-logo-v2.png"
               alt="Ask PM"
-              width={512}
-              height={512}
+              width={24}
+              height={24}
               className="size-6 object-contain transition-opacity duration-150 group-hover:opacity-0"
             />
             <CaretDoubleRight

@@ -238,16 +238,6 @@ export const usePmChatStore = create<PmChatStore>()(
           timestamp: new Date().toISOString(),
         };
         const history = get().messagesBySession[sessionId] ?? [];
-        const reply = generatePmReply(trimmed, { ticket: ticket ?? undefined, history });
-        const pmMsg: PmChatMessage = {
-          id: `pm_${Date.now() + 1}`,
-          sessionId,
-          ticketId: ticket?.id,
-          role: "pm",
-          content: reply.text,
-          timestamp: new Date().toISOString(),
-          proposal: reply.proposal,
-        };
         const now = new Date().toISOString();
         const existingMeta = get().sessions.find((x) => x.id === sessionId);
         const fallbackTitle = ticket
@@ -277,11 +267,17 @@ export const usePmChatStore = create<PmChatStore>()(
           sessions: [meta, ...s.sessions.filter((x) => x.id !== sessionId)],
         }));
 
-        const isTicketContext = !!ticket;
-        const delay = isTicketContext
-          ? 2800 + Math.min(trimmed.length * 5, 500)
-          : 700 + Math.min(trimmed.length * 10, 1200);
-        window.setTimeout(() => {
+        const applyLocalReply = () => {
+          const reply = generatePmReply(trimmed, { ticket: ticket ?? undefined, history });
+          const pmMsg: PmChatMessage = {
+            id: `pm_${Date.now() + 1}`,
+            sessionId,
+            ticketId: ticket?.id,
+            role: "pm",
+            content: reply.text,
+            timestamp: new Date().toISOString(),
+            proposal: reply.proposal,
+          };
           set((s) => ({
             typingBySession: { ...s.typingBySession, [sessionId]: false },
             messagesBySession: {
@@ -289,7 +285,36 @@ export const usePmChatStore = create<PmChatStore>()(
               [sessionId]: [...(s.messagesBySession[sessionId] ?? []), pmMsg],
             },
           }));
-        }, delay);
+        };
+
+        void import("@/lib/api-client")
+          .then(async ({ api }) => {
+            let remoteId = sessionId;
+            if (!sessionId.startsWith("chat_")) {
+              const created = await api.createChatSession({
+                ticketId: ticket?.id,
+                title,
+              });
+              remoteId = created.id;
+              set((s) => ({
+                activeSessionId: s.activeSessionId === sessionId ? remoteId : s.activeSessionId,
+                sessions: s.sessions.map((x) => (x.id === sessionId ? { ...created, title, preview: trimmed } : x)),
+                messagesBySession: {
+                  ...s.messagesBySession,
+                  [remoteId]: s.messagesBySession[sessionId] ?? [],
+                },
+              }));
+            }
+            const msgs = await api.sendChatMessage(remoteId, trimmed);
+            set((s) => ({
+              typingBySession: { ...s.typingBySession, [remoteId]: false, [sessionId]: false },
+              messagesBySession: {
+                ...s.messagesBySession,
+                [remoteId]: msgs,
+              },
+            }));
+          })
+          .catch(() => applyLocalReply());
       },
 
       draftProposalReply: (sessionId, messageId) => {
@@ -333,6 +358,9 @@ export const usePmChatStore = create<PmChatStore>()(
           chatSessionId: sessionId,
         });
         useTicketStore.getState().acceptSendToDev(id);
+        void import("@/lib/api-client").then(({ api }) =>
+          api.sendProposalToDev(sessionId, messageId).catch(() => undefined),
+        );
         set((s) => ({
           messagesBySession: {
             ...s.messagesBySession,

@@ -72,17 +72,34 @@ export const useAutomationStore = create<AutomationStore>()(
           autoDispatch: cfg.autoDispatch,
           autoAcceptRules: cfg.rules.map((r) => ({ ...r, id: `${preset}_${r.id}` })),
         });
+        void import("@/lib/api-client").then(({ api }) => api.applyAutomationPreset(preset).catch(() => undefined));
       },
       setAutoClassify: (autoClassify) => set({ autoClassify }),
       setScopeEstimation: (scopeEstimation) => set({ scopeEstimation }),
       setAutoDispatch: (autoDispatch) => set({ autoDispatch }),
       setRules: (autoAcceptRules) => set({ autoAcceptRules }),
-      addRule: (rule) => set((s) => ({ autoAcceptRules: [...s.autoAcceptRules, rule] })),
-      removeRule: (id) => set((s) => ({ autoAcceptRules: s.autoAcceptRules.filter((r) => r.id !== id) })),
-      toggleRule: (id) =>
+      addRule: (rule) => {
+        set((s) => ({ autoAcceptRules: [...s.autoAcceptRules, rule] }));
+        void import("@/lib/api-client").then(({ api }) =>
+          api
+            .addAutomationRule({
+              classification: String(rule.classification),
+              scope: String(rule.scope),
+              enabled: rule.enabled,
+            })
+            .catch(() => undefined),
+        );
+      },
+      removeRule: (id) => {
+        set((s) => ({ autoAcceptRules: s.autoAcceptRules.filter((r) => r.id !== id) }));
+        void import("@/lib/api-client").then(({ api }) => api.deleteAutomationRule(id).catch(() => undefined));
+      },
+      toggleRule: (id) => {
         set((s) => ({
           autoAcceptRules: s.autoAcceptRules.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)),
-        })),
+        }));
+        void import("@/lib/api-client").then(({ api }) => api.toggleAutomationRule(id).catch(() => undefined));
+      },
       previewRule: (rule, tickets) =>
         tickets.filter((t) => ruleMatches(rule, t)).slice(0, 20),
     }),

@@ -17,6 +17,7 @@ export interface TicketSourceConfig {
   issueCategories: IssueCategory[];
   accountLabel?: string;
   connectedAt?: string;
+  lastImported?: number;
 }
 
 export interface OnboardingStore {
@@ -41,12 +42,13 @@ export interface OnboardingStore {
 
   setStep: (step: OnboardingStep) => void;
   setWorkspaceRole: (role: WorkspaceRole) => void;
-  connectTicketSource: (provider: string, accountLabel?: string) => Promise<void>;
+  connectTicketSource: (provider: string, creds?: import("@/lib/constants/source-connect").SourceCredentials) => Promise<void>;
   disconnectTicketSource: (provider: string) => void;
   toggleSourceIssueCategory: (provider: string, cat: IssueCategory) => void;
-  connectRepo: (provider: string) => Promise<void>;
+  connectRepo: (provider: string, repos?: string[], accessToken?: string) => Promise<void>;
   toggleRepo: (repo: string) => void;
-  connectOutputTool: (tool: string) => Promise<void>;
+  setAvailableRepos: (repos: string[]) => void;
+  connectOutputTool: (tool: string, opts?: { project?: string; apiKey?: string; teamId?: string }) => Promise<void>;
   setSelectedProject: (project: string) => void;
   startIndexing: () => void;
   markSetupDone: () => void;
@@ -54,12 +56,7 @@ export interface OnboardingStore {
   resetOnboarding: () => void;
 }
 
-const MOCK_REPOS = [
-  "acmetech/api-backend",
-  "acmetech/web-frontend",
-  "acmetech/data-pipeline",
-  "acmetech/mobile-legacy",
-];
+const MOCK_REPOS: string[] = [];
 
 const MOCK_PROJECTS: Record<string, string[]> = {
   linear: ["Backend — Q3", "Frontend — Q3", "Infrastructure"],
@@ -81,7 +78,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       repoProvider: null,
       repoProviderStatus: "idle",
       selectedRepos: [],
-      availableRepos: MOCK_REPOS,
+      availableRepos: [],
 
       outputTool: null,
       outputToolStatus: "idle",
@@ -98,7 +95,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
         setDefaultLanding("/chat");
       },
 
-      connectTicketSource: async (provider, accountLabel) => {
+      connectTicketSource: async (provider, creds) => {
         const existing = get().ticketSources.find((s) => s.provider === provider);
         const defaults = DEFAULT_SOURCE_CATEGORIES[provider] ?? ["bug", "how_to"];
 
@@ -113,23 +110,16 @@ export const useOnboardingStore = create<OnboardingStore>()(
               ],
         });
 
-        await new Promise((r) => setTimeout(r, 200));
-
-        set({
-          ticketSources: get().ticketSources.map((s) =>
-            s.provider === provider
-              ? {
-                  ...s,
-                  status: "connected" as const,
-                  accountLabel: accountLabel ?? s.accountLabel,
-                  connectedAt: new Date().toISOString(),
-                  issueCategories: s.issueCategories.length ? s.issueCategories : defaults,
-                }
-              : s
-          ),
-        });
-
-        useConnectionsStore.getState().addSource(provider);
+        try {
+          const { api } = await import("@/lib/api-client");
+          const remote = await api.connectSource(provider, creds);
+          set({ ticketSources: remote.ticketSources });
+        } catch (error) {
+          set({
+            ticketSources: get().ticketSources.filter((s) => s.provider !== provider || s.status !== "connecting"),
+          });
+          throw error;
+        }
       },
 
       disconnectTicketSource: (provider) => {
@@ -156,18 +146,24 @@ export const useOnboardingStore = create<OnboardingStore>()(
         });
       },
 
-      connectRepo: async (provider) => {
-        set({ repoProvider: provider, repoProviderStatus: "connecting" });
-        await new Promise((r) => setTimeout(r, 1800));
-        const selected = MOCK_REPOS.slice(0, 2);
-        set({
-          repoProviderStatus: "connected",
-          selectedRepos: selected,
-        });
-        for (const repo of selected) {
-          useConnectionsStore.getState().addRepo(repo);
+      connectRepo: async (provider, repos, accessToken) => {
+        const selected = repos?.length ? repos : get().selectedRepos;
+        if (!selected.length) {
+          set({ repoProvider: provider, repoProviderStatus: "error" });
+          throw new Error("Select at least one repository");
         }
+        set({ repoProvider: provider, repoProviderStatus: "connecting", selectedRepos: selected });
+        const { api } = await import("@/lib/api-client");
+        const remote = await api.connectRepo(provider, selected, accessToken);
+        set({
+          repoProvider: remote.repoProvider,
+          repoProviderStatus: remote.repoProviderStatus,
+          selectedRepos: remote.selectedRepos.length ? remote.selectedRepos : selected,
+          availableRepos: remote.selectedRepos.length ? remote.selectedRepos : selected,
+        });
       },
+
+      setAvailableRepos: (repos) => set({ availableRepos: repos }),
 
       toggleRepo: (repo) => {
         const { selectedRepos } = get();
@@ -179,38 +175,38 @@ export const useOnboardingStore = create<OnboardingStore>()(
         });
       },
 
-      connectOutputTool: async (tool) => {
+      connectOutputTool: async (tool, opts) => {
         set({ outputTool: tool, outputToolStatus: "connecting" });
-        await new Promise((r) => setTimeout(r, 1800));
-        const projects = MOCK_PROJECTS[tool] ?? ["Default Project"];
+        const project = opts?.project ?? get().selectedProject ?? tool;
+        const { api } = await import("@/lib/api-client");
+        const remote = await api.connectOutput(tool, project, { apiKey: opts?.apiKey, teamId: opts?.teamId });
         set({
-          outputToolStatus: "connected",
-          selectedProject: projects[0],
+          outputTool: remote.outputTool,
+          outputToolStatus: remote.outputToolStatus,
+          selectedProject: remote.selectedProject ?? project,
         });
-        useConnectionsStore.getState().addOutput(tool);
       },
 
       setSelectedProject: (project) => set({ selectedProject: project }),
 
       startIndexing: async () => {
         syncOnboardingToConnections(get());
-        set({ step: "indexing", indexingStatus: "running" });
-
-        const steps = [
-          "Reading repository structure...",
-          "Parsing functions and routes...",
-          "Analyzing models and schemas...",
-          "Building semantic map...",
-          "Indexing complete.",
-        ];
-
-        for (const s of steps) {
-          await new Promise((r) => setTimeout(r, 1200));
-          set({ indexingStep: s });
+        set({ step: "indexing", indexingStatus: "running", indexingStep: "Indexing connected repositories…" });
+        try {
+          const { api } = await import("@/lib/api-client");
+          set({ indexingStep: "Indexing connected repositories…" });
+          const connections = await api.getConnections();
+          for (const repo of connections.repos) {
+            set({ indexingStep: `Indexing ${repo.fullName}…` });
+            await api.reindexRepo(repo.id);
+          }
+          set({ indexingStep: "Finishing workspace setup…" });
+          await api.completeOnboarding();
+        } catch {
+          set({ indexingStatus: "error", indexingStep: "Indexing failed. You can retry from Connections." });
+          return;
         }
-
-        await new Promise((r) => setTimeout(r, 800));
-        set({ indexingStatus: "done", step: "done" });
+        set({ indexingStatus: "done", indexingStep: "Indexing complete.", step: "done" });
       },
 
       markSetupDone: () => {
@@ -242,7 +238,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
         }),
     }),
     {
-      name: "pm-agent-setup",
+      name: "pm-agent-setup-v2",
       merge: (persisted, current) => {
         const p = persisted as Partial<
           OnboardingStore & { ticketSource?: string; issueCategories?: IssueCategory[]; flowVersion?: number }

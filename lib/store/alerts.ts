@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import type { AnomalyAlert } from "@/lib/types";
-import { MOCK_ANOMALY_ALERTS } from "@/lib/mock/alerts";
 
 interface AlertStore {
   alerts: AnomalyAlert[];
@@ -11,14 +10,16 @@ interface AlertStore {
 }
 
 export const useAlertStore = create<AlertStore>((set) => ({
-  alerts: MOCK_ANOMALY_ALERTS,
+  alerts: [],
 
-  dismiss: (id) =>
+  dismiss: (id) => {
     set((state) => ({
       alerts: state.alerts.map((a) =>
         a.id === id ? { ...a, dismissed: true } : a
       ),
-    })),
+    }));
+    void import("@/lib/api-client").then(({ api }) => api.dismissAlert(id).catch(() => undefined));
+  },
 
   snooze: (id) =>
     set((state) => ({

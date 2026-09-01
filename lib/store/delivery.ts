@@ -68,43 +68,20 @@ export const useDeliveryStore = create<DeliveryStore>()(
         }));
 
         try {
-          const res = await fetch("/api/deliver", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ticketId, assigneeId, assigneeName, tool }),
-            signal: AbortSignal.timeout(10_000),
+          const res = await (await import("@/lib/api-client")).api.deliver({
+            ticketId,
+            assigneeId,
+            assigneeName,
+            assigneeInitials,
+            tool,
           });
-          const data = res.ok ? await res.json() : null;
-          const branchName = `fix/${ticketId.replace("ticket-", "")}`;
-          const update: Partial<DeliveryRecord> = res.ok
-            ? { status: "delivered", externalId: data?.externalId, externalUrl: data?.externalUrl }
-            : { status: "failed", error: "Delivery failed" };
           set((s) => ({
-            records: s.records.map((r) =>
-              r.ticketId === ticketId ? { ...r, ...update } : r
-            ),
+            records: s.records.map((r) => (r.ticketId === ticketId ? res : r)),
           }));
-
-          // Send email notification to developer
-          if (res.ok) {
-            const assigneeEmail = `${assigneeName.toLowerCase().replace(/\s+/g, ".")}@team.example.com`;
-            void fetch("/api/notify-dev", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                ticketId,
-                assigneeName,
-                assigneeEmail,
-                tool: TOOL_LABELS[tool],
-                externalId: data?.externalId,
-                branchName,
-              }),
-            });
-          }
         } catch {
           set((s) => ({
             records: s.records.map((r) =>
-              r.ticketId === ticketId ? { ...r, status: "failed", error: "Request timed out" } : r
+              r.ticketId === ticketId ? { ...r, status: "failed", error: "Delivery failed" } : r
             ),
           }));
         }

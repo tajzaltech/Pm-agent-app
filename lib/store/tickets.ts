@@ -2,8 +2,6 @@
 
 import { create } from "zustand";
 import type { Ticket, TicketStatus, ActivityEntry, ActivityAction, Classification, Scope } from "@/lib/types";
-import { MOCK_TICKETS } from "@/lib/mock/tickets";
-import { MOCK_ACTIVITY } from "@/lib/mock/activity";
 import { logAudit } from "@/lib/store/audit";
 import { usePipelineStore } from "@/lib/store/pipeline";
 import { useWorkspaceStore } from "@/lib/store/workspace";
@@ -58,19 +56,11 @@ function addActivity(activity: ActivityEntry[], entry: Omit<ActivityEntry, "id" 
 }
 
 function getWorkspaceTickets() {
-  try {
-    return useWorkspaceStore.getState().getActiveData().tickets;
-  } catch {
-    return MOCK_TICKETS;
-  }
+  return [] as Ticket[];
 }
 
 function getWorkspaceActivity() {
-  try {
-    return useWorkspaceStore.getState().getActiveData().activity;
-  } catch {
-    return MOCK_ACTIVITY;
-  }
+  return [] as ActivityEntry[];
 }
 
 export const useTicketStore = create<TicketStore>((set, get) => ({
@@ -92,35 +82,11 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
   hydrateFromApi: async () => {
     if (get().serverHydrated) return;
     try {
-      const response = await fetch("/api/draft-tickets", { cache: "no-store" });
-      if (!response.ok) {
-        set({ serverHydrated: true });
-        return;
-      }
-      const data = (await response.json()) as {
-        tickets?: Ticket[];
-        activity?: ActivityEntry[];
-      };
-
-      const current = get().tickets;
-      const serverTickets = data.tickets ?? [];
-      const hasPendingOnServer = serverTickets.some((ticket) => ticket.status === "pending");
-      const base = hasPendingOnServer ? serverTickets : getWorkspaceTickets();
-      const baseIds = new Set(base.map((t) => t.id));
-      const localOnly = current.filter(
-        (t) =>
-          !baseIds.has(t.id) &&
-          (t.status === "pending" || t.source === "pm_chat" || t.viaPmChat)
-      );
-
+      const { api } = await import("@/lib/api-client");
+      const data = await api.listTickets();
       set({
-        tickets: [...localOnly, ...base],
-        activity:
-          localOnly.length > 0
-            ? get().activity
-            : hasPendingOnServer && data.activity?.length
-              ? data.activity
-              : getWorkspaceActivity(),
+        tickets: data.tickets,
+        activity: data.activity,
         serverHydrated: true,
       });
     } catch {
@@ -154,6 +120,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
 
     usePipelineStore.getState().addFromAcceptance(ticket);
     logAudit("accepted", `Accept & send to Dev`, { ticketId: id, ticketTitle: ticket.draftTitle });
+    void import("@/lib/api-client").then(({ api }) => api.reviewTicket(id, "accept"));
   },
 
   acceptNonTechnical: (id) => {
@@ -173,6 +140,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       ticketId: id,
       ticketTitle: ticket.draftTitle,
     });
+    void import("@/lib/api-client").then(({ api }) => api.reviewTicket(id, "accept_non_technical"));
   },
 
   ignore: (id) => {
@@ -187,6 +155,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       }),
     }));
     logAudit("ignored", `Ignored duplicate/noise`, { ticketId: id, ticketTitle: ticket.draftTitle });
+    void import("@/lib/api-client").then(({ api }) => api.reviewTicket(id, "ignore"));
   },
 
   createFromChat: (payload) => {
@@ -229,13 +198,24 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       }),
     }));
 
-    void fetch("/api/draft-tickets", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(ticket),
-    }).catch(() => {
-      /* keep in client queue even if API unavailable */
-    });
+    void import("@/lib/api-client")
+      .then(({ api }) =>
+        api.createTicket({
+          title: payload.title,
+          classification: payload.classification,
+          scope: payload.scope,
+          description: payload.description,
+          chatSessionId: payload.chatSessionId,
+        }),
+      )
+      .then((created) => {
+        set((state) => ({
+          tickets: state.tickets.map((t) => (t.id === id ? { ...created, status: t.status } : t)),
+        }));
+      })
+      .catch(() => {
+        /* keep in client queue even if API unavailable */
+      });
 
     return id;
   },
@@ -268,11 +248,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
 
     logAudit("rejected", `Rejected draft`, { ticketId: id, ticketTitle: ticket.draftTitle });
 
-    void fetch(`/api/draft-tickets/${id}/review`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "reject" }),
-    });
+    void import("@/lib/api-client").then(({ api }) => api.reviewTicket(id, "reject"));
   },
 
   editDraft: (id, updates) => {
@@ -292,6 +268,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       ticketId: id,
       ticketTitle: updates.draftTitle ?? ticket.draftTitle,
     });
+    void import("@/lib/api-client").then(({ api }) => api.patchTicket(id, updates));
   },
 
   editAndAccept: (id, updates) => {
@@ -321,11 +298,7 @@ export const useTicketStore = create<TicketStore>((set, get) => ({
       ticketTitle: updates.draftTitle ?? ticket.draftTitle,
     });
 
-    void fetch(`/api/draft-tickets/${id}/review`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "accept", updates }),
-    });
+    void import("@/lib/api-client").then(({ api }) => api.reviewTicket(id, "accept", updates));
 
     import("@/lib/store/dispatch").then(({ useDispatchStore }) => {
       const dispatchStore = useDispatchStore.getState();

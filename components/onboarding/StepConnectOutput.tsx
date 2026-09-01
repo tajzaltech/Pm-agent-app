@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { ArrowRight, Check, Loader2 } from "lucide-react";
 
-import { ConnectProviderDialog } from "@/components/onboarding/ConnectProviderDialog";
-
 import {
   ClickUpLogo,
   GitHubIssuesLogo,
@@ -14,158 +12,136 @@ import {
   SlackLogo,
 } from "@/components/shared/BrandLogos";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useOnboardingStore } from "@/lib/store/onboarding";
 import { cn } from "@/lib/utils";
 
 const OUTPUTS = [
-  { id: "slack", name: "Slack", Logo: SlackLogo, desc: "Share customer updates" },
-  { id: "linear", name: "Linear", Logo: LinearLogo, desc: "Modern project tracking" },
-  { id: "jira", name: "Jira", Logo: JiraLogo, desc: "Atlassian project management" },
-  { id: "monday", name: "Monday.com", Logo: MondayLogo, desc: "Work OS and boards" },
-  { id: "clickup", name: "ClickUp", Logo: ClickUpLogo, desc: "All-in-one productivity" },
-  { id: "github_issues", name: "GitHub Issues", Logo: GitHubIssuesLogo, desc: "Built-in repo issues" },
+  { id: "linear", name: "Linear", Logo: LinearLogo, desc: "Creates real issues via API key" },
+  { id: "slack", name: "Slack", Logo: SlackLogo, desc: "Webhook later" },
+  { id: "jira", name: "Jira", Logo: JiraLogo, desc: "Use Linear for live delivery" },
+  { id: "monday", name: "Monday.com", Logo: MondayLogo, desc: "Coming soon" },
+  { id: "clickup", name: "ClickUp", Logo: ClickUpLogo, desc: "Coming soon" },
+  { id: "github_issues", name: "GitHub Issues", Logo: GitHubIssuesLogo, desc: "Coming soon" },
 ];
 
-const PROJECTS: Record<string, string[]> = {
-  slack: ["#support", "#customer-success", "#product"],
-  linear: ["Backend - Q3", "Frontend - Q3", "Infrastructure", "Mobile"],
-  jira: ["BACK", "FRONT", "OPS", "MOBILE"],
-  monday: ["Development Board", "Sprint Board", "Bug Tracker"],
-  clickup: ["Engineering", "Platform", "Design"],
-  github_issues: ["api-backend", "web-frontend", "data-pipeline"],
-};
-
 export function StepConnectOutput() {
-  const {
-    outputTool,
-    outputToolStatus,
-    selectedProject,
-    connectOutputTool,
-    setSelectedProject,
-    setStep,
-  } = useOnboardingStore();
-  const [dialogProvider, setDialogProvider] = useState<string | null>(null);
+  const { outputTool, outputToolStatus, selectedProject, connectOutputTool, setSelectedProject, setStep } =
+    useOnboardingStore();
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const handleConnect = async (id: string) => {
-    if (outputTool === id && outputToolStatus === "connected") return;
+    if (id !== "linear") {
+      setError("Linear is the live output in this build. Connect Linear to create real issues.");
+      return;
+    }
+    if (!apiKey.trim()) {
+      setError("Paste a Linear personal API key.");
+      return;
+    }
+    setError(null);
     setConnecting(id);
-    await connectOutputTool(id);
+    try {
+      await connectOutputTool(id, {
+        apiKey: apiKey.trim(),
+        teamId: teamId.trim() || undefined,
+        project: teamId.trim() || selectedProject || "Linear",
+      });
+      if (!teamId.trim()) setSelectedProject("Linear");
+    } catch {
+      setError("Linear rejected that key. Create a personal API key in Linear settings and retry.");
+    }
     setConnecting(null);
   };
 
-  const projects = outputTool ? PROJECTS[outputTool] ?? [] : [];
-  const dialogMeta = OUTPUTS.find((o) => o.id === dialogProvider);
+  const isConnected = outputTool === "linear" && outputToolStatus === "connected";
 
   return (
-    <>
     <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
       <div className="border-b px-8 pb-6 pt-8">
         <h1 className="text-2xl font-bold tracking-tight">Where should dev tickets go?</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Connect your project management tool to push accepted tickets automatically.
+          Connect Linear with an API key. Accepted tickets create real Linear issues.
         </p>
       </div>
 
       <div className="space-y-5 p-6">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {OUTPUTS.map(({ id, name, Logo, desc }) => {
-            const isConnected = outputTool === id && outputToolStatus === "connected";
-            const isConnecting = connecting === id;
-
+            const connected = id === "linear" && isConnected;
             return (
-              <button
+              <div
                 key={id}
-                disabled={isConnecting}
-                onClick={() => {
-                  if (isConnected) return;
-                  setDialogProvider(id);
-                }}
                 title={desc}
                 className={cn(
-                  "group relative flex min-h-32 flex-col items-center justify-center gap-3 rounded-2xl border-2 bg-white p-4 text-center transition-all duration-150",
-                  isConnected
-                    ? "border-primary bg-primary/[0.03] shadow-sm"
-                    : isConnecting
-                      ? "border-muted-foreground/20 bg-muted/20 cursor-wait"
-                      : "border-border hover:border-primary/40 hover:shadow-sm"
+                  "relative flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border-2 bg-white p-4 text-center",
+                  connected ? "border-primary bg-primary/[0.03]" : "border-border"
                 )}
               >
-                {isConnected && (
-                  <span className="absolute right-2 top-2 flex size-[18px] items-center justify-center rounded-full bg-primary shadow-sm">
+                {connected && (
+                  <span className="absolute right-2 top-2 flex size-[18px] items-center justify-center rounded-full bg-primary">
                     <Check className="size-2.5 text-white" strokeWidth={2.5} />
                   </span>
                 )}
-
-                <div className="relative flex size-12 items-center justify-center">
-                  <Logo className="size-10 transition-transform duration-150 group-hover:scale-105" />
-                  {isConnecting && (
-                    <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/85">
-                      <Loader2 className="size-4 animate-spin text-primary" />
-                    </span>
-                  )}
-                </div>
-
-                <p className={cn("text-xs font-semibold leading-tight", isConnected ? "text-primary" : "text-foreground")}>
-                  {name}
-                </p>
-              </button>
+                <Logo className="size-10" />
+                <p className="text-xs font-semibold">{name}</p>
+              </div>
             );
           })}
         </div>
 
-        {outputToolStatus === "connected" && projects.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-semibold">Select target project / board</p>
-            <Select
-              value={selectedProject ?? ""}
-              onValueChange={(value) => {
-                if (value) setSelectedProject(value);
-              }}
-            >
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Choose a project..." />
-              </SelectTrigger>
-              <SelectContent>
-                {projects.map((project) => (
-                  <SelectItem key={project} value={project}>
-                    {project}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="space-y-3 rounded-xl border bg-slate-50 p-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="linear-key" className="text-xs">
+              Linear API key
+            </Label>
+            <Input
+              id="linear-key"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="lin_api_…"
+              className="h-9 bg-white font-mono text-sm"
+            />
           </div>
-        )}
+          <div className="space-y-1.5">
+            <Label htmlFor="linear-team" className="text-xs">
+              Team ID (optional — first team is used if empty)
+            </Label>
+            <Input
+              id="linear-team"
+              value={teamId}
+              onChange={(e) => setTeamId(e.target.value)}
+              placeholder="UUID from Linear team settings"
+              className="h-9 bg-white font-mono text-sm"
+            />
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <Button onClick={() => void handleConnect("linear")} disabled={!!connecting} className="gap-2">
+            {connecting ? <Loader2 className="size-4 animate-spin" /> : null}
+            {isConnected ? "Update Linear" : "Connect Linear"}
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between border-t bg-slate-50/50 px-6 py-4">
         <Button variant="ghost" onClick={() => setStep(2)} className="text-muted-foreground">
           Back
         </Button>
-        <Button
-          onClick={() => setStep(4)}
-          disabled={outputToolStatus !== "connected" || !selectedProject}
-          className="min-w-28 gap-2"
-        >
-          Continue
-          <ArrowRight className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setStep(4)} variant="outline">
+            Skip for now
+          </Button>
+          <Button onClick={() => setStep(4)} disabled={!isConnected} className="min-w-28 gap-2">
+            Continue
+            <ArrowRight className="size-4" />
+          </Button>
+        </div>
       </div>
     </div>
-
-    {dialogMeta && (
-      <ConnectProviderDialog
-        open={!!dialogProvider}
-        providerId={dialogMeta.id}
-        providerName={dialogMeta.name}
-        Logo={dialogMeta.Logo}
-        onClose={() => setDialogProvider(null)}
-        onConnected={async () => {
-          await handleConnect(dialogMeta.id);
-        }}
-      />
-    )}
-    </>
   );
 }

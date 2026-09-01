@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface ProductDoc {
+  id?: string;
   name: string;
   size: string;
   type: string;
@@ -27,7 +28,7 @@ export const useProductDocsStore = create<ProductDocsStore>()(
         })),
       removeDoc: (name) =>
         set((state) => ({
-          docs: state.docs.filter((doc) => doc.name !== name),
+          docs: state.docs.filter((doc) => doc.name !== name && doc.id !== name),
         })),
     }),
     { name: "pm-agent-product-docs" }

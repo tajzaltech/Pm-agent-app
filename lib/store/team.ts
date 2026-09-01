@@ -3,7 +3,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { MOCK_TEAM_MEMBERS } from "@/lib/mock/team";
 import type { TeamMember, UserRole } from "@/lib/types";
 import { canRemoveMember } from "@/lib/utils/team-rbac";
 
@@ -28,8 +27,8 @@ interface TeamStore {
 export const useTeamStore = create<TeamStore>()(
   persist(
     (set, get) => ({
-      members: MOCK_TEAM_MEMBERS,
-      currentUserId: "u000",
+      members: [],
+      currentUserId: "",
 
       getCurrentUser: () => get().members.find((m) => m.id === get().currentUserId),
 
@@ -41,16 +40,22 @@ export const useTeamStore = create<TeamStore>()(
         return canRemoveMember(actor.role, target.role);
       },
 
-      addMember: (member) => set((s) => ({ members: [...s.members, member] })),
+      addMember: (member) => {
+        set((s) => ({ members: [...s.members, member] }));
+        void import("@/lib/api-client").then(({ api }) =>
+          api.inviteMember(member.email, member.role, member.name).catch(() => undefined),
+        );
+      },
 
       removeMember: (id) => {
         if (!get().canRemove(id)) return false;
         set((s) => ({ members: s.members.filter((m) => m.id !== id) }));
+        void import("@/lib/api-client").then(({ api }) => api.removeMember(id).catch(() => undefined));
         return true;
       },
     }),
     {
-      name: "pm-agent-team",
+      name: "pm-agent-team-v2",
       merge: (persisted, current) => {
         const p = persisted as Partial<TeamStore>;
         const members = (p.members?.length ? p.members : current.members).map(normalizeMember);

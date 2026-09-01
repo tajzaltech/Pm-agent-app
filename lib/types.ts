@@ -206,6 +206,8 @@ export interface DeliveryConfig {
   autoDeliver: boolean;
   defaultAssigneeId: string;
   toolWebhookUrl: string;
+  linearConfigured?: boolean;
+  linearTeamId?: string;
 }
 
 export interface AnalyticsSeries {

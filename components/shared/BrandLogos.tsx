@@ -78,6 +78,10 @@ export function GoogleSheetsLogo({ className }: LogoProps) {
   return <BrandIcon slug="googlesheets" label="Google Sheets" color="34A853" className={className} />;
 }
 
+export function GmailLogo({ className }: LogoProps) {
+  return <BrandIcon slug="gmail" label="Gmail" color="EA4335" className={className} />;
+}
+
 export function GitHubLogo({ className }: LogoProps) {
   return <BrandIcon slug="github" label="GitHub" color="181717" className={className} />;
 }
@@ -115,12 +119,33 @@ export function GitHubIssuesLogo({ className }: LogoProps) {
 export function PMAgentLogo({ className }: LogoProps) {
   return (
     <Image
-      src="/ask-pm-logo-v3.png"
+      src="/ask-pm-logo-v2.png"
       alt="Ask PM"
       width={512}
       height={512}
       className={className}
     />
+  );
+}
+
+export function AskPmBrand({
+  className,
+  priority,
+}: LogoProps & {
+  priority?: boolean;
+}) {
+  return (
+    <span className={cn("flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-foreground", className)}>
+      <Image
+        src="/ask-pm-logo-v2.png"
+        alt="Ask PM"
+        width={24}
+        height={24}
+        className="size-6 object-contain"
+        priority={priority}
+      />
+      Ask <span className="gradient-text">PM</span>
+    </span>
   );
 }
 

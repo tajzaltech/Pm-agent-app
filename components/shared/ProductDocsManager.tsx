@@ -18,26 +18,21 @@ export function ProductDocsManager({ variant = "onboarding" }: ProductDocsManage
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       acceptedFiles.forEach((file) => {
-        const doc = {
-          name: file.name,
-          size: `${(file.size / 1024).toFixed(0)} KB`,
-          type: file.type,
-        };
-
-        addDoc(doc);
-        void fetch("/api/product-docs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(doc),
-        });
+        void import("@/lib/api-client")
+          .then(async ({ api }) => {
+            const doc = await api.uploadProductDoc(file);
+            addDoc(doc);
+            toast.success(`"${file.name}" added`);
+          })
+          .catch(() => {
+            addDoc({
+              name: file.name,
+              size: `${(file.size / 1024).toFixed(0)} KB`,
+              type: file.type,
+            });
+            toast.message(`"${file.name}" saved locally — file storage is not configured`);
+          });
       });
-      if (acceptedFiles.length > 0) {
-        toast.success(
-          acceptedFiles.length === 1
-            ? `"${acceptedFiles[0].name}" added`
-            : `${acceptedFiles.length} documents added`
-        );
-      }
     },
     [addDoc]
   );
@@ -118,6 +113,12 @@ export function ProductDocsManager({ variant = "onboarding" }: ProductDocsManage
                 type="button"
                 className="text-muted-foreground hover:text-red-600 transition-colors"
                 onClick={() => {
+                  const match = docs.find((d) => d.name === doc.name);
+                  if (match?.id) {
+                    void import("@/lib/api-client").then(({ api }) =>
+                      api.deleteProductDoc(match.id!).catch(() => undefined),
+                    );
+                  }
                   removeDoc(doc.name);
                   toast.info(`"${doc.name}" removed`);
                 }}
