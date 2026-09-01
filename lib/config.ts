@@ -1,8 +1,9 @@
 export function getConfig() {
+  const onVercel = Boolean(process.env.VERCEL);
   return {
-    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000",
+    apiBaseUrl: process.env.NEXT_PUBLIC_API_URL ?? (onVercel ? "" : "http://localhost:8000"),
     apiPrefix: "/v1",
-    appOrigin: process.env.NEXT_PUBLIC_APP_ORIGIN ?? "http://localhost:3000",
+    appOrigin: process.env.NEXT_PUBLIC_APP_ORIGIN ?? (onVercel ? "" : "http://localhost:3000"),
     googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "",
   };
 }

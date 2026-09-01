@@ -9,7 +9,9 @@ export interface GoogleOAuthIntent {
 }
 
 export function googleRedirectUri() {
-  return `${getConfig().appOrigin.replace(/\/$/, "")}/auth/google/callback`;
+  const configured = getConfig().appOrigin.replace(/\/$/, "");
+  const origin = configured || (typeof window !== "undefined" ? window.location.origin : "");
+  return `${origin}/auth/google/callback`;
 }
 
 export function startGoogleOAuth(input: {
