@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { ArrowRight, Boxes, Check, FileCode2, GitBranch, Inbox, Ruler, Tag, UserCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { BrandMark, type Brand } from "@/components/marketing/BrandTile";
 import { CARD, CARD_SHADOW, INK, INK_FAINT, LINE, mono } from "@/components/marketing/theme";
 import { Reveal, SectionHead } from "@/components/marketing/ui";
+import { PMAgentLogo } from "@/components/shared/BrandLogos";
 
 const SOURCES: Brand[] = [
   { name: "Zendesk", slug: "zendesk", color: "03363D" },
@@ -57,7 +57,7 @@ export function HowItWorksSection() {
               <ArrowRight className="size-3.5 rotate-90 text-[#c5c7d1]" />
             </div>
             <div className={cn("flex items-center justify-center gap-2 rounded-xl border bg-white py-2.5", LINE)}>
-              <Image src="/ask-pm-logo-v2.png" alt="" width={512} height={512} className="size-6 object-contain" />
+              <PMAgentLogo className="size-6 object-contain" />
               <span className={cn("text-[12.5px] font-semibold", INK)}>Ask PM</span>
             </div>
           </Step>

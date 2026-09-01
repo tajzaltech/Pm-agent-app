@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -144,13 +143,7 @@ export function PmChatView({ sessionId, ticketId }: Props) {
               </>
             ) : (
               <>
-                <Image
-                  src="/ask-pm-logo-v2.png"
-                  alt="Ask PM"
-                  width={512}
-                  height={512}
-                  className="size-14 object-contain"
-                />
+                <PMAgentLogo className="size-14 object-contain" />
                 <h1 className="text-[38px] font-extrabold tracking-[-0.045em] leading-none bg-gradient-to-r from-primary via-[#6D52DE] to-[#8E6CF3] bg-clip-text text-transparent sm:text-[42px]">
                   Ask PM
                 </h1>

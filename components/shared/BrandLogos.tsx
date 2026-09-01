@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-import Image from "next/image";
+const ASK_PM_LOGO = "/ask-pm-logo-v2.png";
 
 type LogoProps = {
   className?: string;
@@ -118,12 +118,15 @@ export function GitHubIssuesLogo({ className }: LogoProps) {
 
 export function PMAgentLogo({ className }: LogoProps) {
   return (
-    <Image
-      src="/ask-pm-logo-v2.png"
+    // Served from /public. next/image optimizer 404s on Vercel Services.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={ASK_PM_LOGO}
       alt="Ask PM"
       width={512}
       height={512}
       className={className}
+      draggable={false}
     />
   );
 }
@@ -136,13 +139,15 @@ export function AskPmBrand({
 }) {
   return (
     <span className={cn("flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-foreground", className)}>
-      <Image
-        src="/ask-pm-logo-v2.png"
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={ASK_PM_LOGO}
         alt="Ask PM"
         width={24}
         height={24}
         className="size-6 object-contain"
-        priority={priority}
+        draggable={false}
+        fetchPriority={priority ? "high" : undefined}
       />
       Ask <span className="gradient-text">PM</span>
     </span>

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useTicketStore } from "@/lib/store/tickets";
@@ -22,7 +21,7 @@ import { useEffect, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useWorkspaceStore } from "@/lib/store/workspace";
 import { CaretDoubleLeft, CaretDoubleRight, CaretUpDown, Check } from "@phosphor-icons/react";
-import { AskPmBrand } from "@/components/shared/BrandLogos";
+import { AskPmBrand, PMAgentLogo } from "@/components/shared/BrandLogos";
 import { WorkspaceLogo } from "@/components/shared/WorkspaceLogo";
 
 const NAV = [
@@ -240,13 +239,7 @@ function DesktopSidebar() {
             title="Expand navigation"
             className="group relative flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-primary/[0.07]"
           >
-            <Image
-              src="/ask-pm-logo-v2.png"
-              alt="Ask PM"
-              width={24}
-              height={24}
-              className="size-6 object-contain transition-opacity duration-150 group-hover:opacity-0"
-            />
+            <PMAgentLogo className="size-6 object-contain transition-opacity duration-150 group-hover:opacity-0" />
             <CaretDoubleRight
               size={16}
               weight="bold"
