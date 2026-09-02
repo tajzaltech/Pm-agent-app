@@ -171,7 +171,12 @@ def _workspace_name_from_google(name: str, email: str, company: str | None) -> s
 async def _auth_tokens(repos: Repos, user: dict) -> AuthTokenResponseSchema:
     refresh = await _issue_refresh(repos, user["_id"])
     return AuthTokenResponseSchema(
-        access_token=create_access_token(user_id=user["_id"], email=user["email"]),
+        access_token=create_access_token(
+            user_id=user["_id"],
+            email=user["email"],
+            name=str(user.get("name") or ""),
+            workspace_id=str(user.get("default_workspace_id") or ""),
+        ),
         refresh_token=refresh,
         user=_user_response(user),
     )
@@ -290,7 +295,12 @@ async def refresh_session(repos: Repos, refresh_token: str) -> AuthTokenResponse
         raise unauthorized("User not found")
     new_refresh = await _issue_refresh(repos, user["_id"])
     return AuthTokenResponseSchema(
-        access_token=create_access_token(user_id=user["_id"], email=user["email"]),
+        access_token=create_access_token(
+            user_id=user["_id"],
+            email=user["email"],
+            name=str(user.get("name") or ""),
+            workspace_id=str(user.get("default_workspace_id") or ""),
+        ),
         refresh_token=new_refresh,
         user=_user_response(user),
     )

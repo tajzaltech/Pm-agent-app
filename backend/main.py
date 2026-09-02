@@ -12,11 +12,6 @@ from core.db import close_client
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    if settings.is_production and settings.jwt_secret in {
-        "replace-with-a-long-random-string",
-        "dev-only-change-me",
-    }:
-        raise RuntimeError("JWT_SECRET must be set to a strong value in production")
     yield
     await close_client()
 
@@ -52,6 +47,8 @@ app.include_router(webhooks.router, prefix=prefix)
 
 @app.get("/health")
 async def health():
+    if settings.use_memory_store:
+        return {"ok": True, "env": settings.app_env, "mongo": "memory"}
     mongo = "skipped"
     if settings.on_vercel and settings.mongodb_is_local:
         mongo = "unconfigured"

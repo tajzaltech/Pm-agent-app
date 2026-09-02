@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
-
 from repositories.collections import (
     ActivityRepository,
     AlertRepository,
@@ -57,7 +55,7 @@ class Repos:
     code_chunks: CodeChunkRepository
 
 
-def build_repos(db: AsyncIOMotorDatabase) -> Repos:
+def build_repos(db: Any) -> Repos:
     return Repos(
         users=UserRepository(db),
         tokens=AuthTokenRepository(db),

@@ -76,6 +76,10 @@ class Settings(BaseSettings):
         return "localhost" in uri or "127.0.0.1" in uri
 
     @property
+    def use_memory_store(self) -> bool:
+        return self.on_vercel and self.mongodb_is_local
+
+    @property
     def google_redirect_uri(self) -> str:
         return f"{self.public_origin}/auth/google/callback"
 

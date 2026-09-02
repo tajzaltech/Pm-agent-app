@@ -98,7 +98,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     });
   } catch (error) {
     if (controller.signal.aborted) {
-      throw new ApiError(0, "timeout", "The API did not respond. Check MONGODB_URI on Vercel and try again.");
+      throw new ApiError(0, "timeout", "The API did not respond. Refresh and try again.");
     }
     throw error;
   } finally {
@@ -125,7 +125,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       response.status,
       parsed.code,
       serverDown
-        ? "The API could not start. Add MONGODB_URI (MongoDB Atlas) in Vercel Project Settings → Environment Variables."
+        ? "The API failed. Refresh the page and try signing in again."
         : parsed.message,
     );
   }

@@ -32,14 +32,25 @@ def verify_token_hash(raw: str, token_hash: str) -> bool:
         return False
 
 
-def create_access_token(*, user_id: str, email: str) -> str:
+def create_access_token(
+    *,
+    user_id: str,
+    email: str,
+    name: str = "",
+    workspace_id: str = "",
+) -> str:
     now = datetime.now(timezone.utc)
+    minutes = settings.access_token_minutes
+    if settings.use_memory_store:
+        minutes = max(minutes, 60 * 24 * 14)
     payload = {
         "sub": user_id,
         "email": email,
+        "name": name,
+        "wid": workspace_id,
         "typ": ACCESS_TOKEN_TYPE,
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(minutes=settings.access_token_minutes)).timestamp()),
+        "exp": int((now + timedelta(minutes=minutes)).timestamp()),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 

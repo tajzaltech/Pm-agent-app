@@ -1,0 +1,9 @@
+backend/.venv
+backend/.env
+.venv
+.env
+.env.local
+.next
+node_modules
+.cursor
+**/.DS_Store

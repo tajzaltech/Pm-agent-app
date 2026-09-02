@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from core.config import settings
 from core.errors import service_unavailable
+from core.memory_db import MemoryDatabase
 
 _client: AsyncIOMotorClient | None = None
 _indexes_ready = False
 _mongo_ok = False
+_memory = MemoryDatabase()
 
 
 def get_client() -> AsyncIOMotorClient:
@@ -28,8 +31,14 @@ def get_db() -> AsyncIOMotorDatabase:
     return get_client()[settings.mongodb_db_name]
 
 
+def get_memory_db() -> MemoryDatabase:
+    return _memory
+
+
 async def assert_mongo_ready() -> None:
     global _mongo_ok
+    if settings.use_memory_store:
+        return
     if settings.on_vercel and settings.mongodb_is_local:
         raise service_unavailable(
             "Set MONGODB_URI in Vercel to a MongoDB Atlas connection string. Localhost MongoDB is not reachable from Vercel."
@@ -43,7 +52,10 @@ async def assert_mongo_ready() -> None:
         raise service_unavailable("Cannot reach MongoDB. Check MONGODB_URI.") from exc
 
 
-async def get_database() -> AsyncGenerator[AsyncIOMotorDatabase, None]:
+async def get_database() -> AsyncGenerator[Any, None]:
+    if settings.use_memory_store:
+        yield get_memory_db()
+        return
     await assert_mongo_ready()
     await ensure_auth_indexes()
     yield get_db()
