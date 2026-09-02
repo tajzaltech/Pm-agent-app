@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from secrets import token_urlsafe
 
 from core.config import settings
@@ -24,6 +24,12 @@ from models.auth import (
     VerifyEmailRequestSchema,
 )
 from services.context import Actor, Repos, as_id, iso
+
+
+def _aware(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
 
 
 def _user_response(doc: dict) -> UserResponseSchema:
@@ -227,7 +233,7 @@ async def signin(repos: Repos, body: SignInRequestSchema) -> AuthTokenResponseSc
 async def google_auth(repos: Repos, body: GoogleAuthRequestSchema) -> AuthTokenResponseSchema:
     from integrations.google_oauth import exchange_auth_code
 
-    identity = await exchange_auth_code(body.code)
+    identity = await exchange_auth_code(body.code, body.redirect_uri)
     if not identity.email_verified:
         raise unauthorized("Google email is not verified")
 
@@ -276,7 +282,7 @@ async def refresh_session(repos: Repos, refresh_token: str) -> AuthTokenResponse
             break
     if not match:
         raise unauthorized("Invalid refresh token")
-    if match["expires_at"] < utcnow():
+    if _aware(match["expires_at"]) < utcnow():
         raise unauthorized("Refresh token expired")
     await repos.tokens.update_by_id(match["_id"], {"used_at": utcnow()})
     user = await repos.users.find_by_id(match["user_id"])
@@ -321,7 +327,7 @@ async def forgot_password(repos: Repos, body: ForgotPasswordRequestSchema) -> No
 async def reset_password(repos: Repos, body: ResetPasswordRequestSchema) -> None:
     tokens = await repos.tokens.find_many({"kind": "password_reset", "used_at": None}, limit=100)
     match = next((t for t in tokens if verify_token_hash(body.token, t["token_hash"])), None)
-    if not match or match["expires_at"] < utcnow():
+    if not match or _aware(match["expires_at"]) < utcnow():
         raise unauthorized("Invalid or expired reset token")
     await repos.users.update_by_id(
         match["user_id"],
@@ -333,7 +339,7 @@ async def reset_password(repos: Repos, body: ResetPasswordRequestSchema) -> None
 async def verify_email(repos: Repos, body: VerifyEmailRequestSchema) -> None:
     tokens = await repos.tokens.find_many({"kind": "email_verify", "used_at": None}, limit=100)
     match = next((t for t in tokens if verify_token_hash(body.token, t["token_hash"])), None)
-    if not match or match["expires_at"] < utcnow():
+    if not match or _aware(match["expires_at"]) < utcnow():
         raise unauthorized("Invalid or expired verification token")
     await repos.users.update_by_id(match["user_id"], {"email_verified": True, "updated_at": utcnow()})
     await repos.tokens.update_by_id(match["_id"], {"used_at": utcnow()})

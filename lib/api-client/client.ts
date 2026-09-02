@@ -24,6 +24,7 @@ import {
   mapWorkspace,
 } from "./mappers";
 import { setSession } from "./session";
+import { googleRedirectUri } from "@/lib/google-auth";
 
 type Dict = Record<string, unknown>;
 
@@ -64,7 +65,13 @@ export const api = {
     return mapAuth(await apiRequest<Dict>("/auth/signin", { method: "POST", body, auth: false }));
   },
   async googleAuth(body: { code: string; company?: string }) {
-    return mapAuth(await apiRequest<Dict>("/auth/google", { method: "POST", body, auth: false }));
+    return mapAuth(
+      await apiRequest<Dict>("/auth/google", {
+        method: "POST",
+        body: { ...body, redirect_uri: googleRedirectUri() },
+        auth: false,
+      }),
+    );
   },
   async signout() {
     await apiRequest("/auth/signout", { method: "POST" }).catch(() => undefined);

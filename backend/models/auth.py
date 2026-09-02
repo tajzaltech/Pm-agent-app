@@ -31,10 +31,19 @@ class SignInRequestSchema(StrictModel):
 class GoogleAuthRequestSchema(StrictModel):
     code: str = Field(min_length=8, max_length=4096)
     company: str | None = Field(default=None, max_length=160)
+    redirect_uri: str | None = Field(default=None, max_length=500)
 
     @field_validator("company")
     @classmethod
     def strip_company(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+    @field_validator("redirect_uri")
+    @classmethod
+    def strip_redirect(cls, value: str | None) -> str | None:
         if value is None:
             return None
         cleaned = value.strip()

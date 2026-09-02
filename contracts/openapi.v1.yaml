@@ -577,6 +577,7 @@ components:
       properties:
         code: { type: string, description: Google OAuth authorization code from the Gmail redirect callback }
         company: { type: string, description: Optional workspace name used only when creating a new account }
+        redirect_uri: { type: string, description: Must match the Google OAuth redirect used to obtain the code }
     ConnectSourceRequest:
       type: object
       required: [provider]

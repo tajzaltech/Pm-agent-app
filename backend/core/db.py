@@ -5,14 +5,22 @@ from collections.abc import AsyncGenerator
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 from core.config import settings
+from core.errors import service_unavailable
 
 _client: AsyncIOMotorClient | None = None
+_indexes_ready = False
+_mongo_ok = False
 
 
 def get_client() -> AsyncIOMotorClient:
     global _client
     if _client is None:
-        _client = AsyncIOMotorClient(settings.mongodb_uri, serverSelectionTimeoutMS=5000)
+        _client = AsyncIOMotorClient(
+            settings.mongodb_uri,
+            tz_aware=True,
+            serverSelectionTimeoutMS=2500,
+            connectTimeoutMS=2500,
+        )
     return _client
 
 
@@ -20,8 +28,35 @@ def get_db() -> AsyncIOMotorDatabase:
     return get_client()[settings.mongodb_db_name]
 
 
+async def assert_mongo_ready() -> None:
+    global _mongo_ok
+    if settings.on_vercel and settings.mongodb_is_local:
+        raise service_unavailable(
+            "Set MONGODB_URI in Vercel to a MongoDB Atlas connection string. Localhost MongoDB is not reachable from Vercel."
+        )
+    if _mongo_ok:
+        return
+    try:
+        await get_client().admin.command("ping")
+        _mongo_ok = True
+    except Exception as exc:
+        raise service_unavailable("Cannot reach MongoDB. Check MONGODB_URI.") from exc
+
+
 async def get_database() -> AsyncGenerator[AsyncIOMotorDatabase, None]:
+    await assert_mongo_ready()
+    await ensure_auth_indexes()
     yield get_db()
+
+
+async def ensure_auth_indexes() -> None:
+    global _indexes_ready
+    if _indexes_ready:
+        return
+    db = get_db()
+    await db.users.create_index("email", unique=True)
+    await db.auth_tokens.create_index("token_hash")
+    _indexes_ready = True
 
 
 async def ensure_indexes() -> None:

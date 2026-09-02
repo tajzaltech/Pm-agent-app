@@ -67,7 +67,7 @@ function refreshOnce() {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, auth = true, retry = true, headers, ...rest } = options;
+  const { body, auth = true, retry = true, headers, signal, ...rest } = options;
   const session = getSession();
   const requestHeaders = new Headers(headers);
   if (body !== undefined) requestHeaders.set("Content-Type", "application/json");
@@ -78,12 +78,32 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     requestHeaders.set("X-Workspace-Id", session.workspaceId);
   }
 
-  const response = await fetch(getApiUrl(path), {
-    ...rest,
-    headers: requestHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  if (signal?.aborted) {
+    clearTimeout(timer);
+    controller.abort();
+  } else {
+    signal?.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(getApiUrl(path), {
+      ...rest,
+      signal: controller.signal,
+      headers: requestHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new ApiError(0, "timeout", "The API did not respond. Check MONGODB_URI on Vercel and try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (response.status === 401 && auth && retry) {
     const refreshed = await refreshOnce();
@@ -100,7 +120,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       payload = null;
     }
     const parsed = parseDetail(payload);
-    throw new ApiError(response.status, parsed.code, parsed.message);
+    const serverDown = response.status >= 500 && (!payload || parsed.message === "Request failed");
+    throw new ApiError(
+      response.status,
+      parsed.code,
+      serverDown
+        ? "The API could not start. Add MONGODB_URI (MongoDB Atlas) in Vercel Project Settings → Environment Variables."
+        : parsed.message,
+    );
   }
 
   if (response.status === 204) return undefined as T;

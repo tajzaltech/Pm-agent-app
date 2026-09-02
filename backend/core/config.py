@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 
 from pydantic import Field
@@ -55,8 +56,28 @@ class Settings(BaseSettings):
     )
 
     @property
+    def on_vercel(self) -> bool:
+        return bool(os.environ.get("VERCEL"))
+
+    @property
+    def public_origin(self) -> str:
+        origin = (self.frontend_origin or "").rstrip("/")
+        vercel_host = os.environ.get("VERCEL_PROJECT_PRODUCTION_URL") or os.environ.get("VERCEL_URL")
+        local = (not origin) or ("localhost" in origin) or ("127.0.0.1" in origin)
+        if self.on_vercel and local and vercel_host:
+            if vercel_host.startswith("http"):
+                return vercel_host.rstrip("/")
+            return f"https://{vercel_host}".rstrip("/")
+        return origin or "http://localhost:3000"
+
+    @property
+    def mongodb_is_local(self) -> bool:
+        uri = self.mongodb_uri.lower()
+        return "localhost" in uri or "127.0.0.1" in uri
+
+    @property
     def google_redirect_uri(self) -> str:
-        return f"{self.frontend_origin.rstrip('/')}/auth/google/callback"
+        return f"{self.public_origin}/auth/google/callback"
 
     @property
     def allowed_upload_type_set(self) -> set[str]:

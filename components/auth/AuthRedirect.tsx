@@ -16,17 +16,18 @@ export function AuthRedirect({ mode }: { mode: "signin" | "signup" }) {
   const onboardingHydrated = useOnboardingHydrated();
   const hydrated = authHydrated && onboardingHydrated;
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const isSetup = useOnboardingStore((s) => s.isSetup);
   const defaultLanding = useThemeStore((s) => s.defaultLanding);
 
   useEffect(() => {
-    if (!hydrated || !isAuthenticated) return;
+    if (!hydrated || !isAuthenticated || !accessToken) return;
     if (isSetup) {
       router.replace(defaultLanding);
       return;
     }
     router.replace("/onboarding");
-  }, [hydrated, isAuthenticated, isSetup, mode, router, defaultLanding]);
+  }, [hydrated, isAuthenticated, accessToken, isSetup, mode, router, defaultLanding]);
 
   return null;
 }

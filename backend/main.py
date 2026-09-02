@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.routers import auth, product, tickets, webhooks, workspace_ops, workspaces
 from core.config import settings
-from core.db import close_client, ensure_indexes
+from core.db import close_client
 
 
 @asynccontextmanager
@@ -17,7 +17,6 @@ async def lifespan(_app: FastAPI):
         "dev-only-change-me",
     }:
         raise RuntimeError("JWT_SECRET must be set to a strong value in production")
-    await ensure_indexes()
     yield
     await close_client()
 
@@ -31,7 +30,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin, "http://localhost:3000"],
+    allow_origins=[
+        settings.public_origin,
+        settings.frontend_origin,
+        "http://localhost:3000",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -48,4 +52,15 @@ app.include_router(webhooks.router, prefix=prefix)
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "env": settings.app_env}
+    mongo = "skipped"
+    if settings.on_vercel and settings.mongodb_is_local:
+        mongo = "unconfigured"
+    else:
+        try:
+            from core.db import get_client
+
+            await get_client().admin.command("ping")
+            mongo = "ok"
+        except Exception:
+            mongo = "unreachable"
+    return {"ok": True, "env": settings.app_env, "mongo": mongo}

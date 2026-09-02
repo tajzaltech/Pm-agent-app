@@ -10,6 +10,25 @@ from core.errors import service_unavailable, unauthorized
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
 GOOGLE_ISSUERS = {"accounts.google.com", "https://accounts.google.com"}
+CALLBACK_SUFFIX = "/auth/google/callback"
+
+
+def resolve_redirect_uri(explicit: str | None) -> str:
+    if not explicit:
+        return settings.google_redirect_uri
+    cleaned = explicit.strip()
+    if not cleaned.endswith(CALLBACK_SUFFIX):
+        raise unauthorized("Invalid Google redirect URI")
+    origin = cleaned[: -len(CALLBACK_SUFFIX)]
+    allowed = {
+        settings.public_origin.rstrip("/"),
+        settings.frontend_origin.rstrip("/"),
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    }
+    if origin in allowed or origin.endswith(".vercel.app"):
+        return cleaned
+    raise unauthorized("Invalid Google redirect URI")
 
 
 @dataclass(frozen=True)
@@ -20,9 +39,11 @@ class GoogleIdentity:
     name: str
 
 
-async def exchange_auth_code(code: str) -> GoogleIdentity:
+async def exchange_auth_code(code: str, redirect_uri: str | None = None) -> GoogleIdentity:
     if not settings.google_client_id or not settings.google_client_secret:
         raise service_unavailable("Gmail sign-in is not configured")
+
+    resolved_redirect = resolve_redirect_uri(redirect_uri)
 
     async with httpx.AsyncClient(timeout=20.0) as client:
         token_res = await client.post(
@@ -31,7 +52,7 @@ async def exchange_auth_code(code: str) -> GoogleIdentity:
                 "code": code,
                 "client_id": settings.google_client_id,
                 "client_secret": settings.google_client_secret,
-                "redirect_uri": settings.google_redirect_uri,
+                "redirect_uri": resolved_redirect,
                 "grant_type": "authorization_code",
             },
         )
@@ -43,7 +64,7 @@ async def exchange_auth_code(code: str) -> GoogleIdentity:
                 error = ""
             if error == "redirect_uri_mismatch":
                 raise unauthorized(
-                    "Google redirect URI mismatch. Add http://localhost:3000/auth/google/callback in Google Cloud."
+                    f"Google redirect URI mismatch. Add {resolved_redirect} in Google Cloud Authorized redirect URIs."
                 )
             raise unauthorized("Google sign-in failed")
         tokens = token_res.json()
