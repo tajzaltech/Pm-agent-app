@@ -20,13 +20,8 @@ def resolve_redirect_uri(explicit: str | None) -> str:
     if not cleaned.endswith(CALLBACK_SUFFIX):
         raise unauthorized("Invalid Google redirect URI")
     origin = cleaned[: -len(CALLBACK_SUFFIX)]
-    allowed = {
-        settings.public_origin.rstrip("/"),
-        settings.frontend_origin.rstrip("/"),
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    }
-    if origin in allowed or origin.endswith(".vercel.app"):
+    allowed = set(settings.cors_origin_list)
+    if origin in allowed:
         return cleaned
     raise unauthorized("Invalid Google redirect URI")
 

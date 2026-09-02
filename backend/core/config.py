@@ -1,13 +1,22 @@
-import os
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+
+WEAK_JWT_SECRETS = {
+    "replace-with-a-long-random-string",
+    "dev-only-change-me",
+    "change-me",
+    "secret",
+}
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE,
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -16,6 +25,7 @@ class Settings(BaseSettings):
     app_debug: bool = False
     api_prefix: str = "/v1"
     frontend_origin: str = "http://localhost:3000"
+    extra_cors_origins: str = ""
 
     mongodb_uri: str = "mongodb://localhost:27017"
     mongodb_db_name: str = "pm_agent"
@@ -50,34 +60,22 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
 
+    smtp_from: str = "Ask PM <noreply@localhost>"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    resend_api_key: str = ""
+
     allowed_upload_types: str = (
         "application/pdf,text/plain,text/markdown,application/msword,"
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
     @property
-    def on_vercel(self) -> bool:
-        return bool(os.environ.get("VERCEL"))
-
-    @property
     def public_origin(self) -> str:
-        origin = (self.frontend_origin or "").rstrip("/")
-        vercel_host = os.environ.get("VERCEL_PROJECT_PRODUCTION_URL") or os.environ.get("VERCEL_URL")
-        local = (not origin) or ("localhost" in origin) or ("127.0.0.1" in origin)
-        if self.on_vercel and local and vercel_host:
-            if vercel_host.startswith("http"):
-                return vercel_host.rstrip("/")
-            return f"https://{vercel_host}".rstrip("/")
-        return origin or "http://localhost:3000"
-
-    @property
-    def mongodb_is_local(self) -> bool:
-        uri = self.mongodb_uri.lower()
-        return "localhost" in uri or "127.0.0.1" in uri
-
-    @property
-    def use_memory_store(self) -> bool:
-        return self.on_vercel and self.mongodb_is_local
+        return (self.frontend_origin or "http://localhost:3000").rstrip("/")
 
     @property
     def google_redirect_uri(self) -> str:
@@ -90,6 +88,42 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.lower() == "production"
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        origins: list[str] = []
+        for raw in [self.frontend_origin, *self.extra_cors_origins.split(",")]:
+            cleaned = raw.strip().rstrip("/")
+            if cleaned and cleaned not in origins:
+                origins.append(cleaned)
+        if not self.is_production:
+            for local in ("http://localhost:3000", "http://127.0.0.1:3000"):
+                if local not in origins:
+                    origins.append(local)
+        return origins
+
+    @property
+    def email_configured(self) -> bool:
+        if self.resend_api_key or (self.smtp_host and self.smtp_from):
+            return True
+        return not self.is_production
+
+    @property
+    def jwt_is_weak(self) -> bool:
+        secret = (self.jwt_secret or "").strip()
+        return len(secret) < 32 or secret in WEAK_JWT_SECRETS
+
+    def validate_runtime(self) -> None:
+        if not self.is_production:
+            return
+        if self.jwt_is_weak:
+            raise RuntimeError("JWT_SECRET must be a random string of at least 32 characters in production")
+        uri = (self.mongodb_uri or "").lower()
+        if "localhost" in uri or "127.0.0.1" in uri:
+            raise RuntimeError("MONGODB_URI must point at a remote database in production")
+        origin = self.frontend_origin.rstrip("/")
+        if origin.startswith("http://") and "localhost" not in origin and "127.0.0.1" not in origin:
+            raise RuntimeError("FRONTEND_ORIGIN must use https in production")
 
 
 @lru_cache

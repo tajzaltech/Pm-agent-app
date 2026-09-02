@@ -81,11 +81,13 @@ class AuthTokenResponseSchema(StrictModel):
     refresh_token: str
     token_type: str = "bearer"
     user: UserResponseSchema
+    action_url: str | None = None
 
 
 class MessageResponseSchema(StrictModel):
     ok: bool = True
     message: str
+    action_url: str | None = None
 
 
 class UserDBModel(ORMModel):

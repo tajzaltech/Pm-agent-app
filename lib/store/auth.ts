@@ -28,7 +28,7 @@ interface AuthStore {
     workspaceId?: string | null;
   }) => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (input: { name: string; email: string; password: string; company: string }) => Promise<void>;
+  register: (input: { name: string; email: string; password: string; company: string }) => Promise<string | undefined>;
   loginWithGoogle: (code: string, company?: string) => Promise<void>;
   signOut: () => void;
 }
@@ -109,6 +109,7 @@ export const useAuthStore = create<AuthStore>()(
           workspaceId: session.user.defaultWorkspaceId,
         });
         useOnboardingStore.getState().beginSignup();
+        return session.actionUrl;
       },
 
       loginWithGoogle: async (code, company) => {
@@ -156,7 +157,7 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: "pm-agent-auth",
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         user: state.user,

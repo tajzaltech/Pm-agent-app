@@ -18,6 +18,9 @@ class AuthTokenRepository(BaseRepository):
     async def find_active(self, *, user_id: str, kind: str) -> list[dict[str, Any]]:
         return await self.find_many({"user_id": user_id, "kind": kind, "used_at": None})
 
+    async def find_usable(self, *, kind: str, token_lookup: str) -> dict[str, Any] | None:
+        return await self.find_one({"kind": kind, "token_lookup": token_lookup, "used_at": None})
+
 
 class WorkspaceRepository(BaseRepository):
     collection_name = "workspaces"

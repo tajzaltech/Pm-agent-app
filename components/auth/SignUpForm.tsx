@@ -26,13 +26,13 @@ export function SignUpForm() {
     const data = new FormData(event.currentTarget);
     setPending(true);
     try {
-      await register({
+      const actionUrl = await register({
         name: String(data.get("name") || "").trim(),
         email: String(data.get("email") || "").trim(),
         password: String(data.get("password") || ""),
         company: String(data.get("company") || "").trim(),
       });
-      router.push("/onboarding");
+      router.push(actionUrl || "/onboarding");
     } catch (error) {
       toast.error(messageFromUnknown(error, "Could not create account"));
     } finally {

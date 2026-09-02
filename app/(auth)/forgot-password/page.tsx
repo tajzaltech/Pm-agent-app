@@ -13,6 +13,7 @@ import { api, messageFromUnknown } from "@/lib/api-client";
 export default function ForgotPasswordPage() {
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resetUrl, setResetUrl] = useState<string>();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -20,9 +21,10 @@ export default function ForgotPasswordPage() {
     const email = String(data.get("email") || "").trim();
     setPending(true);
     try {
-      await api.forgotPassword(email);
+      const result = await api.forgotPassword(email);
       setSent(true);
-      toast.success("If that account exists, a reset email was sent");
+      setResetUrl(result.actionUrl);
+      toast.success(result.actionUrl ? "Use the reset link below" : "If that account exists, a reset email was sent");
     } catch (error) {
       toast.error(messageFromUnknown(error, "Could not send reset email"));
     } finally {
@@ -56,6 +58,14 @@ export default function ForgotPasswordPage() {
           <Send className="size-4" />
           {sent ? "Email sent" : pending ? "Sending…" : "Send reset link"}
         </button>
+        {resetUrl ? (
+          <p className="text-sm text-muted-foreground">
+            Local mail is on.{" "}
+            <Link href={resetUrl} className="font-medium text-primary hover:underline">
+              Continue to reset your password
+            </Link>
+          </p>
+        ) : null}
       </form>
     </AuthShell>
   );

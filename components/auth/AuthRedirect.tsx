@@ -3,13 +3,14 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+import { api } from "@/lib/api-client";
 import { useAuthStore } from "@/lib/store/auth";
 import { useAuthHydrated } from "@/lib/store/use-auth-hydrated";
 import { useOnboardingStore } from "@/lib/store/onboarding";
 import { useOnboardingHydrated } from "@/lib/store/use-onboarding-hydrated";
 import { useThemeStore } from "@/lib/store/theme";
 
-/** If workspace already set up, skip auth pages. */
+/** Skip auth pages only when the stored session is still valid. */
 export function AuthRedirect({ mode }: { mode: "signin" | "signup" }) {
   const router = useRouter();
   const authHydrated = useAuthHydrated();
@@ -22,11 +23,20 @@ export function AuthRedirect({ mode }: { mode: "signin" | "signup" }) {
 
   useEffect(() => {
     if (!hydrated || !isAuthenticated || !accessToken) return;
-    if (isSetup) {
-      router.replace(defaultLanding);
-      return;
-    }
-    router.replace("/onboarding");
+    let cancelled = false;
+    api
+      .me()
+      .then(() => {
+        if (cancelled) return;
+        router.replace(isSetup ? defaultLanding : "/onboarding");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        useAuthStore.getState().signOut();
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [hydrated, isAuthenticated, accessToken, isSetup, mode, router, defaultLanding]);
 
   return null;

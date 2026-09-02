@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -22,10 +23,18 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def hash_token(raw: str) -> str:
-    return bcrypt.hashpw(raw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    return lookup_token(raw)
+
+
+def lookup_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def verify_token_hash(raw: str, token_hash: str) -> bool:
+    if not token_hash:
+        return False
+    if token_hash == lookup_token(raw):
+        return True
     try:
         return bcrypt.checkpw(raw.encode("utf-8"), token_hash.encode("utf-8"))
     except ValueError:
@@ -40,9 +49,6 @@ def create_access_token(
     workspace_id: str = "",
 ) -> str:
     now = datetime.now(timezone.utc)
-    minutes = settings.access_token_minutes
-    if settings.use_memory_store:
-        minutes = max(minutes, 60 * 24 * 14)
     payload = {
         "sub": user_id,
         "email": email,
@@ -50,7 +56,7 @@ def create_access_token(
         "wid": workspace_id,
         "typ": ACCESS_TOKEN_TYPE,
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(minutes=minutes)).timestamp()),
+        "exp": int((now + timedelta(minutes=settings.access_token_minutes)).timestamp()),
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 

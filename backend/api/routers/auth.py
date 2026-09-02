@@ -51,8 +51,7 @@ async def signout(user: Annotated[dict, Depends(get_current_user)], repos: Annot
 
 @router.post("/forgot-password", response_model=MessageResponseSchema)
 async def forgot_password(body: ForgotPasswordRequestSchema, repos: Annotated[Repos, Depends(get_repos)]):
-    await auth_service.forgot_password(repos, body)
-    return MessageResponseSchema(message="If that account exists, a reset email was sent")
+    return await auth_service.forgot_password(repos, body)
 
 
 @router.post("/reset-password", response_model=MessageResponseSchema)

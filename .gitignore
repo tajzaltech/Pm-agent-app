@@ -43,14 +43,12 @@ venv/
 backend/.venv/
 *.egg-info/
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
-
 # netlify
 .netlify
+
+# local email outbox
+/backend/var/

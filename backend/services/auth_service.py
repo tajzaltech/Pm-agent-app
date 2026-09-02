@@ -9,9 +9,8 @@ from core.ids import initials, new_id, utcnow
 from core.security import (
     create_access_token,
     hash_password,
-    hash_token,
+    lookup_token,
     verify_password,
-    verify_token_hash,
 )
 from models.auth import (
     AuthTokenResponseSchema,
@@ -22,6 +21,7 @@ from models.auth import (
     SignUpRequestSchema,
     UserResponseSchema,
     VerifyEmailRequestSchema,
+    MessageResponseSchema,
 )
 from services.context import Actor, Repos, as_id, iso
 
@@ -43,21 +43,27 @@ def _user_response(doc: dict) -> UserResponseSchema:
     )
 
 
-async def _issue_refresh(repos: Repos, user_id: str) -> str:
+async def _store_token(repos: Repos, *, user_id: str, kind: str, ttl: timedelta) -> str:
     raw = token_urlsafe(32)
     now = utcnow()
+    lookup = lookup_token(raw)
     await repos.tokens.insert(
         {
             "_id": new_id("tok"),
             "user_id": user_id,
-            "kind": "refresh",
-            "token_hash": hash_token(raw),
-            "expires_at": now + timedelta(days=settings.refresh_token_days),
+            "kind": kind,
+            "token_hash": lookup,
+            "token_lookup": lookup,
+            "expires_at": now + ttl,
             "created_at": now,
             "used_at": None,
         }
     )
     return raw
+
+
+async def _issue_refresh(repos: Repos, user_id: str) -> str:
+    return await _store_token(repos, user_id=user_id, kind="refresh", ttl=timedelta(days=settings.refresh_token_days))
 
 
 async def _seed_workspace(repos: Repos, *, user_id: str, name: str, email: str, company: str) -> str:
@@ -203,23 +209,19 @@ async def signup(repos: Repos, body: SignUpRequestSchema) -> AuthTokenResponseSc
         "updated_at": now,
     }
     await repos.users.insert(user)
-    if settings.auth_require_email_verification:
-        raw = token_urlsafe(24)
-        await repos.tokens.insert(
-            {
-                "_id": new_id("tok"),
-                "user_id": user_id,
-                "kind": "email_verify",
-                "token_hash": hash_token(raw),
-                "expires_at": now + timedelta(hours=24),
-                "created_at": now,
-                "used_at": None,
-            }
-        )
-        from integrations.email_client import email_client
+    tokens = await _auth_tokens(repos, user)
+    raw = await _store_token(repos, user_id=user_id, kind="email_verify", ttl=timedelta(hours=24))
+    from integrations.email_client import email_client
 
-        await email_client.send_email(to=email, subject="Verify your PM Agent account", body="Use your verification link.")
-    return await _auth_tokens(repos, user)
+    link = f"{settings.public_origin}/verify-email?token={raw}"
+    await email_client.send_email(
+        to=email,
+        subject="Verify your Ask PM account",
+        body=f"Verify your email by opening this link:\n{link}\n\nThis link expires in 24 hours.",
+    )
+    if not settings.is_production:
+        tokens = tokens.model_copy(update={"action_url": link})
+    return tokens
 
 
 async def signin(repos: Repos, body: SignInRequestSchema) -> AuthTokenResponseSchema:
@@ -279,12 +281,7 @@ async def google_auth(repos: Repos, body: GoogleAuthRequestSchema) -> AuthTokenR
 
 
 async def refresh_session(repos: Repos, refresh_token: str) -> AuthTokenResponseSchema:
-    tokens = await repos.tokens.find_many({"kind": "refresh", "used_at": None}, limit=50)
-    match = None
-    for doc in tokens:
-        if verify_token_hash(refresh_token, doc["token_hash"]):
-            match = doc
-            break
+    match = await repos.tokens.find_usable(kind="refresh", token_lookup=lookup_token(refresh_token))
     if not match:
         raise unauthorized("Invalid refresh token")
     if _aware(match["expires_at"]) < utcnow():
@@ -313,30 +310,27 @@ async def signout(repos: Repos, user_id: str) -> None:
         await repos.tokens.update_by_id(token["_id"], {"used_at": now})
 
 
-async def forgot_password(repos: Repos, body: ForgotPasswordRequestSchema) -> None:
+async def forgot_password(repos: Repos, body: ForgotPasswordRequestSchema) -> MessageResponseSchema:
     user = await repos.users.find_by_email(str(body.email).lower())
     if not user:
-        return
-    raw = token_urlsafe(24)
-    await repos.tokens.insert(
-        {
-            "_id": new_id("tok"),
-            "user_id": user["_id"],
-            "kind": "password_reset",
-            "token_hash": hash_token(raw),
-            "expires_at": utcnow() + timedelta(hours=2),
-            "created_at": utcnow(),
-            "used_at": None,
-        }
-    )
+        return MessageResponseSchema(message="If that account exists, a reset email was sent")
+    raw = await _store_token(repos, user_id=user["_id"], kind="password_reset", ttl=timedelta(hours=2))
     from integrations.email_client import email_client
 
-    await email_client.send_email(to=user["email"], subject="Reset your password", body="Use your reset link.")
+    link = f"{settings.public_origin}/reset-password?token={raw}"
+    await email_client.send_email(
+        to=user["email"],
+        subject="Reset your Ask PM password",
+        body=f"Reset your password by opening this link:\n{link}\n\nThis link expires in 2 hours.",
+    )
+    return MessageResponseSchema(
+        message="If that account exists, a reset email was sent",
+        action_url=None if settings.is_production else link,
+    )
 
 
 async def reset_password(repos: Repos, body: ResetPasswordRequestSchema) -> None:
-    tokens = await repos.tokens.find_many({"kind": "password_reset", "used_at": None}, limit=100)
-    match = next((t for t in tokens if verify_token_hash(body.token, t["token_hash"])), None)
+    match = await repos.tokens.find_usable(kind="password_reset", token_lookup=lookup_token(body.token))
     if not match or _aware(match["expires_at"]) < utcnow():
         raise unauthorized("Invalid or expired reset token")
     await repos.users.update_by_id(
@@ -347,8 +341,7 @@ async def reset_password(repos: Repos, body: ResetPasswordRequestSchema) -> None
 
 
 async def verify_email(repos: Repos, body: VerifyEmailRequestSchema) -> None:
-    tokens = await repos.tokens.find_many({"kind": "email_verify", "used_at": None}, limit=100)
-    match = next((t for t in tokens if verify_token_hash(body.token, t["token_hash"])), None)
+    match = await repos.tokens.find_usable(kind="email_verify", token_lookup=lookup_token(body.token))
     if not match or _aware(match["expires_at"]) < utcnow():
         raise unauthorized("Invalid or expired verification token")
     await repos.users.update_by_id(match["user_id"], {"email_verified": True, "updated_at": utcnow()})

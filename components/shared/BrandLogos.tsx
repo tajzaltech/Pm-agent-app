@@ -118,7 +118,6 @@ export function GitHubIssuesLogo({ className }: LogoProps) {
 
 export function PMAgentLogo({ className }: LogoProps) {
   return (
-    // Served from /public. next/image optimizer 404s on Vercel Services.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={ASK_PM_LOGO}

@@ -455,7 +455,7 @@ def build_doc():
     add_heading(doc, "3. Scope and Current Implementation", 1)
     add_para(
         doc,
-        "The current repository is a Next.js 16 and React 19 MVP designed for Vercel. It includes production-style application routes and API handlers, but several core services still use mock data, browser persistence, or process-local server memory. The distinction below is mandatory for planning and stakeholder communication.",
+        "The current repository is a Next.js 16 and React 19 frontend with a FastAPI backend. It includes production-style application routes and API handlers, but several core services still use mock data, browser persistence, or process-local server memory. The distinction below is mandatory for planning and stakeholder communication.",
     )
     add_table(
         doc,
@@ -483,7 +483,7 @@ def build_doc():
             "Canonical Pipeline workspace with ticket and cluster deep links.",
             "Connections, repositories, product documents, automation presets/rules, team, theme, and settings surfaces.",
             "Insights, activity, alerts, delivery stages, audit concepts, and downstream payload generation.",
-            "Vercel-compatible build and runtime API routes.",
+            "Local Next.js frontend and FastAPI backend, communicating through the versioned API contract.",
         ],
     )
     add_heading(doc, "3.2 Explicitly out of scope for this release", 2)
@@ -655,7 +655,7 @@ def build_doc():
             "FRESHDESK_WEBHOOK_SECRET must be configured in deployed environments; an unset secret must not leave a production webhook open.",
             "FRESHDESK_API_KEY status alone is not a complete integration; credentials, domain/account identity, and actual API calls must be implemented securely.",
             "Provider credentials and webhook destinations must never be returned to the browser or stored in localStorage.",
-            "Secrets must use Vercel environment configuration or an approved secret manager, with separate values by environment.",
+            "Secrets must live in environment files or an approved secret manager, with separate values by environment.",
         ],
     )
 
@@ -729,7 +729,7 @@ def build_doc():
     add_bullets(
         doc,
         [
-            "A clean installation completes the production build and starts successfully in a Vercel-compatible environment.",
+            "A clean installation completes the production build and starts successfully locally (Next.js on port 3000, FastAPI on port 8000).",
             "A new user can traverse authentication, onboarding, and the configured landing route without broken navigation.",
             "A valid test webhook creates or identifies a draft ticket and the item is visible in the review workflow.",
             "A reviewer can open a deep-linked ticket, inspect evidence, edit the draft, make each supported decision, and observe the resulting state.",

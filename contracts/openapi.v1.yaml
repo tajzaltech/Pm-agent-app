@@ -89,7 +89,11 @@ paths:
               type: object
               required: [email]
               properties: { email: { type: string, format: email } }
-      responses: { "200": { description: Always ok } }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MessageResponse" }
   /auth/reset-password:
     post:
       tags: [auth]
@@ -616,6 +620,13 @@ components:
         refresh_token: { type: string }
         token_type: { type: string }
         user: { $ref: "#/components/schemas/UserResponse" }
+        action_url: { type: string, nullable: true }
+    MessageResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        message: { type: string }
+        action_url: { type: string, nullable: true }
     Ticket:
       type: object
       description: Draft ticket returned by triage APIs (snake_case).

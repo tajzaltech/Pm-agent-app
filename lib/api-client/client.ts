@@ -40,14 +40,17 @@ export interface AuthSession {
   accessToken: string;
   refreshToken: string;
   user: ReturnType<typeof mapUser>;
+  actionUrl?: string;
 }
 
 function mapAuth(raw: Dict): AuthSession {
   const user = mapUser(asDict(raw.user));
+  const actionUrl = typeof raw.action_url === "string" ? raw.action_url : "";
   const session: AuthSession = {
     accessToken: String(raw.access_token ?? ""),
     refreshToken: String(raw.refresh_token ?? ""),
     user,
+    actionUrl: actionUrl || undefined,
   };
   setSession({
     accessToken: session.accessToken,
@@ -80,7 +83,11 @@ export const api = {
     return mapUser(await apiRequest<Dict>("/auth/me"));
   },
   async forgotPassword(email: string) {
-    await apiRequest("/auth/forgot-password", { method: "POST", body: { email }, auth: false });
+    const data = asDict(
+      await apiRequest<Dict>("/auth/forgot-password", { method: "POST", body: { email }, auth: false }),
+    );
+    const actionUrl = typeof data.action_url === "string" ? data.action_url : "";
+    return { message: String(data.message || ""), actionUrl: actionUrl || undefined };
   },
   async resetPassword(token: string, password: string) {
     await apiRequest("/auth/reset-password", { method: "POST", body: { token, password }, auth: false });
